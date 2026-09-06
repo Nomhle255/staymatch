@@ -6,14 +6,11 @@ import {
 	PlusCircle,
 	Users,
 	LogOut,
-	Bell,
 	Search,
 	MapPin,
-	Eye,
 	BadgeCheck,
 	Clock,
 	PauseCircle,
-	PlayCircle,
 	Pencil,
 	Trash2,
 	MoreVertical,
@@ -33,56 +30,50 @@ const filterTabs = ['All', 'Verified', 'Pending review', 'Inactive']
 
 const listings = [
 	{
-		title: 'Self-contained single near NUL',
-		area: 'Roma, Maseru',
-		price: 'M2,800 / month',
+		title: 'Single room',
+		area: 'Khubelu',
+		price: 'M600 / month',
 		status: 'Verified',
-		views: 214,
 		applicants: 5,
 		gradient: 'from-blue-400 to-indigo-500',
 	},
 	{
-		title: 'Shared 2-bedroom apartment',
-		area: 'Ha Abia, Maseru',
-		price: 'M3,400 / month',
+		title: 'Shared 2-room',
+		area: 'Ha Abia, Ha Joele',
+		price: 'M600 / month',
 		status: 'Pending review',
-		views: 96,
 		applicants: 2,
 		gradient: 'from-emerald-400 to-teal-500',
 	},
 	{
-		title: 'Studio flat, walking distance',
+		title: 'Commune',
 		area: 'Roma, Maseru',
-		price: 'M3,900 / month',
+		price: 'M1,500 / month',
 		status: 'Verified',
-		views: 341,
 		applicants: 8,
 		gradient: 'from-orange-400 to-rose-500',
 	},
 	{
-		title: 'En-suite room with balcony',
-		area: 'Maseru West',
-		price: 'M3,100 / month',
+		title: 'Single room',
+		area: 'Hapena-pena, Maseru ',
+		price: 'M550 / month',
 		status: 'Verified',
-		views: 178,
 		applicants: 4,
 		gradient: 'from-sky-400 to-blue-500',
 	},
 	{
-		title: 'Quiet single near campus gate',
+		title: ' Single room ',
 		area: 'Roma, Maseru',
-		price: 'M2,600 / month',
+		price: 'M500 / month',
 		status: 'Inactive',
-		views: 52,
 		applicants: 0,
 		gradient: 'from-violet-400 to-purple-500',
 	},
 	{
-		title: 'Modern shared flat, 3 bedrooms',
-		area: 'Ha Hoohlo, Maseru',
-		price: 'M2,950 / month',
+		title: 'Single room',
+		area: 'Thabong, Maseru',
+		price: 'M550 / month',
 		status: 'Pending review',
-		views: 34,
 		applicants: 1,
 		gradient: 'from-amber-400 to-orange-500',
 	},
@@ -164,9 +155,9 @@ function AccommodationListings() {
 				<div className="space-y-4">
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
-							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">T</div>
+							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">K</div>
 							<div>
-								<p className="text-sm font-bold text-slate-900">Thabo Mokoena</p>
+								<p className="text-sm font-bold text-slate-900">Khaya Cathala</p>
 								<p className="text-xs text-slate-500">Landlord</p>
 							</div>
 						</div>
@@ -188,14 +179,6 @@ function AccommodationListings() {
 						<p className="mt-1 text-sm text-slate-500">Manage, edit, and track every property you've published.</p>
 					</div>
 					<div className="flex items-center gap-3">
-						<button
-							type="button"
-							className="relative grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600"
-							aria-label="Notifications"
-						>
-							<Bell className="h-4 w-4" />
-							<span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500" />
-						</button>
 						<button
 							type="button"
 							className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
@@ -285,17 +268,6 @@ function AccommodationListings() {
 									</p>
 									<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">{listing.price}</p>
 
-									<div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-4 text-sm text-slate-500">
-										<span className="flex items-center gap-1.5">
-											<Eye className="h-3.5 w-3.5" />
-											{listing.views} views
-										</span>
-										<span className="flex items-center gap-1.5">
-											<Users className="h-3.5 w-3.5" />
-											{listing.applicants} applicants
-										</span>
-									</div>
-
 									<div className="mt-4 flex gap-2">
 										<button
 											type="button"
@@ -303,22 +275,6 @@ function AccommodationListings() {
 										>
 											<Pencil className="h-3.5 w-3.5" />
 											Edit
-										</button>
-										<button
-											type="button"
-											className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-amber-300 hover:text-amber-600"
-										>
-											{listing.status === 'Inactive' ? (
-												<>
-													<PlayCircle className="h-3.5 w-3.5" />
-													Activate
-												</>
-											) : (
-												<>
-													<PauseCircle className="h-3.5 w-3.5" />
-													Pause
-												</>
-											)}
 										</button>
 										<button
 											type="button"
