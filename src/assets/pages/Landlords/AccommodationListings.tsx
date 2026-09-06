@@ -5,9 +5,6 @@ import {
 	Home,
 	PlusCircle,
 	Users,
-	Wallet,
-	MessageSquare,
-	Settings,
 	LogOut,
 	Bell,
 	Search,
@@ -26,13 +23,10 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-	{ label: 'Dashboard', icon: LayoutDashboard, active: false },
-	{ label: 'My Listings', icon: Home, active: true },
-	{ label: 'Add Listing', icon: PlusCircle, active: false },
-	{ label: 'Applications', icon: Users, active: false },
-	{ label: 'Earnings', icon: Wallet, active: false },
-	{ label: 'Messages', icon: MessageSquare, active: false },
-	{ label: 'Settings', icon: Settings, active: false },
+	{ label: 'Dashboard', icon: LayoutDashboard, active: false, href: '#landlord-dashboard'  },
+	{ label: 'My Listings', icon: Home, active: true, href: '#accommodation-listings'  },
+	{ label: 'Add Listing', icon: PlusCircle, active: false, href: '#add-accommodation'  },
+	{ label: 'Applications', icon: Users, active: false, href: '#applications'  },
 ]
 
 const filterTabs = ['All', 'Verified', 'Pending review', 'Inactive']
@@ -100,12 +94,27 @@ const statusStyles: Record<string, { tint: string; icon: ComponentType<{ classNa
 	Inactive: { tint: 'bg-slate-100 text-slate-500', icon: PauseCircle },
 }
 
-function NavButton({ label, icon: Icon, active }: { label: string; icon: ComponentType<{ className?: string }>; active: boolean }) {
+function NavButton({
+	label,
+	icon: Icon,
+	active,
+	href,
+}: {
+	label: string
+	icon: ComponentType<{ className?: string }>
+	active: boolean
+	href: string
+}) {
 	return (
 		<button
 			type="button"
+			onClick={() => {
+				window.location.hash = href
+			}}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-				active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+				active
+					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+					: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
 			}`}
 		>
 			<Icon className="h-4 w-4" />
