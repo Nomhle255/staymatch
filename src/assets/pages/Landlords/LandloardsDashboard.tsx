@@ -204,7 +204,7 @@ function LandlordDashboard() {
 							</h2>
 
 							<a
-								href="#"
+								href="#accommodation-listings"
 								className="text-sm font-semibold text-blue-600 hover:text-blue-700"
 							>
 								Manage all
