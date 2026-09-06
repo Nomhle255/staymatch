@@ -3,7 +3,6 @@ import type { ReactNode, ComponentType } from 'react'
 import {
 	LayoutDashboard,
 	Search,
-	Heart,
 	FileText,
 	LogOut,
 	Bell,
@@ -16,10 +15,9 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-	{ label: 'Dashboard', icon: LayoutDashboard, active: false },
-	{ label: 'Browse Listings', icon: Search, active: true },
-	{ label: 'Saved Homes', icon: Heart, active: false },
-	{ label: 'Applications', icon: FileText, active: false },
+	{ label: 'Dashboard', icon: LayoutDashboard, active: false, href: '#student-dashboard' },
+	{ label: 'Browse Listings', icon: Search, active: true, href: '#students-browse-listings' },
+	{ label: 'Applications', icon: FileText, active: false, href: '#applications'  },
 ]
 
 const propertyTypes = ['All Types', 'Single Room', 'Shared Apartment', 'Studio Flat', 'En-suite']
@@ -82,12 +80,27 @@ const listings = [
 	},
 ]
 
-function NavButton({ label, icon: Icon, active }: { label: string; icon: ComponentType<{ className?: string }>; active: boolean }) {
+function NavButton({
+	label,
+	icon: Icon,
+	active,
+	href,
+}: {
+	label: string
+	icon: ComponentType<{ className?: string }>
+	active: boolean
+	href: string
+}) {
 	return (
 		<button
 			type="button"
+			onClick={() => {
+				window.location.hash = href
+			}}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-				active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+				active
+					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+					: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
 			}`}
 		>
 			<Icon className="h-4 w-4" />
@@ -108,11 +121,6 @@ function StudentBrowseListings() {
 	const [query, setQuery] = useState('')
 	const [propertyType, setPropertyType] = useState('All Types')
 	const [priceRange, setPriceRange] = useState('Any Price')
-	const [savedIds, setSavedIds] = useState<number[]>([])
-
-	const toggleSaved = (id: number) => {
-		setSavedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
-	}
 
 	const filteredListings = listings.filter((listing) => {
 		const matchesQuery =
@@ -236,7 +244,6 @@ function StudentBrowseListings() {
 
 				<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 					{filteredListings.map((listing) => {
-						const isSaved = savedIds.includes(listing.id)
 						return (
 							<article
 								key={listing.id}
@@ -249,14 +256,7 @@ function StudentBrowseListings() {
 											Verified
 										</span>
 									)}
-									<button
-										type="button"
-										onClick={() => toggleSaved(listing.id)}
-										className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/95 shadow-sm transition hover:text-rose-500"
-										aria-label={isSaved ? 'Remove from saved homes' : 'Save to favorites'}
-									>
-										<Heart className={`h-4 w-4 ${isSaved ? 'fill-rose-500 text-rose-500' : 'text-slate-500'}`} />
-									</button>
+							
 								</div>
 								<div className="p-5">
 									<p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">{listing.tag}</p>

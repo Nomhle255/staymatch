@@ -6,6 +6,7 @@ import StudentDashboard from './assets/pages/Students/StudentDashboard.tsx'
 import LandlordDashboard from './assets/pages/Landlords/LandloardsDashboard.tsx'
 import AddAccommodation from './assets/pages/Landlords/AddAccommodation.tsx'
 import AccommodationListings from './assets/pages/Landlords/AccommodationListings.tsx'
+import StudentBrowseListings from './assets/pages/Students/StudentsBrowseListings.tsx'
 
 function App() {
   const [activePage, setActivePage] = useState(() => window.location.hash)
@@ -38,6 +39,9 @@ function App() {
   }
   if (activePage === '#accommodation-listings') {
     return <AccommodationListings />
+  }
+  if (activePage === '#student-browse-listings') {
+    return <StudentBrowseListings />
   }
   return (
     <Homepage />
