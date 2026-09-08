@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 const landlordHighlights = [
   'Publish a listing with rent, utilities, and availability details',
   'Reach students already searching for your area and university zone',
@@ -35,10 +37,9 @@ function HomePage() {
         </div>
 
         <nav className="flex flex-wrap items-center gap-5 text-sm font-medium text-slate-600" aria-label="Primary">
-          <a className="transition hover:text-blue-600" href="#student-dashboard">Browse</a>
-          <a className="transition hover:text-blue-600" href="#student-dashboard">For Students</a>
-          <a className="transition hover:text-blue-600" href="#landlord-dashboard">For Landlords</a>
-          <a className="transition hover:text-blue-600" href="#student-dashboard">How it Works</a>
+          <Link className="transition hover:text-blue-600" href="/register">For Students</Link>
+          <Link className="transition hover:text-blue-600" href="/register">For Landlords</Link>
+          <a className="transition hover:text-blue-600" href="#how-it-works">How it Works</a>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -49,23 +50,22 @@ function HomePage() {
           >
             ♡
           </button>
-          <a
+          <Link
             className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
-            href="#register"
+            href="/register"
           >
             List a property
-          </a>
-          <a
+          </Link>
+          <Link
             className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
-            href="#register"
+            href="/login"
           >
             Sign In
-          </a>
+          </Link>
         </div>
       </header>
 
       <section
-        id="browse"
         className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200/70 bg-white/80 px-5 py-14 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur sm:px-8 lg:px-12"
       >
         <div className="mx-auto max-w-4xl text-center">
@@ -83,12 +83,12 @@ function HomePage() {
         </div>
 
         <div className="mx-auto mt-10 flex max-w-4xl flex-wrap justify-center gap-3">
-          <a
+          <Link
             className="rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
-            href="#register"
+            href="/register"
           >
             Register now
-          </a>
+          </Link>
           <a
             className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
             href="#landlords"

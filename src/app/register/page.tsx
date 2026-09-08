@@ -1,4 +1,8 @@
+'use client'
+
 import { useState, type ReactNode, type ComponentType } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
 	User,
 	Mail,
@@ -66,13 +70,65 @@ function InputShell({ icon: Icon, children }: InputShellProps) {
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
 
-function RegisterPage() {
+function RegisterUser() {
+	const router = useRouter()
+
 	const [roleOpen, setRoleOpen] = useState(false)
 	const [role, setRole] = useState<Role | null>(null)
 	const [showPassword, setShowPassword] = useState(false)
 	const [showConfirm, setShowConfirm] = useState(false)
 
+	const [name, setName] = useState('')
+	const [email, setEmail] = useState('')
+	const [phone, setPhone] = useState('')
+	const [password, setPassword] = useState('')
+	const [confirmPassword, setConfirmPassword] = useState('')
+	const [agreed, setAgreed] = useState(false)
+
+	const [error, setError] = useState('')
+	const [isSubmitting, setIsSubmitting] = useState(false)
+
 	const selectedRole = roleOptions.find((option) => option.value === role)
+
+	const handleSubmit = async (event: React.FormEvent) => {
+		event.preventDefault()
+		setError('')
+
+		if (!role) {
+			setError('Please select your role.')
+			return
+		}
+		if (password !== confirmPassword) {
+			setError('Passwords do not match.')
+			return
+		}
+		if (!agreed) {
+			setError('You must agree to the Terms of Service and Privacy Policy.')
+			return
+		}
+
+		setIsSubmitting(true)
+		try {
+			const response = await fetch('/api/auth/register', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name, email, phone, password, role }),
+			})
+
+			const data = await response.json()
+
+			if (!response.ok) {
+				setError(data.error ?? 'Something went wrong.')
+				return
+			}
+
+			router.push('/')
+		} catch {
+			setError('Could not reach the server. Please try again.')
+		} finally {
+			setIsSubmitting(false)
+		}
+	}
 
 	return (
 		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-6 sm:px-6 lg:px-10">
@@ -90,9 +146,9 @@ function RegisterPage() {
 				</div>
 				<p className="text-sm text-slate-500">
 					Already have an account?{' '}
-					<a href="#login" className="font-semibold text-blue-600 hover:text-blue-700">
+					<Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
 						Log in
-					</a>
+					</Link>
 				</p>
 			</div>
 
@@ -106,7 +162,11 @@ function RegisterPage() {
 					</p>
 				</div>
 
-				<form className="mt-8 space-y-5">
+				<form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+					{error && (
+						<div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">{error}</div>
+					)}
+
 					<Field label="Select Your Role">
 						<div className="relative">
 							<button
@@ -154,19 +214,39 @@ function RegisterPage() {
 
 					<Field label="Full Name">
 						<InputShell icon={User}>
-							<input type="text" placeholder="Enter your full name" className={inputClasses} />
+							<input
+								type="text"
+								value={name}
+								onChange={(event) => setName(event.target.value)}
+								placeholder="Enter your full name"
+								required
+								className={inputClasses}
+							/>
 						</InputShell>
 					</Field>
 
 					<Field label="Email Address">
 						<InputShell icon={Mail}>
-							<input type="email" placeholder="Enter your email address" className={inputClasses} />
+							<input
+								type="email"
+								value={email}
+								onChange={(event) => setEmail(event.target.value)}
+								placeholder="Enter your email address"
+								required
+								className={inputClasses}
+							/>
 						</InputShell>
 					</Field>
 
 					<Field label="Phone Number">
 						<InputShell icon={Phone}>
-							<input type="tel" placeholder="+266 XXX XXX" className={inputClasses} />
+							<input
+								type="tel"
+								value={phone}
+								onChange={(event) => setPhone(event.target.value)}
+								placeholder="+266 XXX XXX"
+								className={inputClasses}
+							/>
 						</InputShell>
 					</Field>
 
@@ -175,7 +255,10 @@ function RegisterPage() {
 							<Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 							<input
 								type={showPassword ? 'text' : 'password'}
+								value={password}
+								onChange={(event) => setPassword(event.target.value)}
 								placeholder="Create a strong password"
+								required
 								className={`${inputClasses} pr-11`}
 							/>
 							<button
@@ -194,7 +277,10 @@ function RegisterPage() {
 							<Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 							<input
 								type={showConfirm ? 'text' : 'password'}
+								value={confirmPassword}
+								onChange={(event) => setConfirmPassword(event.target.value)}
 								placeholder="Confirm your password"
+								required
 								className={`${inputClasses} pr-11`}
 							/>
 							<button
@@ -211,6 +297,8 @@ function RegisterPage() {
 					<label className="flex items-start gap-3 text-sm text-slate-600">
 						<input
 							type="checkbox"
+							checked={agreed}
+							onChange={(event) => setAgreed(event.target.checked)}
 							className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
 						/>
 						<span>
@@ -227,10 +315,11 @@ function RegisterPage() {
 
 					<button
 						type="submit"
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700"
+						disabled={isSubmitting}
+						className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 disabled:opacity-60"
 					>
-						Create Account
-						<ArrowRight className="h-4 w-4" />
+						{isSubmitting ? 'Creating account...' : 'Create Account'}
+						{!isSubmitting && <ArrowRight className="h-4 w-4" />}
 					</button>
 
 					<div className="flex items-center gap-4 text-xs font-medium text-slate-400">
@@ -266,9 +355,9 @@ function RegisterPage() {
 
 					<p className="text-center text-sm text-slate-500">
 						Already have an account?{' '}
-						<a href="#login" className="font-semibold text-blue-600 hover:text-blue-700">
+						<Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
 							Log in
-						</a>
+						</Link>
 					</p>
 				</form>
 			</div>
@@ -276,4 +365,4 @@ function RegisterPage() {
 	)
 }
 
-export default RegisterPage
+export default RegisterUser

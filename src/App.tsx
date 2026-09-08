@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import Homepage from './assets/pages/Homepage.tsx'
-import RegisterationPage from './assets/pages/RegisterationPage'
-import LoginPage from './assets/pages/LoginPage'
-import StudentDashboard from './assets/pages/Students/StudentDashboard.tsx'
-import LandlordDashboard from './assets/pages/Landlords/LandloardsDashboard.tsx'
-import AddAccommodation from './assets/pages/Landlords/AddAccommodation.tsx'
-import AccommodationListings from './assets/pages/Landlords/AccommodationListings.tsx'
-import StudentBrowseListings from './assets/pages/Students/StudentsBrowseListings.tsx'
+import Homepage from './app/page.tsx'
+import RegisterationPage from './app/register/page.tsx'
+import LoginPage from './app/login/page.tsx'
+import StudentDashboard from './app/student/dashboard/page.tsx'
+import LandlordDashboard from './app/landlord/dashboard/page.tsx'
+import AddAccommodation from './app/landlord/AddAccommodation/page.tsx'
+import AccommodationListings from './app/landlord/AccommodationListing/page.tsx'
+import StudentBrowseListings from './app/student/browseListings/page.tsx'
 
 function App() {
   const [activePage, setActivePage] = useState(() => window.location.hash)
