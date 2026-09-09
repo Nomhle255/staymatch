@@ -13,14 +13,45 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-	{ label: 'Dashboard', icon: LayoutDashboard, active: true, href: '/landlord/dashboard' },
-	{ label: 'My Listings', icon: Home, active: false, href: '/landlord/listings' },
-	{ label: 'Applications', icon: Users, active: false, href: '/landlord/applications' },
+	{
+		label: 'Dashboard',
+		icon: LayoutDashboard,
+		active: true,
+		href: '/landlord/dashboard',
+	},
+	{
+		label: 'My Listings',
+		icon: Home,
+		active: false,
+		href: '/landlord/accommodationlisting',
+	},
+	{
+		label: 'Add Listing',
+		icon: PlusCircle,
+		active: false,
+		href: '/landlord/addaccommodation',
+	},
+	{
+		label: 'Applications',
+		icon: Users,
+		active: false,
+		href: '/landlord/applications',
+	},
 ]
 
 const stats = [
-	{ label: 'Active Listings', value: '8', icon: Home, tint: 'bg-blue-50 text-blue-600' },
-	{ label: 'Pending Applications', value: '5', icon: Users, tint: 'bg-amber-50 text-amber-600' },
+	{
+		label: 'Active Listings',
+		value: '8',
+		icon: Home,
+		tint: 'bg-blue-50 text-blue-600',
+	},
+	{
+		label: 'Pending Applications',
+		value: '5',
+		icon: Users,
+		tint: 'bg-amber-50 text-amber-600',
+	},
 ]
 
 const listings = [
@@ -48,8 +79,16 @@ const listings = [
 ]
 
 const applications = [
-	{ name: 'Meme Cathala', listing: 'Two room', date: 'Applied Sep 5' },
-	{ name: 'Nonko Cathala', listing: 'Single room', date: 'Applied Sep 5' },
+	{
+		name: 'Meme Cathala',
+		listing: 'Two room',
+		date: 'Applied Sep 5',
+	},
+	{
+		name: 'Nonko Cathala',
+		listing: 'Single room',
+		date: 'Applied Sep 5',
+	},
 ]
 
 function NavButton({
@@ -77,6 +116,7 @@ function NavButton({
 		</Link>
 	)
 }
+
 function StatCard({
 	label,
 	value,
@@ -90,7 +130,9 @@ function StatCard({
 }) {
 	return (
 		<div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
-			<div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${tint}`}>
+			<div
+				className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${tint}`}
+			>
 				<Icon className="h-5 w-5" />
 			</div>
 
@@ -112,9 +154,9 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function LandlordDashboard() {
-
 	return (
 		<div className="flex min-h-screen bg-slate-50">
+			{/* Sidebar */}
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
@@ -134,6 +176,7 @@ function LandlordDashboard() {
 					</nav>
 				</div>
 
+				{/* Landlord Profile */}
 				<div className="space-y-4">
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
@@ -146,7 +189,9 @@ function LandlordDashboard() {
 									Khaya Cathala
 								</p>
 
-								<p className="text-xs text-slate-500">Landlord</p>
+								<p className="text-xs text-slate-500">
+									Landlord
+								</p>
 							</div>
 						</div>
 					</div>
@@ -161,7 +206,9 @@ function LandlordDashboard() {
 				</div>
 			</SidebarShell>
 
+			{/* Main Content */}
 			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
@@ -175,7 +222,7 @@ function LandlordDashboard() {
 
 					<div className="flex items-center gap-3">
 						<Link
-							href="/landlord/listings/new"
+							href="/landlord/addaccommodation"
 							className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
 						>
 							<PlusCircle className="h-4 w-4" />
@@ -184,13 +231,16 @@ function LandlordDashboard() {
 					</div>
 				</div>
 
+				{/* Stats */}
 				<div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 					{stats.map((stat) => (
 						<StatCard key={stat.label} {...stat} />
 					))}
 				</div>
 
+				{/* Listings + Applications */}
 				<div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+					{/* Listings */}
 					<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 						<div className="flex items-center justify-between">
 							<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
@@ -251,6 +301,7 @@ function LandlordDashboard() {
 						</div>
 					</section>
 
+					{/* Applications */}
 					<div className="space-y-6">
 						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 							<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
