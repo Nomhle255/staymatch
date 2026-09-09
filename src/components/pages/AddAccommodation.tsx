@@ -1,5 +1,5 @@
 'use client'
-
+import { useRouter } from 'next/navigation'
 import {
 	useEffect,
 	useRef,
@@ -144,6 +144,7 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function AddAccommodation() {
+	const router = useRouter()
 	const [propertyType, setPropertyType] = useState('')
 	const [price, setPrice] = useState('')
 	const [area, setArea] = useState('')
@@ -471,76 +472,45 @@ function AddAccommodation() {
 		setLoading(true)
 		setMessage('')
 		setError('')
+	try {
+		const response = await fetch('/api/addaccommodation', {
+			method: 'POST',
+			headers: {
+			'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+			propertyType,
+			price: Number(price),
+			area,
+			description,
+			availableFrom: availableFrom || null,
+			amenities: selectedAmenities,
+			photos,
+			latitude,
+			longitude,
+			}),
+		})
+		const data = await response.json()
 
-		try {
-			const response = await fetch(
-				'/api/addaccommodation',
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type':
-							'application/json',
-					},
-					body: JSON.stringify({
-						propertyType,
-						price: Number(price),
-						area,
-						description,
-						availableFrom:
-							availableFrom || null,
-						amenities:
-							selectedAmenities,
-						photos,
+		if (!response.ok) {
+			throw new Error(data.error || 'Failed to add accommodation.')
+		}
 
-						// Property coordinates
-						latitude,
-						longitude,
-					}),
-				},
-			)
+		// Show success message
+		setMessage('Accommodation added successfully!')
 
-			const data = await response.json()
-
-			if (!response.ok) {
-				throw new Error(
-					data.error ||
-						'Failed to add accommodation.',
-				)
-			}
-
-			setMessage(
-				'Accommodation submitted successfully. It is now pending review.',
-			)
-			setPropertyType('')
-			setPrice('')
-			setArea('')
-			setDescription('')
-			setAvailableFrom('')
-			setSelectedAmenities([])
-			setPhotos([])
-
-			setLatitude(null)
-			setLongitude(null)
-			setLocationConfirmed(false)
-			setSearchLocation('')
-
-			if (markerRef.current) {
-				markerRef.current.remove()
-				markerRef.current = null
-			}
-
-			mapInstanceRef.current?.setView(
-				[-29.3151, 27.4869],
-				12,
-			)
+		// Redirect to listings after 2 seconds
+		setTimeout(() => {
+			router.push('/landlord/accommodationlisting')
+		}, 2000)
 		} catch (error) {
-			setError(
-				error instanceof Error
-					? error.message
-					: 'Something went wrong.',
-			)
+		setError(
+			error instanceof Error
+			? error.message
+			: 'Something went wrong.',
+		)
 		} finally {
-			setLoading(false)
+		setLoading(false)
 		}
 	}
 
