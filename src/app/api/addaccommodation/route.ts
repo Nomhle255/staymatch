@@ -1,105 +1,78 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { PropertyType } from '@prisma/client'
+import { verifyToken } from '@/lib/auth'
 
-export async function POST(request: Request) {
+const VALID_PROPERTY_TYPES = ['SINGLE_ROOM', 'SHARED_APARTMENT', 'STUDIO_FLAT', 'EN_SUITE']
+
+export async function POST(request: NextRequest) {
 	try {
-		const body = await request.json()
+		const token = request.cookies.get('staymatch_token')?.value
+		const payload = token ? verifyToken(token) : null
 
+		if (!payload) {
+			return NextResponse.json({ error: 'You must be logged in to do that.' }, { status: 401 })
+		}
+
+		if (payload.role !== 'LANDLORD') {
+			return NextResponse.json({ error: 'Only landlords can publish listings.' }, { status: 403 })
+		}
+
+		const body = await request.json()
 		const {
-			landlordId,
 			title,
-			description,
-			area,
-			price,
 			propertyType,
+			price,
+			area,
+			description,
 			bedrooms,
 			bathrooms,
-			amenities,
 			availableFrom,
+			amenities,
+			photos,
+			latitude,
+			longitude,
 		} = body
 
-		if (
-			!landlordId ||
-			!title ||
-			!description ||
-			!area ||
-			price === undefined ||
-			!propertyType
-		) {
+		if (!title || !propertyType || !price || !area || !description) {
 			return NextResponse.json(
-				{
-					error: 'Please fill in all required fields.',
-				},
+				{ error: 'Please fill in the listing title, property type, rent, area, and description.' },
 				{ status: 400 },
 			)
 		}
 
-		const landlord = await prisma.user.findUnique({
-			where: {
-				id: landlordId,
+		if (!VALID_PROPERTY_TYPES.includes(propertyType)) {
+			return NextResponse.json({ error: 'Invalid property type.' }, { status: 400 })
+		}
+
+		if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+			return NextResponse.json(
+				{ error: 'Please select and confirm the property location on the map.' },
+				{ status: 400 },
+			)
+		}
+
+		const accommodation = await prisma.accommodation.create({
+			data: {
+				landlordId: payload.userId,
+				title,
+				description,
+				area,
+				price: Number(price),
+				propertyType,
+				bedrooms: bedrooms ? Number(bedrooms) : 1,
+				bathrooms: bathrooms ? Number(bathrooms) : 1,
+				amenities: Array.isArray(amenities) ? amenities : [],
+				photos: Array.isArray(photos) ? photos : [],
+				latitude,
+				longitude,
+				availableFrom: availableFrom ? new Date(availableFrom) : undefined,
+				status: 'PENDING_REVIEW',
 			},
 		})
 
-		if (!landlord) {
-			return NextResponse.json(
-				{
-					error: 'Landlord account not found.',
-				},
-				{ status: 404 },
-			)
-		}
-
-		if (landlord.role !== 'LANDLORD') {
-			return NextResponse.json(
-				{
-					error: 'Only landlords can add accommodation listings.',
-				},
-				{ status: 403 },
-			)
-		}
-
-		const accommodation =
-			await prisma.accommodation.create({
-				data: {
-					landlordId,
-					title,
-					description,
-					area,
-					price: Number(price),
-					propertyType:
-						propertyType as PropertyType,
-					bedrooms: Number(bedrooms),
-					bathrooms: Number(bathrooms),
-					amenities: Array.isArray(amenities)
-						? amenities
-						: [],
-					availableFrom: availableFrom
-						? new Date(availableFrom)
-						: null,
-					status: 'PENDING_REVIEW',
-				},
-			})
-
-		return NextResponse.json(
-			{
-				message:
-					'Accommodation added successfully.',
-				accommodation,
-			},
-			{ status: 201 },
-		)
+		return NextResponse.json({ accommodation })
 	} catch (error) {
-		console.error(
-			'Add accommodation error:',
-			error,
-		)
-
-		return NextResponse.json(
-			{
-				error: 'Failed to add accommodation.',
-			},
-			{ status: 500 },
-		)
+		console.error('Create accommodation error:', error)
+		return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
 	}
 }

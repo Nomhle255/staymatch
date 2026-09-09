@@ -1,6 +1,8 @@
 'use client'
 
 import {
+	useEffect,
+	useRef,
 	useState,
 	type ReactNode,
 	type ComponentType,
@@ -29,7 +31,11 @@ import {
 	WashingMachine,
 	UploadCloud,
 	X,
+	Crosshair,
+	Search,
+	CheckCircle2,
 } from 'lucide-react'
+import type * as Leaflet from 'leaflet'
 
 const navItems = [
 	{
@@ -156,9 +162,276 @@ function AddAccommodation() {
 	const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
 	const [photos, setPhotos] = useState<string[]>([])
 
+	// Property location
+	const [latitude, setLatitude] = useState<number | null>(null)
+	const [longitude, setLongitude] = useState<number | null>(null)
+	const [locationConfirmed, setLocationConfirmed] = useState(false)
+	const [locationLoading, setLocationLoading] = useState(false)
+	const [locationError, setLocationError] = useState('')
+	const [searchLocation, setSearchLocation] = useState('')
+
+	const mapRef = useRef<HTMLDivElement | null>(null)
+	const mapInstanceRef = useRef<Leaflet.Map | null>(null)
+	const markerRef = useRef<Leaflet.Marker | null>(null)
+
 	const [loading, setLoading] = useState(false)
 	const [message, setMessage] = useState('')
 	const [error, setError] = useState('')
+
+	/*
+	 * Initialise Leaflet map.
+	 *
+	 * Leaflet is imported dynamically here because it depends
+	 * on browser APIs and should not be loaded by Next.js
+	 * during server-side rendering.
+	 */
+	useEffect(() => {
+		if (!mapRef.current || mapInstanceRef.current) return
+
+		let cancelled = false
+
+		const initializeMap = async () => {
+			const leafletModule = await import('leaflet')
+
+			if (cancelled || !mapRef.current) return
+
+			const L = leafletModule.default
+
+			// Default location: Maseru
+			const defaultLatitude = -29.3151
+			const defaultLongitude = 27.4869
+
+			const map = L.map(mapRef.current, {
+				dragging: true,
+				scrollWheelZoom: true,
+				doubleClickZoom: true,
+				boxZoom: true,
+				keyboard: true,
+			}).setView(
+				[defaultLatitude, defaultLongitude],
+				12,
+			)
+
+			// Explicitly enable map dragging
+			map.dragging.enable()
+
+			L.tileLayer(
+				'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+				{
+					attribution:
+						'&copy; OpenStreetMap contributors',
+				},
+			).addTo(map)
+
+			map.on(
+				'click',
+				(event: Leaflet.LeafletMouseEvent) => {
+					const { lat, lng } = event.latlng
+
+					setLatitude(lat)
+					setLongitude(lng)
+					setLocationConfirmed(false)
+
+					if (markerRef.current) {
+						markerRef.current.setLatLng([
+							lat,
+							lng,
+						])
+					} else {
+						const marker = L.marker(
+							[lat, lng],
+							{
+								draggable: true,
+							},
+						).addTo(map)
+
+						marker.on(
+							'dragend',
+							() => {
+								const position =
+									marker.getLatLng()
+
+								setLatitude(
+									position.lat,
+								)
+								setLongitude(
+									position.lng,
+								)
+								setLocationConfirmed(
+									false,
+								)
+							},
+						)
+
+						markerRef.current = marker
+					}
+				},
+			)
+
+			mapInstanceRef.current = map
+		}
+
+		initializeMap()
+
+		return () => {
+			cancelled = true
+
+			if (mapInstanceRef.current) {
+				mapInstanceRef.current.remove()
+				mapInstanceRef.current = null
+			}
+
+			markerRef.current = null
+		}
+	}, [])
+
+	/*
+	 * Set marker on map.
+	 */
+	const setMapLocation = (
+		lat: number,
+		lng: number,
+		zoom = 16,
+	) => {
+		setLatitude(lat)
+		setLongitude(lng)
+		setLocationConfirmed(false)
+
+		const map = mapInstanceRef.current
+
+		if (!map) return
+
+		map.setView([lat, lng], zoom)
+
+		if (markerRef.current) {
+			markerRef.current.setLatLng([lat, lng])
+			return
+		}
+
+		const createMarker = async () => {
+			const leafletModule = await import('leaflet')
+			const L = leafletModule.default
+
+			if (!mapInstanceRef.current) return
+
+			const marker = L.marker([lat, lng], {
+				draggable: true,
+			}).addTo(mapInstanceRef.current)
+
+			marker.on('dragend', () => {
+				const position = marker.getLatLng()
+
+				setLatitude(position.lat)
+				setLongitude(position.lng)
+				setLocationConfirmed(false)
+			})
+
+			markerRef.current = marker
+		}
+
+		createMarker()
+	}
+
+	/*
+	 * Use the landlord's current GPS location.
+	 */
+	const getCurrentLocation = () => {
+		setLocationLoading(true)
+		setLocationError('')
+		setLocationConfirmed(false)
+
+		if (!navigator.geolocation) {
+			setLocationError(
+				'Geolocation is not supported by this browser.',
+			)
+			setLocationLoading(false)
+			return
+		}
+
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				const lat = position.coords.latitude
+				const lng = position.coords.longitude
+
+				setMapLocation(lat, lng, 17)
+
+				setLocationLoading(false)
+			},
+			(error) => {
+				console.error(error)
+
+				setLocationError(
+					'Unable to get your location. Please allow location access and try again.',
+				)
+
+				setLocationLoading(false)
+			},
+			{
+				enableHighAccuracy: true,
+				timeout: 10000,
+				maximumAge: 0,
+			},
+		)
+	}
+
+	/*
+	 * Search for an address/place using OpenStreetMap Nominatim.
+	 */
+	const searchPropertyLocation = async () => {
+		if (!searchLocation.trim()) return
+
+		setLocationLoading(true)
+		setLocationError('')
+		setLocationConfirmed(false)
+
+		try {
+			const response = await fetch(
+				`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
+					searchLocation,
+				)}`,
+			)
+
+			if (!response.ok) {
+				throw new Error('Location search failed.')
+			}
+
+			const results = await response.json()
+
+			if (!results.length) {
+				setLocationError(
+					'Location not found. Try a more specific address or area.',
+				)
+				return
+			}
+
+			const result = results[0]
+
+			const lat = Number(result.lat)
+			const lng = Number(result.lon)
+
+			setMapLocation(lat, lng, 17)
+		} catch (error) {
+			console.error(error)
+
+			setLocationError(
+				'Unable to search for this location. Please try again.',
+			)
+		} finally {
+			setLocationLoading(false)
+		}
+	}
+
+	const confirmLocation = () => {
+		if (latitude === null || longitude === null) {
+			setLocationError(
+				'Please select a location on the map first.',
+			)
+			return
+		}
+
+		setLocationConfirmed(true)
+		setLocationError('')
+	}
 
 	const toggleAmenity = (label: string) => {
 		setSelectedAmenities((current) =>
@@ -175,7 +448,9 @@ function AddAccommodation() {
 
 		if (!files) return
 
-		const names = Array.from(files).map((file) => file.name)
+		const names = Array.from(files).map(
+			(file) => file.name,
+		)
 
 		setPhotos((current) => [...current, ...names])
 	}
@@ -191,6 +466,17 @@ function AddAccommodation() {
 	) => {
 		event.preventDefault()
 
+		if (
+			latitude === null ||
+			longitude === null ||
+			!locationConfirmed
+		) {
+			setError(
+				'Please select and confirm the property location before publishing.',
+			)
+			return
+		}
+
 		setLoading(true)
 		setMessage('')
 		setError('')
@@ -201,7 +487,8 @@ function AddAccommodation() {
 				{
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json',
+						'Content-Type':
+							'application/json',
 					},
 					body: JSON.stringify({
 						title,
@@ -211,9 +498,15 @@ function AddAccommodation() {
 						description,
 						bedrooms: Number(bedrooms),
 						bathrooms: Number(bathrooms),
-						availableFrom: availableFrom || null,
-						amenities: selectedAmenities,
+						availableFrom:
+							availableFrom || null,
+						amenities:
+							selectedAmenities,
 						photos,
+
+						// Property coordinates
+						latitude,
+						longitude,
 					}),
 				},
 			)
@@ -241,6 +534,21 @@ function AddAccommodation() {
 			setAvailableFrom('')
 			setSelectedAmenities([])
 			setPhotos([])
+
+			setLatitude(null)
+			setLongitude(null)
+			setLocationConfirmed(false)
+			setSearchLocation('')
+
+			if (markerRef.current) {
+				markerRef.current.remove()
+				markerRef.current = null
+			}
+
+			mapInstanceRef.current?.setView(
+				[-29.3151, 27.4869],
+				12,
+			)
 		} catch (error) {
 			setError(
 				error instanceof Error
@@ -256,13 +564,19 @@ function AddAccommodation() {
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
 				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
+					<Link
+						href="/"
+						className="flex items-center gap-3 px-2"
+					>
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
+							Stay
+							<span className="text-blue-600">
+								Match
+							</span>
 						</p>
 					</Link>
 
@@ -312,7 +626,8 @@ function AddAccommodation() {
 					</h1>
 
 					<p className="mt-1 text-sm text-slate-500">
-						Fill in the details below to publish a listing for students to find.
+						Fill in the details below to publish a
+						listing for students to find.
 					</p>
 				</div>
 
@@ -344,7 +659,11 @@ function AddAccommodation() {
 										type="text"
 										value={title}
 										onChange={(event) =>
-											setTitle(event.target.value)
+											setTitle(
+												event
+													.target
+													.value,
+											)
 										}
 										placeholder="e.g. Spacious student room in Roma"
 										required
@@ -356,26 +675,43 @@ function AddAccommodation() {
 									<Field label="Property type">
 										<div className="relative">
 											<select
-												value={propertyType}
-												onChange={(event) =>
+												value={
+													propertyType
+												}
+												onChange={(
+													event,
+												) =>
 													setPropertyType(
-														event.target.value,
+														event
+															.target
+															.value,
 													)
 												}
 												required
 												className={`${inputClasses} appearance-none pl-4`}
 											>
-												<option value="" disabled>
+												<option
+													value=""
+													disabled
+												>
 													Select type
 												</option>
 
 												{propertyTypes.map(
-													(type) => (
+													(
+														type,
+													) => (
 														<option
-															key={type.value}
-															value={type.value}
+															key={
+																type.value
+															}
+															value={
+																type.value
+															}
 														>
-															{type.label}
+															{
+																type.label
+															}
 														</option>
 													),
 												)}
@@ -390,7 +726,11 @@ function AddAccommodation() {
 											type="number"
 											value={price}
 											onChange={(event) =>
-												setPrice(event.target.value)
+												setPrice(
+													event
+														.target
+														.value,
+												)
 											}
 											placeholder="2800"
 											required
@@ -406,11 +746,17 @@ function AddAccommodation() {
 											type="text"
 											value={area}
 											onChange={(event) =>
-												setArea(event.target.value)
+												setArea(
+													event
+														.target
+														.value,
+												)
 											}
 											placeholder="e.g. Roma, Maseru"
 											required
-											className={inputClasses}
+											className={
+												inputClasses
+											}
 										/>
 									</InputShell>
 								</Field>
@@ -424,7 +770,9 @@ function AddAccommodation() {
 											value={description}
 											onChange={(event) =>
 												setDescription(
-													event.target.value,
+													event
+														.target
+														.value,
 												)
 											}
 											placeholder="Describe the property, what's nearby, and what makes it a good fit for students..."
@@ -446,15 +794,23 @@ function AddAccommodation() {
 									<InputShell icon={BedDouble}>
 										<input
 											type="number"
-											value={bedrooms}
-											onChange={(event) =>
+											value={
+												bedrooms
+											}
+											onChange={(
+												event,
+											) =>
 												setBedrooms(
-													event.target.value,
+													event
+														.target
+														.value,
 												)
 											}
 											min="1"
 											required
-											className={inputClasses}
+											className={
+												inputClasses
+											}
 										/>
 									</InputShell>
 								</Field>
@@ -463,27 +819,45 @@ function AddAccommodation() {
 									<InputShell icon={Bath}>
 										<input
 											type="number"
-											value={bathrooms}
-											onChange={(event) =>
+											value={
+												bathrooms
+											}
+											onChange={(
+												event,
+											) =>
 												setBathrooms(
-													event.target.value,
+													event
+														.target
+														.value,
 												)
 											}
 											min="1"
 											required
-											className={inputClasses}
+											className={
+												inputClasses
+											}
 										/>
 									</InputShell>
 								</Field>
 
 								<Field label="Available from">
-									<InputShell icon={CalendarClock}>
+									<InputShell
+										icon={
+											CalendarClock
+										}
+									>
 										<input
 											type="date"
-											value={availableFrom}
-											onChange={(event) =>
+											value={
+												availableFrom
+											}
+											onChange={(
+												event,
+											) =>
 												setAvailableFrom(
-													event.target.value,
+													event
+														.target
+														.value,
 												)
 											}
 											className={`${inputClasses} text-slate-500`}
@@ -493,40 +867,220 @@ function AddAccommodation() {
 							</div>
 						</section>
 
+						{/* PROPERTY LOCATION */}
+						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+							<div className="flex items-start justify-between gap-4">
+								<div>
+									<h2 className="text-lg font-extrabold text-slate-950">
+										Property location
+									</h2>
+
+									<p className="mt-1 text-sm leading-6 text-slate-500">
+										Select the exact
+										location of the
+										accommodation so
+										students can find it
+										and distance from
+										their university can
+										be calculated.
+									</p>
+								</div>
+
+								<MapPin className="hidden h-5 w-5 shrink-0 text-blue-600 sm:block" />
+							</div>
+
+							<div className="mt-5">
+								<button
+									type="button"
+									onClick={
+										getCurrentLocation
+									}
+									disabled={
+										locationLoading
+									}
+									className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									<Crosshair className="h-4 w-4" />
+
+									{locationLoading
+										? 'Getting location...'
+										: 'Use My Current Location'}
+								</button>
+							</div>
+
+							<div className="my-5 flex items-center gap-3">
+								<div className="h-px flex-1 bg-slate-200" />
+
+								<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+									or select on map
+								</span>
+
+								<div className="h-px flex-1 bg-slate-200" />
+							</div>
+
+							<div className="flex gap-2">
+								<div className="relative flex-1">
+									<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+									<input
+										type="text"
+										value={
+											searchLocation
+										}
+										onChange={(
+											event,
+										) =>
+											setSearchLocation(
+												event
+													.target
+													.value,
+											)
+										}
+										onKeyDown={(
+											event,
+										) => {
+											if (
+												event.key ===
+												'Enter'
+											) {
+												event.preventDefault()
+												searchPropertyLocation()
+											}
+										}}
+										placeholder="Search for an address or area..."
+										className={`${inputClasses} pl-11`}
+									/>
+								</div>
+
+								<button
+									type="button"
+									onClick={
+										searchPropertyLocation
+									}
+									disabled={
+										locationLoading ||
+										!searchLocation.trim()
+									}
+									className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+								>
+									Search
+								</button>
+							</div>
+
+							<div
+								ref={mapRef}
+								className="mt-4 h-[350px] w-full overflow-hidden rounded-2xl border border-slate-200"
+							/>
+
+							<p className="mt-3 text-xs text-slate-400">
+								Click anywhere on the map to
+								select the property. You can
+								drag the map in any direction
+								and drag the marker to adjust
+								the exact location.
+							</p>
+
+							{latitude !== null &&
+								longitude !== null && (
+									<div className="mt-4 rounded-xl bg-slate-50 p-4">
+										<div className="flex items-center justify-between gap-3">
+											<div>
+												<p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+													Selected
+													location
+												</p>
+
+												<p className="mt-1 text-sm font-semibold text-slate-700">
+													Latitude:{' '}
+													{latitude.toFixed(
+														6,
+													)}
+												</p>
+
+												<p className="text-sm font-semibold text-slate-700">
+													Longitude:{' '}
+													{longitude.toFixed(
+														6,
+													)}
+												</p>
+											</div>
+
+											{locationConfirmed && (
+												<CheckCircle2 className="h-6 w-6 shrink-0 text-green-600" />
+											)}
+										</div>
+									</div>
+								)}
+
+							{locationError && (
+								<div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+									{locationError}
+								</div>
+							)}
+
+							<button
+								type="button"
+								onClick={confirmLocation}
+								disabled={
+									latitude === null ||
+									longitude === null
+								}
+								className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition ${
+									locationConfirmed
+										? 'bg-green-600 text-white'
+										: 'bg-blue-600 text-white hover:bg-blue-700'
+								} disabled:cursor-not-allowed disabled:opacity-50`}
+							>
+								<CheckCircle2 className="h-4 w-4" />
+
+								{locationConfirmed
+									? 'Location Confirmed'
+									: 'Confirm Location'}
+							</button>
+						</section>
+
 						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 							<h2 className="text-lg font-extrabold text-slate-950">
 								Amenities
 							</h2>
 
 							<div className="mt-5 grid gap-3 sm:grid-cols-2">
-								{amenitiesList.map((amenity) => {
-									const isSelected =
-										selectedAmenities.includes(
-											amenity.label,
+								{amenitiesList.map(
+									(amenity) => {
+										const isSelected =
+											selectedAmenities.includes(
+												amenity.label,
+											)
+
+										const Icon =
+											amenity.icon
+
+										return (
+											<button
+												type="button"
+												key={
+													amenity.label
+												}
+												onClick={() =>
+													toggleAmenity(
+														amenity.label,
+													)
+												}
+												className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
+													isSelected
+														? 'border-blue-400 bg-blue-50 text-blue-700'
+														: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+												}`}
+											>
+												<Icon className="h-4 w-4 shrink-0" />
+
+												{
+													amenity.label
+												}
+											</button>
 										)
-
-									const Icon = amenity.icon
-
-									return (
-										<button
-											type="button"
-											key={amenity.label}
-											onClick={() =>
-												toggleAmenity(
-													amenity.label,
-												)
-											}
-											className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
-												isSelected
-													? 'border-blue-400 bg-blue-50 text-blue-700'
-													: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-											}`}
-										>
-											<Icon className="h-4 w-4 shrink-0" />
-											{amenity.label}
-										</button>
-									)
-								})}
+									},
+								)}
 							</div>
 						</section>
 					</div>
@@ -538,7 +1092,8 @@ function AddAccommodation() {
 							</h2>
 
 							<p className="mt-1 text-sm text-slate-500">
-								Add clear photos of the room, common areas, and exterior.
+								Add clear photos of the room,
+								common areas, and exterior.
 							</p>
 
 							<label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50/40">
@@ -557,32 +1112,43 @@ function AddAccommodation() {
 									accept="image/*"
 									multiple
 									className="hidden"
-									onChange={handlePhotoSelect}
+									onChange={
+										handlePhotoSelect
+									}
 								/>
 							</label>
 
 							{photos.length > 0 && (
 								<ul className="mt-4 space-y-2">
-									{photos.map((name, index) => (
-										<li
-											key={`${name}-${index}`}
-											className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600"
-										>
-											<span className="truncate">
-												{name}
-											</span>
-
-											<button
-												type="button"
-												onClick={() =>
-													removePhoto(index)
-												}
-												className="text-slate-400 transition hover:text-rose-500"
+									{photos.map(
+										(
+											name,
+											index,
+										) => (
+											<li
+												key={`${name}-${index}`}
+												className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600"
 											>
-												<X className="h-4 w-4" />
-											</button>
-										</li>
-									))}
+												<span className="truncate">
+													{
+														name
+													}
+												</span>
+
+												<button
+													type="button"
+													onClick={() =>
+														removePhoto(
+															index,
+														)
+													}
+													className="text-slate-400 transition hover:text-rose-500"
+												>
+													<X className="h-4 w-4" />
+												</button>
+											</li>
+										),
+									)}
 								</ul>
 							)}
 						</section>
@@ -593,7 +1159,8 @@ function AddAccommodation() {
 							</h2>
 
 							<p className="mt-1 text-sm leading-6 text-slate-500">
-								New listings are reviewed before appearing as
+								New listings are reviewed
+								before appearing as
 								"Verified" to students.
 							</p>
 

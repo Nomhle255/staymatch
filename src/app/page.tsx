@@ -43,19 +43,6 @@ function HomePage() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="hidden h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 sm:inline-flex"
-            aria-label="Saved homes"
-          >
-            ♡
-          </button>
-          <Link
-            className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
-            href="/register"
-          >
-            List a property
-          </Link>
           <Link
             className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
             href="/login"
@@ -89,12 +76,6 @@ function HomePage() {
           >
             Register now
           </Link>
-          <a
-            className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
-            href="#landlords"
-          >
-            List a Property
-          </a>
         </div>
       </section>
 
