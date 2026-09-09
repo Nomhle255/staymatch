@@ -26,3 +26,4 @@ export function verifyToken(token: string): TokenPayload | null {
 	} catch {
 		return null
 	}
+}
