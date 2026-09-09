@@ -16,19 +16,14 @@ import {
 	PlusCircle,
 	Users,
 	LogOut,
-	MapPin,
 	FileText,
 	ChevronDown,
-	BedDouble,
-	Bath,
-	CalendarClock,
 	Wifi,
 	Sofa,
 	Car,
 	ShieldCheck,
 	Droplets,
 	Zap,
-	WashingMachine,
 	UploadCloud,
 	X,
 	Crosshair,
@@ -66,9 +61,9 @@ const navItems = [
 
 const propertyTypes = [
 	{ label: 'Single Room', value: 'SINGLE_ROOM' },
-	{ label: 'Shared Apartment', value: 'SHARED_APARTMENT' },
-	{ label: 'Studio Flat', value: 'STUDIO_FLAT' },
-	{ label: 'En-suite', value: 'EN_SUITE' },
+	{ label: 'Double', value: 'DOUBLE' },
+	{ label: 'Commune', value: 'COMMUNE' },
+	{ label: 'Bachelor', value: 'BACHELOR' },
 ]
 
 const amenitiesList = [
@@ -78,7 +73,6 @@ const amenitiesList = [
 	{ label: '24/7 security', icon: ShieldCheck },
 	{ label: 'Water included', icon: Droplets },
 	{ label: 'Electricity included', icon: Zap },
-	{ label: 'Laundry facilities', icon: WashingMachine },
 ]
 
 const inputClasses =
@@ -150,13 +144,10 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function AddAccommodation() {
-	const [title, setTitle] = useState('')
 	const [propertyType, setPropertyType] = useState('')
 	const [price, setPrice] = useState('')
 	const [area, setArea] = useState('')
 	const [description, setDescription] = useState('')
-	const [bedrooms, setBedrooms] = useState('1')
-	const [bathrooms, setBathrooms] = useState('1')
 	const [availableFrom, setAvailableFrom] = useState('')
 
 	const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
@@ -491,13 +482,10 @@ function AddAccommodation() {
 							'application/json',
 					},
 					body: JSON.stringify({
-						title,
 						propertyType,
 						price: Number(price),
 						area,
 						description,
-						bedrooms: Number(bedrooms),
-						bathrooms: Number(bathrooms),
 						availableFrom:
 							availableFrom || null,
 						amenities:
@@ -523,14 +511,10 @@ function AddAccommodation() {
 			setMessage(
 				'Accommodation submitted successfully. It is now pending review.',
 			)
-
-			setTitle('')
 			setPropertyType('')
 			setPrice('')
 			setArea('')
 			setDescription('')
-			setBedrooms('1')
-			setBathrooms('1')
 			setAvailableFrom('')
 			setSelectedAmenities([])
 			setPhotos([])
@@ -654,22 +638,6 @@ function AddAccommodation() {
 							</h2>
 
 							<div className="mt-5 space-y-5">
-								<Field label="Listing title">
-									<input
-										type="text"
-										value={title}
-										onChange={(event) =>
-											setTitle(
-												event
-													.target
-													.value,
-											)
-										}
-										placeholder="e.g. Spacious student room in Roma"
-										required
-										className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-									/>
-								</Field>
 
 								<div className="grid gap-5 sm:grid-cols-2">
 									<Field label="Property type">
@@ -740,27 +708,6 @@ function AddAccommodation() {
 									</Field>
 								</div>
 
-								<Field label="Area / Location">
-									<InputShell icon={MapPin}>
-										<input
-											type="text"
-											value={area}
-											onChange={(event) =>
-												setArea(
-													event
-														.target
-														.value,
-												)
-											}
-											placeholder="e.g. Roma, Maseru"
-											required
-											className={
-												inputClasses
-											}
-										/>
-									</InputShell>
-								</Field>
-
 								<Field label="Description">
 									<div className="relative">
 										<FileText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-slate-400" />
@@ -781,89 +728,46 @@ function AddAccommodation() {
 										/>
 									</div>
 								</Field>
+								<Field label="Property facilities">
+									<div className="mt-5 grid gap-3 sm:grid-cols-2">
+								{amenitiesList.map(
+									(amenity) => {
+										const isSelected =
+											selectedAmenities.includes(
+												amenity.label,
+											)
+
+										const Icon =
+											amenity.icon
+
+										return (
+											<button
+												type="button"
+												key={
+													amenity.label
+												}
+												onClick={() =>
+													toggleAmenity(
+														amenity.label,
+													)
+												}
+												className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
+													isSelected
+														? 'border-blue-400 bg-blue-50 text-blue-700'
+														: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+												}`}
+											>
+												<Icon className="h-4 w-4 shrink-0" />
+
+												{
+													amenity.label
+												}
+											</button>
+										)
+									},
+								)}
 							</div>
-						</section>
-
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<h2 className="text-lg font-extrabold text-slate-950">
-								Property details
-							</h2>
-
-							<div className="mt-5 grid gap-5 sm:grid-cols-3">
-								<Field label="Bedrooms">
-									<InputShell icon={BedDouble}>
-										<input
-											type="number"
-											value={
-												bedrooms
-											}
-											onChange={(
-												event,
-											) =>
-												setBedrooms(
-													event
-														.target
-														.value,
-												)
-											}
-											min="1"
-											required
-											className={
-												inputClasses
-											}
-										/>
-									</InputShell>
-								</Field>
-
-								<Field label="Bathrooms">
-									<InputShell icon={Bath}>
-										<input
-											type="number"
-											value={
-												bathrooms
-											}
-											onChange={(
-												event,
-											) =>
-												setBathrooms(
-													event
-														.target
-														.value,
-												)
-											}
-											min="1"
-											required
-											className={
-												inputClasses
-											}
-										/>
-									</InputShell>
-								</Field>
-
-								<Field label="Available from">
-									<InputShell
-										icon={
-											CalendarClock
-										}
-									>
-										<input
-											type="date"
-											value={
-												availableFrom
-											}
-											onChange={(
-												event,
-											) =>
-												setAvailableFrom(
-													event
-														.target
-														.value,
-												)
-											}
-											className={`${inputClasses} text-slate-500`}
-										/>
-									</InputShell>
-								</Field>
+							</Field>
 							</div>
 						</section>
 
@@ -885,8 +789,6 @@ function AddAccommodation() {
 										be calculated.
 									</p>
 								</div>
-
-								<MapPin className="hidden h-5 w-5 shrink-0 text-blue-600 sm:block" />
 							</div>
 
 							<div className="mt-5">
@@ -1037,51 +939,6 @@ function AddAccommodation() {
 									? 'Location Confirmed'
 									: 'Confirm Location'}
 							</button>
-						</section>
-
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<h2 className="text-lg font-extrabold text-slate-950">
-								Amenities
-							</h2>
-
-							<div className="mt-5 grid gap-3 sm:grid-cols-2">
-								{amenitiesList.map(
-									(amenity) => {
-										const isSelected =
-											selectedAmenities.includes(
-												amenity.label,
-											)
-
-										const Icon =
-											amenity.icon
-
-										return (
-											<button
-												type="button"
-												key={
-													amenity.label
-												}
-												onClick={() =>
-													toggleAmenity(
-														amenity.label,
-													)
-												}
-												className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
-													isSelected
-														? 'border-blue-400 bg-blue-50 text-blue-700'
-														: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-												}`}
-											>
-												<Icon className="h-4 w-4 shrink-0" />
-
-												{
-													amenity.label
-												}
-											</button>
-										)
-									},
-								)}
-							</div>
 						</section>
 					</div>
 
