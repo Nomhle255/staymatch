@@ -1,4 +1,5 @@
 'use client'
+
 import { useRouter } from 'next/navigation'
 import {
 	useEffect,
@@ -29,6 +30,7 @@ import {
 	Crosshair,
 	Search,
 	CheckCircle2,
+	MapPin,
 } from 'lucide-react'
 import type * as Leaflet from 'leaflet'
 
@@ -100,7 +102,10 @@ type InputShellProps = {
 	children: ReactNode
 }
 
-function InputShell({ icon: Icon, children }: InputShellProps) {
+function InputShell({
+	icon: Icon,
+	children,
+}: InputShellProps) {
 	return (
 		<div className="relative">
 			<Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -135,7 +140,11 @@ function NavButton({
 	)
 }
 
-function SidebarShell({ children }: { children: ReactNode }) {
+function SidebarShell({
+	children,
+}: {
+	children: ReactNode
+}) {
 	return (
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
@@ -145,26 +154,35 @@ function SidebarShell({ children }: { children: ReactNode }) {
 
 function AddAccommodation() {
 	const router = useRouter()
+
 	const [propertyType, setPropertyType] = useState('')
 	const [price, setPrice] = useState('')
 	const [area, setArea] = useState('')
 	const [description, setDescription] = useState('')
 	const [availableFrom, setAvailableFrom] = useState('')
 
-	const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+	const [selectedAmenities, setSelectedAmenities] =
+		useState<string[]>([])
 	const [photos, setPhotos] = useState<string[]>([])
 
 	// Property location
-	const [latitude, setLatitude] = useState<number | null>(null)
-	const [longitude, setLongitude] = useState<number | null>(null)
-	const [locationConfirmed, setLocationConfirmed] = useState(false)
-	const [locationLoading, setLocationLoading] = useState(false)
+	const [latitude, setLatitude] =
+		useState<number | null>(null)
+	const [longitude, setLongitude] =
+		useState<number | null>(null)
+	const [locationConfirmed, setLocationConfirmed] =
+		useState(false)
+	const [locationLoading, setLocationLoading] =
+		useState(false)
 	const [locationError, setLocationError] = useState('')
-	const [searchLocation, setSearchLocation] = useState('')
+	const [searchLocation, setSearchLocation] =
+		useState('')
 
 	const mapRef = useRef<HTMLDivElement | null>(null)
-	const mapInstanceRef = useRef<Leaflet.Map | null>(null)
-	const markerRef = useRef<Leaflet.Marker | null>(null)
+	const mapInstanceRef =
+		useRef<Leaflet.Map | null>(null)
+	const markerRef =
+		useRef<Leaflet.Marker | null>(null)
 
 	const [loading, setLoading] = useState(false)
 	const [message, setMessage] = useState('')
@@ -172,20 +190,18 @@ function AddAccommodation() {
 
 	/*
 	 * Initialise Leaflet map.
-	 *
-	 * Leaflet is imported dynamically here because it depends
-	 * on browser APIs and should not be loaded by Next.js
-	 * during server-side rendering.
 	 */
 	useEffect(() => {
-		if (!mapRef.current || mapInstanceRef.current) return
+		if (!mapRef.current || mapInstanceRef.current)
+			return
 
 		let cancelled = false
 
 		const initializeMap = async () => {
 			const leafletModule = await import('leaflet')
 
-			if (cancelled || !mapRef.current) return
+			if (cancelled || !mapRef.current)
+				return
 
 			const L = leafletModule.default
 
@@ -204,7 +220,6 @@ function AddAccommodation() {
 				12,
 			)
 
-			// Explicitly enable map dragging
 			map.dragging.enable()
 
 			L.tileLayer(
@@ -325,7 +340,7 @@ function AddAccommodation() {
 	}
 
 	/*
-	 * Use the landlord's current GPS location.
+	 * Use landlord's current GPS location.
 	 */
 	const getCurrentLocation = () => {
 		setLocationLoading(true)
@@ -384,7 +399,9 @@ function AddAccommodation() {
 			)
 
 			if (!response.ok) {
-				throw new Error('Location search failed.')
+				throw new Error(
+					'Location search failed.',
+				)
 			}
 
 			const results = await response.json()
@@ -414,7 +431,10 @@ function AddAccommodation() {
 	}
 
 	const confirmLocation = () => {
-		if (latitude === null || longitude === null) {
+		if (
+			latitude === null ||
+			longitude === null
+		) {
 			setLocationError(
 				'Please select a location on the map first.',
 			)
@@ -428,7 +448,9 @@ function AddAccommodation() {
 	const toggleAmenity = (label: string) => {
 		setSelectedAmenities((current) =>
 			current.includes(label)
-				? current.filter((item) => item !== label)
+				? current.filter(
+						(item) => item !== label,
+					)
 				: [...current, label],
 		)
 	}
@@ -444,12 +466,17 @@ function AddAccommodation() {
 			(file) => file.name,
 		)
 
-		setPhotos((current) => [...current, ...names])
+		setPhotos((current) => [
+			...current,
+			...names,
+		])
 	}
 
 	const removePhoto = (index: number) => {
 		setPhotos((current) =>
-			current.filter((_, i) => i !== index),
+			current.filter(
+				(_, i) => i !== index,
+			),
 		)
 	}
 
@@ -457,6 +484,18 @@ function AddAccommodation() {
 		event: FormEvent<HTMLFormElement>,
 	) => {
 		event.preventDefault()
+
+		if (
+			!propertyType ||
+			!price ||
+			!area ||
+			!description
+		) {
+			setError(
+				'Please complete all required accommodation details.',
+			)
+			return
+		}
 
 		if (
 			latitude === null ||
@@ -472,45 +511,62 @@ function AddAccommodation() {
 		setLoading(true)
 		setMessage('')
 		setError('')
-	try {
-		const response = await fetch('/api/addaccommodation', {
-			method: 'POST',
-			headers: {
-			'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-			propertyType,
-			price: Number(price),
-			area,
-			description,
-			availableFrom: availableFrom || null,
-			amenities: selectedAmenities,
-			photos,
-			latitude,
-			longitude,
-			}),
-		})
-		const data = await response.json()
 
-		if (!response.ok) {
-			throw new Error(data.error || 'Failed to add accommodation.')
-		}
+		try {
+			const response = await fetch(
+				'/api/addaccommodation',
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type':
+							'application/json',
+					},
+					body: JSON.stringify({
+						propertyType,
+						price: Number(price),
+						area,
+						description,
+						availableFrom:
+							availableFrom ||
+							null,
+						amenities:
+							selectedAmenities,
+						photos,
+						latitude,
+						longitude,
+					}),
+				},
+			)
 
-		// Show success message
-		setMessage('Accommodation added successfully!')
+			const data = await response.json()
 
-		// Redirect to listings after 2 seconds
-		setTimeout(() => {
-			router.push('/landlord/accommodationlisting')
-		}, 2000)
+			if (!response.ok) {
+				throw new Error(
+					data.error ||
+						'Failed to add accommodation.',
+				)
+			}
+
+			// Show success message
+			setMessage(
+				'Accommodation added successfully!',
+			)
+
+			// Redirect after the message
+			// has been displayed for 2 seconds
+			setTimeout(() => {
+				router.push(
+					'/landlord/accommodationlisting',
+				)
+			}, 2000)
 		} catch (error) {
-		setError(
-			error instanceof Error
-			? error.message
-			: 'Something went wrong.',
-		)
+			setError(
+				error instanceof Error
+					? error.message
+					: 'Something went wrong.',
+			)
 		} finally {
-		setLoading(false)
+			setLoading(false)
 		}
 	}
 
@@ -580,17 +636,20 @@ function AddAccommodation() {
 					</h1>
 
 					<p className="mt-1 text-sm text-slate-500">
-						Fill in the details below to publish a
-						listing for students to find.
+						Fill in the details below to
+						publish a listing for students
+						to find.
 					</p>
 				</div>
 
+				{/* Success message */}
 				{message && (
 					<div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
 						{message}
 					</div>
 				)}
 
+				{/* Error message */}
 				{error && (
 					<div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
 						{error}
@@ -602,14 +661,15 @@ function AddAccommodation() {
 					className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]"
 				>
 					<div className="space-y-6">
+						{/* BASIC INFORMATION */}
 						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 							<h2 className="text-lg font-extrabold text-slate-950">
 								Basic information
 							</h2>
 
 							<div className="mt-5 space-y-5">
-
 								<div className="grid gap-5 sm:grid-cols-2">
+									{/* Property Type */}
 									<Field label="Property type">
 										<div className="relative">
 											<select
@@ -659,11 +719,14 @@ function AddAccommodation() {
 										</div>
 									</Field>
 
+									{/* Monthly Rent */}
 									<Field label="Monthly rent (M)">
 										<input
 											type="number"
 											value={price}
-											onChange={(event) =>
+											onChange={(
+												event,
+											) =>
 												setPrice(
 													event
 														.target
@@ -678,14 +741,48 @@ function AddAccommodation() {
 									</Field>
 								</div>
 
+								{/* AREA */}
+								<Field label="Area">
+									<InputShell icon={MapPin}>
+										<input
+											type="text"
+											value={area}
+											onChange={(
+												event,
+											) =>
+												setArea(
+													event
+														.target
+														.value,
+												)
+											}
+											placeholder="e.g. Ha Abia, Masowe, Qoaling"
+											required
+											className={inputClasses}
+										/>
+									</InputShell>
+
+									<p className="text-xs text-slate-400">
+										Enter the specific
+										area where the
+										accommodation is
+										located.
+									</p>
+								</Field>
+
+								{/* Description */}
 								<Field label="Description">
 									<div className="relative">
 										<FileText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-slate-400" />
 
 										<textarea
 											rows={4}
-											value={description}
-											onChange={(event) =>
+											value={
+												description
+											}
+											onChange={(
+												event,
+											) =>
 												setDescription(
 													event
 														.target
@@ -698,46 +795,50 @@ function AddAccommodation() {
 										/>
 									</div>
 								</Field>
+
+								{/* Facilities */}
 								<Field label="Property facilities">
 									<div className="mt-5 grid gap-3 sm:grid-cols-2">
-								{amenitiesList.map(
-									(amenity) => {
-										const isSelected =
-											selectedAmenities.includes(
-												amenity.label,
-											)
-
-										const Icon =
-											amenity.icon
-
-										return (
-											<button
-												type="button"
-												key={
-													amenity.label
-												}
-												onClick={() =>
-													toggleAmenity(
+										{amenitiesList.map(
+											(
+												amenity,
+											) => {
+												const isSelected =
+													selectedAmenities.includes(
 														amenity.label,
 													)
-												}
-												className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
-													isSelected
-														? 'border-blue-400 bg-blue-50 text-blue-700'
-														: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-												}`}
-											>
-												<Icon className="h-4 w-4 shrink-0" />
 
-												{
-													amenity.label
-												}
-											</button>
-										)
-									},
-								)}
-							</div>
-							</Field>
+												const Icon =
+													amenity.icon
+
+												return (
+													<button
+														type="button"
+														key={
+															amenity.label
+														}
+														onClick={() =>
+															toggleAmenity(
+																amenity.label,
+															)
+														}
+														className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
+															isSelected
+																? 'border-blue-400 bg-blue-50 text-blue-700'
+																: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+														}`}
+													>
+														<Icon className="h-4 w-4 shrink-0" />
+
+														{
+															amenity.label
+														}
+													</button>
+												)
+											},
+										)}
+									</div>
+								</Field>
 							</div>
 						</section>
 
@@ -753,14 +854,16 @@ function AddAccommodation() {
 										Select the exact
 										location of the
 										accommodation so
-										students can find it
-										and distance from
-										their university can
-										be calculated.
+										students can find
+										it and distance
+										from their
+										university can be
+										calculated.
 									</p>
 								</div>
 							</div>
 
+							{/* Current Location */}
 							<div className="mt-5">
 								<button
 									type="button"
@@ -790,6 +893,7 @@ function AddAccommodation() {
 								<div className="h-px flex-1 bg-slate-200" />
 							</div>
 
+							{/* Search Location */}
 							<div className="flex gap-2">
 								<div className="relative flex-1">
 									<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -839,19 +943,22 @@ function AddAccommodation() {
 								</button>
 							</div>
 
+							{/* Map */}
 							<div
 								ref={mapRef}
 								className="mt-4 h-[350px] w-full overflow-hidden rounded-2xl border border-slate-200"
 							/>
 
 							<p className="mt-3 text-xs text-slate-400">
-								Click anywhere on the map to
-								select the property. You can
-								drag the map in any direction
-								and drag the marker to adjust
-								the exact location.
+								Click anywhere on the map
+								to select the property.
+								You can drag the map in
+								any direction and drag
+								the marker to adjust the
+								exact location.
 							</p>
 
+							{/* Coordinates */}
 							{latitude !== null &&
 								longitude !== null && (
 									<div className="mt-4 rounded-xl bg-slate-50 p-4">
@@ -884,18 +991,24 @@ function AddAccommodation() {
 									</div>
 								)}
 
+							{/* Location Error */}
 							{locationError && (
 								<div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
 									{locationError}
 								</div>
 							)}
 
+							{/* Confirm Location */}
 							<button
 								type="button"
-								onClick={confirmLocation}
+								onClick={
+									confirmLocation
+								}
 								disabled={
-									latitude === null ||
-									longitude === null
+									latitude ===
+										null ||
+									longitude ===
+										null
 								}
 								className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition ${
 									locationConfirmed
@@ -912,26 +1025,31 @@ function AddAccommodation() {
 						</section>
 					</div>
 
+					{/* RIGHT COLUMN */}
 					<div className="space-y-6">
+						{/* PHOTOS */}
 						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 							<h2 className="text-lg font-extrabold text-slate-950">
 								Photos
 							</h2>
 
 							<p className="mt-1 text-sm text-slate-500">
-								Add clear photos of the room,
-								common areas, and exterior.
+								Add clear photos of
+								the room, common
+								areas, and exterior.
 							</p>
 
 							<label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50/40">
 								<UploadCloud className="h-6 w-6 text-slate-400" />
 
 								<p className="text-sm font-semibold text-slate-600">
-									Click to upload photos
+									Click to upload
+									photos
 								</p>
 
 								<p className="text-xs text-slate-400">
-									PNG or JPG, up to 5MB each
+									PNG or JPG, up to
+									5MB each
 								</p>
 
 								<input
@@ -980,15 +1098,18 @@ function AddAccommodation() {
 							)}
 						</section>
 
+						{/* PUBLISH */}
 						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 							<h2 className="text-lg font-extrabold text-slate-950">
 								Publish
 							</h2>
 
 							<p className="mt-1 text-sm leading-6 text-slate-500">
-								New listings are reviewed
-								before appearing as
-								"Verified" to students.
+								New listings are
+								reviewed before
+								appearing as
+								"Verified" to
+								students.
 							</p>
 
 							<div className="mt-5">

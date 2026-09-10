@@ -20,6 +20,7 @@ import {
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	Eye,
 } from 'lucide-react'
 
 const navItems = [
@@ -310,15 +311,13 @@ function AccommodationListings() {
 						</p>
 					</div>
 
-					<div className="flex items-center gap-3">
-						<Link
-							href="/landlord/addaccommodation"
-							className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
-						>
-							<PlusCircle className="h-4 w-4" />
-							Add Listing
-						</Link>
-					</div>
+					<Link
+						href="/landlord/addaccommodation"
+						className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+					>
+						<PlusCircle className="h-4 w-4" />
+						Add Listing
+					</Link>
 				</div>
 
 				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
@@ -371,19 +370,15 @@ function AccommodationListings() {
 									<option>
 										Newest first
 									</option>
-
 									<option>
 										Most viewed
 									</option>
-
 									<option>
 										Most applicants
 									</option>
-
 									<option>
 										Price: low to high
 									</option>
-
 									<option>
 										Price: high to low
 									</option>
@@ -453,7 +448,6 @@ function AccommodationListings() {
 													className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${style.tint}`}
 												>
 													<StatusIcon className="h-3.5 w-3.5" />
-
 													{
 														displayStatus
 													}
@@ -477,7 +471,6 @@ function AccommodationListings() {
 
 												<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
 													<MapPin className="h-3.5 w-3.5" />
-
 													{
 														listing.area
 													}
@@ -490,13 +483,20 @@ function AccommodationListings() {
 												</p>
 
 												<div className="mt-4 flex gap-2">
-													<button
-														type="button"
-														className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+													<Link
+														href={`/landlord/accommodationdetails?id=${listing.id}`}														className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+													>
+														<Eye className="h-3.5 w-3.5" />
+														View Details
+													</Link>
+
+													<Link
+														href={`/landlord/accommodationlisting/${listing.id}/edit`}
+														className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
 													>
 														<Pencil className="h-3.5 w-3.5" />
 														Edit
-													</button>
+													</Link>
 
 													<button
 														type="button"
