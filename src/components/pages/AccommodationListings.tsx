@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode, ComponentType } from 'react'
 import Link from 'next/link'
+import DeleteAccommodation from '@/components/pages/DeleteAccommodation'
 import {
 	LayoutDashboard,
 	Home,
@@ -15,7 +16,6 @@ import {
 	Clock,
 	PauseCircle,
 	Pencil,
-	Trash2,
 	MoreVertical,
 	ChevronDown,
 	ChevronLeft,
@@ -498,13 +498,14 @@ function AccommodationListings() {
 														Edit
 													</Link>
 
-													<button
-														type="button"
-														className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:text-rose-500"
-														aria-label="Delete accommodation"
-													>
-														<Trash2 className="h-3.5 w-3.5" />
-													</button>
+													<DeleteAccommodation
+														accommodationId={listing.id}
+														onDeleted={() => {
+															setListings(currentListings =>
+																currentListings.filter(item => item.id !== listing.id)
+															)
+														}}
+													/>
 												</div>
 											</div>
 										</article>
