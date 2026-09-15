@@ -26,17 +26,17 @@ const navItems = [
 const propertyTypes = [
 	'All Types',
 	'Single Room',
-	'Shared Apartment',
-	'Studio Flat',
-	'En-suite',
+	'Double',
+	'Commune',
+	'Bachelor',
 ]
 
 const priceRanges = [
 	'Any Price',
-	'Under M2,500',
-	'M2,500 – M3,500',
-	'M3,500 – M4,500',
-	'Above M4,500',
+	'Under M500',
+	'M500 – M800',
+	'M800 – M1,000',
+	'Above M1,000',
 ]
 
 type Accommodation = {
@@ -92,20 +92,12 @@ function getPropertyTypeLabel(propertyType: string) {
 	switch (propertyType) {
 		case 'SINGLE_ROOM':
 			return 'Single Room'
-		case 'SHARED_APARTMENT':
-			return 'Shared Apartment'
-		case 'STUDIO_FLAT':
-			return 'Studio Flat'
-		case 'EN_SUITE':
-			return 'En-suite'
-
-		// Keep these in case your existing database uses these values.
 		case 'DOUBLE':
-			return 'Shared Apartment'
+			return 'Double'
 		case 'COMMUNE':
-			return 'Shared Apartment'
+			return 'Commune'
 		case 'BACHELOR':
-			return 'Studio Flat'
+			return 'Bachelor'
 
 		default:
 			return propertyType
@@ -131,17 +123,17 @@ function isVerified(status: string) {
 
 function matchesPriceRange(price: number, range: string) {
 	switch (range) {
-		case 'Under M2,500':
-			return price < 2500
+		case 'Under M500':
+			return price < 500
 
-		case 'M2,500 – M3,500':
-			return price >= 2500 && price <= 3500
+		case 'M500 – M800':
+			return price >= 500 && price <= 800
 
-		case 'M3,500 – M4,500':
-			return price > 3500 && price <= 4500
+		case 'M800 – M1,000':
+			return price > 800 && price <= 1000
 
-		case 'Above M4,500':
-			return price > 4500
+		case 'Above M1,000':
+			return price > 1000
 
 		default:
 			return true
