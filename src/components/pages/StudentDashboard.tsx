@@ -26,7 +26,7 @@ const navItems = [
 		label: 'Browse Listings',
 		icon: Search,
 		active: false,
-		href: '/student-browse-listings',
+		href: '/student/browseListings',
 	},
 	{
 		label: 'Applications',
@@ -226,7 +226,7 @@ export default function StudentDashboard() {
 					<div className="flex items-center gap-3">
 						<button
 							type="button"
-							onClick={() => router.push('/student-browse-listings')}
+							onClick={() => router.push('/student/browseListings')}
 							className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
 						>
 							Browse Listings
