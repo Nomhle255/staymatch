@@ -8,7 +8,6 @@ import {
 	Search,
 	FileText,
 	LogOut,
-	Bell,
 	MapPin,
 	BadgeCheck,
 	SlidersHorizontal,
@@ -18,9 +17,24 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-	{ label: 'Dashboard', icon: LayoutDashboard, active: false, href: '/student/dashboard' },
-	{ label: 'Browse Listings', icon: Search, active: true, href: '/student/browse' },
-	{ label: 'Applications', icon: FileText, active: false, href: '/student/applications' },
+	{
+		label: 'Dashboard',
+		icon: LayoutDashboard,
+		active: false,
+		href: '/student/dashboard',
+	},
+	{
+		label: 'Browse Listings',
+		icon: Search,
+		active: true,
+		href: '/student/browse',
+	},
+	{
+		label: 'Applications',
+		icon: FileText,
+		active: false,
+		href: '/student/applications',
+	},
 ]
 
 const propertyTypes = [
@@ -98,7 +112,6 @@ function getPropertyTypeLabel(propertyType: string) {
 			return 'Commune'
 		case 'BACHELOR':
 			return 'Bachelor'
-
 		default:
 			return propertyType
 	}
@@ -149,6 +162,10 @@ function StudentBrowseListings() {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
 
+	const [studentName, setStudentName] = useState('')
+	const [studentLoading, setStudentLoading] = useState(true)
+
+	// Fetch accommodation listings
 	useEffect(() => {
 		const fetchListings = async () => {
 			try {
@@ -207,6 +224,33 @@ function StudentBrowseListings() {
 		fetchListings()
 	}, [])
 
+	// Fetch logged-in student's profile
+	useEffect(() => {
+		const fetchStudentProfile = async () => {
+			try {
+				setStudentLoading(true)
+
+				const response = await fetch('/api/student/profile')
+
+				const data = await response.json()
+
+				if (!response.ok) {
+					throw new Error(
+						data.error || 'Failed to load student profile.',
+					)
+				}
+
+				setStudentName(data.user.name)
+			} catch (error) {
+				console.error('Failed to fetch student profile:', error)
+			} finally {
+				setStudentLoading(false)
+			}
+		}
+
+		fetchStudentProfile()
+	}, [])
+
 	const filteredListings = listings.filter((listing) => {
 		const searchText = query.toLowerCase().trim()
 
@@ -224,6 +268,10 @@ function StudentBrowseListings() {
 
 		return matchesQuery && matchesType && matchesPrice
 	})
+
+	const studentInitial = studentName
+		? studentName.charAt(0).toUpperCase()
+		: 'S'
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -250,14 +298,19 @@ function StudentBrowseListings() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								A
+								{studentInitial}
 							</div>
 
 							<div>
 								<p className="text-sm font-bold text-slate-900">
-									Nomhle Cathala
+									{studentLoading
+										? 'Loading...'
+										: studentName || 'Student'}
 								</p>
-								<p className="text-xs text-slate-500">Student</p>
+
+								<p className="text-xs text-slate-500">
+									Student
+								</p>
 							</div>
 						</div>
 					</div>
@@ -280,19 +333,10 @@ function StudentBrowseListings() {
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Explore verified rooms and apartments near your university.
+							Explore verified rooms and apartments near your
+							university.
 						</p>
 					</div>
-
-					<button
-						type="button"
-						className="relative grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600"
-						aria-label="Notifications"
-					>
-						<Bell className="h-4 w-4" />
-
-						<span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500" />
-					</button>
 				</div>
 
 				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
@@ -312,7 +356,9 @@ function StudentBrowseListings() {
 						<div className="relative lg:w-48">
 							<select
 								value={propertyType}
-								onChange={(event) => setPropertyType(event.target.value)}
+								onChange={(event) =>
+									setPropertyType(event.target.value)
+								}
 								className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 							>
 								{propertyTypes.map((type) => (
@@ -328,7 +374,9 @@ function StudentBrowseListings() {
 						<div className="relative lg:w-48">
 							<select
 								value={priceRange}
-								onChange={(event) => setPriceRange(event.target.value)}
+								onChange={(event) =>
+									setPriceRange(event.target.value)
+								}
 								className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 							>
 								{priceRanges.map((range) => (
@@ -404,7 +452,9 @@ function StudentBrowseListings() {
 
 										<div className="p-5">
 											<p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">
-												{getPropertyTypeLabel(listing.propertyType)}
+												{getPropertyTypeLabel(
+													listing.propertyType,
+												)}
 											</p>
 
 											<h3 className="mt-2 text-base font-bold text-slate-950">
@@ -452,7 +502,8 @@ function StudentBrowseListings() {
 								</p>
 
 								<p className="mt-1 text-sm text-slate-400">
-									Try a different area, property type, or price range.
+									Try a different area, property type, or price
+									range.
 								</p>
 							</div>
 						)}
@@ -460,7 +511,8 @@ function StudentBrowseListings() {
 						{filteredListings.length > 0 && (
 							<div className="mt-8 flex items-center justify-between">
 								<p className="text-sm text-slate-500">
-									Showing 1–{filteredListings.length} of {listings.length}
+									Showing 1–{filteredListings.length} of{' '}
+									{listings.length}
 								</p>
 
 								<div className="flex items-center gap-2">
