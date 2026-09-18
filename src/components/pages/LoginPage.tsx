@@ -98,12 +98,6 @@ function LoginPage() {
 						<p className="text-xs font-medium text-slate-500">Student Accommodation Made Easy</p>
 					</div>
 				</div>
-				<p className="text-sm text-slate-500">
-					Don't have an account?{' '}
-					<Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700">
-						Sign up
-					</Link>
-				</p>
 			</div>
 
 			<div className="mx-auto mt-8 max-w-md rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:p-10">
@@ -160,16 +154,15 @@ function LoginPage() {
 					</Field>
 
 					<div className="flex items-center justify-between text-sm">
-						<label className="flex items-center gap-2 text-slate-600">
-							<input
-								type="checkbox"
-								className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-							/>
-							Remember me
-						</label>
 						<a href="#" className="font-semibold text-blue-600 hover:text-blue-700">
 							Forgot password?
 						</a>
+						<p className="text-center text-sm text-slate-500">
+						Don't have an account?{' '}
+						<Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700">
+							Sign up
+						</Link>
+					</p>
 					</div>
 
 					<button
@@ -211,13 +204,6 @@ function LoginPage() {
 						</svg>
 						Sign in with Google
 					</button>
-
-					<p className="text-center text-sm text-slate-500">
-						Don't have an account?{' '}
-						<Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700">
-							Sign up
-						</Link>
-					</p>
 				</form>
 			</div>
 		</main>
