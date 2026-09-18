@@ -14,6 +14,7 @@ import {
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	University,
 } from 'lucide-react'
 
 const navItems = [
@@ -53,6 +54,15 @@ const priceRanges = [
 	'Above M1,000',
 ]
 
+// value is the max distance in km (0 = no limit)
+const distanceOptions = [
+	{ label: 'Any Distance', value: 0 },
+	{ label: 'Within 1 km', value: 1 },
+	{ label: 'Within 2 km', value: 2 },
+	{ label: 'Within 5 km', value: 5 },
+	{ label: 'Within 10 km', value: 10 },
+]
+
 type Accommodation = {
 	id: string
 	title: string
@@ -64,6 +74,19 @@ type Accommodation = {
 	amenities: string[]
 	availableFrom: string | null
 	status: string
+	latitude: number
+	longitude: number
+}
+
+type ListingWithDistance = Accommodation & {
+	// Straight-line distance to the selected university, in km.
+	// null when no university is selected or coordinates are invalid.
+	distanceKm: number | null
+}
+
+type UniversityOption = {
+	id: string
+	name: string
 	latitude: number
 	longitude: number
 }
@@ -153,14 +176,61 @@ function matchesPriceRange(price: number, range: string) {
 	}
 }
 
+function toRadians(degrees: number) {
+	return (degrees * Math.PI) / 180
+}
+
+// Haversine formula: great-circle (straight-line) distance between two
+// coordinates, in kilometres. Returns null if any coordinate is invalid.
+function calculateDistanceKm(
+	lat1: number,
+	lon1: number,
+	lat2: number,
+	lon2: number,
+): number | null {
+	if (![lat1, lon1, lat2, lon2].every(Number.isFinite)) {
+		return null
+	}
+
+	const EARTH_RADIUS_KM = 6371
+
+	const dLat = toRadians(lat2 - lat1)
+	const dLon = toRadians(lon2 - lon1)
+
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos(toRadians(lat1)) *
+			Math.cos(toRadians(lat2)) *
+			Math.sin(dLon / 2) ** 2
+
+	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+	return EARTH_RADIUS_KM * c
+}
+
+function formatDistance(km: number) {
+	if (km < 1) {
+		// Round to the nearest 10 m so it doesn't look falsely precise
+		return `${Math.round((km * 1000) / 10) * 10} m`
+	}
+
+	return `${km.toFixed(1)} km`
+}
+
 function StudentBrowseListings() {
 	const [query, setQuery] = useState('')
 	const [propertyType, setPropertyType] = useState('All Types')
 	const [priceRange, setPriceRange] = useState('Any Price')
+	const [maxDistance, setMaxDistance] = useState(0)
+
+	const [universities, setUniversities] = useState<UniversityOption[]>([])
+	const [selectedUniversityId, setSelectedUniversityId] = useState('')
 
 	const [listings, setListings] = useState<Accommodation[]>([])
 	const [loading, setLoading] = useState(true)
+	const [universityLoading, setUniversityLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [universityError, setUniversityError] = useState('')
 
 	const [studentName, setStudentName] = useState('')
 	const [studentLoading, setStudentLoading] = useState(true)
@@ -209,7 +279,10 @@ function StudentBrowseListings() {
 
 				setListings(formattedListings)
 			} catch (error) {
-				console.error('Failed to fetch accommodation listings:', error)
+				console.error(
+					'Failed to fetch accommodation listings:',
+					error,
+				)
 
 				setError(
 					error instanceof Error
@@ -222,6 +295,51 @@ function StudentBrowseListings() {
 		}
 
 		fetchListings()
+	}, [])
+
+	// Fetch universities
+	useEffect(() => {
+		const fetchUniversities = async () => {
+			try {
+				setUniversityLoading(true)
+				setUniversityError('')
+
+				const response = await fetch('/api/universities')
+
+				const data = await response.json()
+
+				if (!response.ok) {
+					throw new Error(
+						data.error || 'Failed to load universities.',
+					)
+				}
+
+				const formattedUniversities: UniversityOption[] =
+					data.map((university: any) => ({
+						id: university.id,
+						name: university.name,
+						latitude: Number(university.latitude),
+						longitude: Number(university.longitude),
+					}))
+
+				setUniversities(formattedUniversities)
+			} catch (error) {
+				console.error(
+					'Failed to fetch universities:',
+					error,
+				)
+
+				setUniversityError(
+					error instanceof Error
+						? error.message
+						: 'Failed to load universities.',
+				)
+			} finally {
+				setUniversityLoading(false)
+			}
+		}
+
+		fetchUniversities()
 	}, [])
 
 	// Fetch logged-in student's profile
@@ -242,7 +360,10 @@ function StudentBrowseListings() {
 
 				setStudentName(data.user.name)
 			} catch (error) {
-				console.error('Failed to fetch student profile:', error)
+				console.error(
+					'Failed to fetch student profile:',
+					error,
+				)
 			} finally {
 				setStudentLoading(false)
 			}
@@ -251,23 +372,63 @@ function StudentBrowseListings() {
 		fetchStudentProfile()
 	}, [])
 
-	const filteredListings = listings.filter((listing) => {
-		const searchText = query.toLowerCase().trim()
+	const selectedUniversity = universities.find(
+		(university) => university.id === selectedUniversityId,
+	)
 
-		const matchesQuery =
-			!searchText ||
-			listing.title.toLowerCase().includes(searchText) ||
-			listing.area.toLowerCase().includes(searchText) ||
-			listing.description.toLowerCase().includes(searchText)
+	const filteredListings: ListingWithDistance[] = listings
+		// 1. Attach the distance to the selected university
+		.map((listing) => ({
+			...listing,
+			distanceKm: selectedUniversity
+				? calculateDistanceKm(
+						selectedUniversity.latitude,
+						selectedUniversity.longitude,
+						listing.latitude,
+						listing.longitude,
+					)
+				: null,
+		}))
+		// 2. Apply filters
+		.filter((listing) => {
+			const searchText = query.toLowerCase().trim()
 
-		const matchesType =
-			propertyType === 'All Types' ||
-			getPropertyTypeLabel(listing.propertyType) === propertyType
+			const matchesQuery =
+				!searchText ||
+				listing.title.toLowerCase().includes(searchText) ||
+				listing.area.toLowerCase().includes(searchText) ||
+				listing.description.toLowerCase().includes(searchText)
 
-		const matchesPrice = matchesPriceRange(listing.price, priceRange)
+			const matchesType =
+				propertyType === 'All Types' ||
+				getPropertyTypeLabel(listing.propertyType) === propertyType
 
-		return matchesQuery && matchesType && matchesPrice
-	})
+			const matchesPrice = matchesPriceRange(
+				listing.price,
+				priceRange,
+			)
+
+			const matchesDistance =
+				!selectedUniversity ||
+				maxDistance === 0 ||
+				(listing.distanceKm !== null &&
+					listing.distanceKm <= maxDistance)
+
+			return (
+				matchesQuery &&
+				matchesType &&
+				matchesPrice &&
+				matchesDistance
+			)
+		})
+		// 3. Nearest first when a university is selected
+		.sort((a, b) => {
+			if (!selectedUniversity) return 0
+			if (a.distanceKm === null && b.distanceKm === null) return 0
+			if (a.distanceKm === null) return 1
+			if (b.distanceKm === null) return -1
+			return a.distanceKm - b.distanceKm
+		})
 
 	const studentInitial = studentName
 		? studentName.charAt(0).toUpperCase()
@@ -277,19 +438,28 @@ function StudentBrowseListings() {
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
 				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
+					<Link
+						href="/"
+						className="flex items-center gap-3 px-2"
+					>
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
+							Stay
+							<span className="text-blue-600">
+								Match
+							</span>
 						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton key={item.label} {...item} />
+							<NavButton
+								key={item.label}
+								{...item}
+							/>
 						))}
 					</nav>
 				</div>
@@ -333,37 +503,43 @@ function StudentBrowseListings() {
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Explore verified rooms and apartments near your
-							university.
+							Explore verified rooms and apartments near
+							your university.
 						</p>
 					</div>
 				</div>
 
 				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
-					<div className="flex flex-col gap-3 lg:flex-row">
-						<div className="relative flex-1">
-							<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+					<div className="flex flex-col gap-3">
+						{/* University */}
+						<div className="relative">
+							<University className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
-							<input
-								type="text"
-								value={query}
-								onChange={(event) => setQuery(event.target.value)}
-								placeholder="Search by area or listing name"
-								className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
-
-						<div className="relative lg:w-48">
 							<select
-								value={propertyType}
+								value={selectedUniversityId}
 								onChange={(event) =>
-									setPropertyType(event.target.value)
+									setSelectedUniversityId(
+										event.target.value,
+									)
 								}
-								className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								disabled={
+									universityLoading ||
+									universities.length === 0
+								}
+								className="w-full appearance-none rounded-xl border border-blue-200 bg-blue-50 py-3 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
 							>
-								{propertyTypes.map((type) => (
-									<option key={type} value={type}>
-										{type}
+								<option value="">
+									{universityLoading
+										? 'Loading universities...'
+										: 'Select your university'}
+								</option>
+
+								{universities.map((university) => (
+									<option
+										key={university.id}
+										value={university.id}
+									>
+										{university.name}
 									</option>
 								))}
 							</select>
@@ -371,33 +547,126 @@ function StudentBrowseListings() {
 							<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 						</div>
 
-						<div className="relative lg:w-48">
-							<select
-								value={priceRange}
-								onChange={(event) =>
-									setPriceRange(event.target.value)
-								}
-								className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+						{universityError && (
+							<p className="text-xs font-medium text-rose-600">
+								{universityError}
+							</p>
+						)}
+
+						<div className="flex flex-col gap-3 lg:flex-row">
+							<div className="relative flex-1">
+								<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+								<input
+									type="text"
+									value={query}
+									onChange={(event) =>
+										setQuery(event.target.value)
+									}
+									placeholder="Search by area or listing name"
+									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								/>
+							</div>
+
+							<div className="relative lg:w-48">
+								<select
+									value={propertyType}
+									onChange={(event) =>
+										setPropertyType(
+											event.target.value,
+										)
+									}
+									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								>
+									{propertyTypes.map((type) => (
+										<option
+											key={type}
+											value={type}
+										>
+											{type}
+										</option>
+									))}
+								</select>
+
+								<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+							</div>
+
+							<div className="relative lg:w-48">
+								<select
+									value={priceRange}
+									onChange={(event) =>
+										setPriceRange(
+											event.target.value,
+										)
+									}
+									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								>
+									{priceRanges.map((range) => (
+										<option
+											key={range}
+											value={range}
+										>
+											{range}
+										</option>
+									))}
+								</select>
+
+								<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+							</div>
+
+							{/* Max distance – only useful once a university is selected */}
+							{selectedUniversity && (
+								<div className="relative lg:w-48">
+									<select
+										value={maxDistance}
+										onChange={(event) =>
+											setMaxDistance(
+												Number(
+													event.target.value,
+												),
+											)
+										}
+										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+									>
+										{distanceOptions.map((option) => (
+											<option
+												key={option.value}
+												value={option.value}
+											>
+												{option.label}
+											</option>
+										))}
+									</select>
+
+									<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								</div>
+							)}
+
+							<button
+								type="button"
+								className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
 							>
-								{priceRanges.map((range) => (
-									<option key={range} value={range}>
-										{range}
-									</option>
-								))}
-							</select>
-
-							<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								<SlidersHorizontal className="h-4 w-4" />
+								More Filters
+							</button>
 						</div>
-
-						<button
-							type="button"
-							className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
-						>
-							<SlidersHorizontal className="h-4 w-4" />
-							More Filters
-						</button>
 					</div>
 				</div>
+
+				{selectedUniversity && (
+					<div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+						<p className="text-sm text-blue-700">
+							<span className="font-bold">
+								Selected university:
+							</span>{' '}
+							{selectedUniversity.name}
+							<span className="text-blue-500">
+								{' '}
+								— sorted by distance, nearest first
+							</span>
+						</p>
+					</div>
+				)}
 
 				{loading && (
 					<div className="mt-10 rounded-2xl border border-slate-200 bg-white p-10 text-center">
@@ -415,7 +684,9 @@ function StudentBrowseListings() {
 
 						<button
 							type="button"
-							onClick={() => window.location.reload()}
+							onClick={() =>
+								window.location.reload()
+							}
 							className="mt-4 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
 						>
 							Try Again
@@ -448,6 +719,16 @@ function StudentBrowseListings() {
 													Verified
 												</span>
 											)}
+
+											{listing.distanceKm !==
+												null && (
+												<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-slate-950/80 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur">
+													<University className="h-3.5 w-3.5" />
+													{formatDistance(
+														listing.distanceKm,
+													)}
+												</span>
+											)}
 										</div>
 
 										<div className="p-5">
@@ -457,17 +738,28 @@ function StudentBrowseListings() {
 												)}
 											</p>
 
-											<h3 className="mt-2 text-base font-bold text-slate-950">
-												{listing.title}
-											</h3>
-
-											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+											<p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
 												<MapPin className="h-3.5 w-3.5" />
 												{listing.area}
 											</p>
 
+											{listing.distanceKm !==
+												null &&
+												selectedUniversity && (
+													<p className="mt-1 text-xs text-slate-400">
+														{formatDistance(
+															listing.distanceKm,
+														)}{' '}
+														from{' '}
+														{
+															selectedUniversity.name
+														}
+													</p>
+												)}
+
 											<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
-												M{listing.price.toLocaleString()}
+												M
+												{listing.price.toLocaleString()}
 												<span className="text-sm font-medium text-slate-400">
 													{' '}
 													/ month
@@ -502,8 +794,8 @@ function StudentBrowseListings() {
 								</p>
 
 								<p className="mt-1 text-sm text-slate-400">
-									Try a different area, property type, or price
-									range.
+									Try a different area, property type,
+									price range, or distance.
 								</p>
 							</div>
 						)}
