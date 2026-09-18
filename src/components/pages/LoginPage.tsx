@@ -70,7 +70,9 @@ function LoginPage() {
 			const role = data.user?.role
 
 			setTimeout(() => {
-				if (role === 'LANDLORD') {
+				if (role === 'ADMINISTRATOR') {
+					router.push('/admin')
+				} else if (role === 'LANDLORD') {
 					router.push('/landlord/dashboard')
 				} else if (role === 'STUDENT') {
 					router.push('/student/dashboard')
