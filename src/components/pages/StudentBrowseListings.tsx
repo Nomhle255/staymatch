@@ -14,11 +14,8 @@ import {
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
-<<<<<<< Updated upstream
-=======
 	University,
 	Sparkles,
->>>>>>> Stashed changes
 } from 'lucide-react'
 
 const navItems = [
@@ -58,15 +55,13 @@ const priceRanges = [
 	'Above M1,000',
 ]
 
-<<<<<<< Updated upstream
-=======
 // value is the max distance in km (0 = no limit)
 const distanceOptions = [
 	{ label: 'Any Distance', value: 0 },
-	{ label: 'Within 5 km', value: 1 },
-	{ label: 'Within 10 km', value: 2 },
-	{ label: 'Within 15 km', value: 5 },
-	{ label: 'Within 20 km', value: 10 },
+	{ label: 'Within 5 km', value: 5 },
+	{ label: 'Within 10 km', value: 10 },
+	{ label: 'Within 15 km', value: 15 },
+	{ label: 'Within 20 km', value: 20 },
 ]
 
 const minMatchOptions = [
@@ -82,24 +77,26 @@ const MAX_SCORED_DISTANCE_KM = 10
 type PreferenceFactor = {
 	key: string
 	label: string
+	// For amenity factors: words to look for inside a listing's amenities
 	keywords?: string[]
 }
 
 const preferenceFactors: PreferenceFactor[] = [
-	{ key: 'price', label: 'Affordable rental price' },
+	{ key: 'price', label: 'Low price' },
 	{ key: 'distance', label: 'Close to university' },
 	{ key: 'verified', label: 'Verified listing' },
-	{ key: 'wifi', label: 'WiFi', keywords: ['wifi', 'wi-fi', 'internet'] },
-	{ key: 'water', label: 'Water Availability', keywords: ['water'] },
-	{key: 'electricity',label: 'Electricity Availability', keywords: ['electric', 'power'] },
-	{key: 'security',label: 'Security',keywords: ['security', 'guard', 'gate', 'fence', 'cctv'],},
-	{ key: 'ceiling', label: 'Ceiling', keywords: ['Ceiling'] },
-	{ key: 'tile', label: 'Tile', keywords: ['Tile'] },
-	{ key: 'buglars', label: 'Buglars', keywords: ['Buglars'] },
-	{ key: 'toilet', label: 'Clean Toilet', keywords: ['toilet'] },
+	{ key: 'wifi', label: 'Wi-Fi', keywords: ['wi-fi', 'wifi', 'internet'] },
+	{ key: 'water', label: 'Water included', keywords: ['water'] },
+	{ key: 'electricity', label: 'Electricity included', keywords: ['electricity'] },
+	{ key: 'furnished', label: 'Furnished', keywords: ['furnished'] },
+	{ key: 'parking', label: 'Parking available', keywords: ['parking'] },
+	{ key: 'security', label: '24/7 security', keywords: ['24/7 security'] },
+	{ key: 'fenced', label: 'Fenced', keywords: ['fence'] },
+	{ key: 'burglar', label: 'Burglar bars', keywords: ['buglar', 'burglar'] },
+	{ key: 'ceiling', label: 'Ceiling', keywords: ['ceiling'] },
+	{ key: 'tile', label: 'Tiled floors', keywords: ['tile'] },
 ]
 
->>>>>>> Stashed changes
 type Accommodation = {
 	id: string
 	title: string
@@ -115,12 +112,11 @@ type Accommodation = {
 	longitude: number
 }
 
-<<<<<<< Updated upstream
-=======
 type ListingWithDistance = Accommodation & {
 	// Distance to the selected university, in km.
+	// null when no university is selected or coordinates are invalid.
 	distanceKm: number | null
-	// null when the student hasn't rated anything.
+	// 0–100. null when the student hasn't rated anything.
 	matchScore: number | null
 }
 
@@ -131,7 +127,6 @@ type UniversityOption = {
 	longitude: number
 }
 
->>>>>>> Stashed changes
 function NavButton({
 	label,
 	icon: Icon,
@@ -217,8 +212,6 @@ function matchesPriceRange(price: number, range: string) {
 	}
 }
 
-<<<<<<< Updated upstream
-=======
 function toRadians(degrees: number) {
 	return (degrees * Math.PI) / 180
 }
@@ -264,10 +257,11 @@ type PriceBounds = { min: number; max: number }
 
 type ActiveFactor = { factor: PreferenceFactor; weight: number }
 
+// Case-insensitive on both sides, so keywords can be written in any case
 function hasAmenity(amenities: string[], keywords: string[]) {
 	return amenities.some((amenity) => {
 		const text = amenity.toLowerCase()
-		return keywords.some((keyword) => text.includes(keyword))
+		return keywords.some((keyword) => text.includes(keyword.toLowerCase()))
 	})
 }
 
@@ -325,13 +319,10 @@ function calculateMatchScore(
 	return Math.round((earned / possible) * 100)
 }
 
->>>>>>> Stashed changes
 function StudentBrowseListings() {
 	const [query, setQuery] = useState('')
 	const [propertyType, setPropertyType] = useState('All Types')
 	const [priceRange, setPriceRange] = useState('Any Price')
-<<<<<<< Updated upstream
-=======
 	const [maxDistance, setMaxDistance] = useState(0)
 
 	// Importance rating (1–5) per factor key; 0 or missing = not rated
@@ -341,11 +332,12 @@ function StudentBrowseListings() {
 
 	const [universities, setUniversities] = useState<UniversityOption[]>([])
 	const [selectedUniversityId, setSelectedUniversityId] = useState('')
->>>>>>> Stashed changes
 
 	const [listings, setListings] = useState<Accommodation[]>([])
 	const [loading, setLoading] = useState(true)
+	const [universityLoading, setUniversityLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [universityError, setUniversityError] = useState('')
 
 	const [studentName, setStudentName] = useState('')
 	const [studentLoading, setStudentLoading] = useState(true)
@@ -409,6 +401,49 @@ function StudentBrowseListings() {
 		fetchListings()
 	}, [])
 
+	// Fetch universities
+	useEffect(() => {
+		const fetchUniversities = async () => {
+			try {
+				setUniversityLoading(true)
+				setUniversityError('')
+
+				const response = await fetch('/api/universities')
+
+				const data = await response.json()
+
+				if (!response.ok) {
+					throw new Error(
+						data.error || 'Failed to load universities.',
+					)
+				}
+
+				const formattedUniversities: UniversityOption[] = data.map(
+					(university: any) => ({
+						id: university.id,
+						name: university.name,
+						latitude: Number(university.latitude),
+						longitude: Number(university.longitude),
+					}),
+				)
+
+				setUniversities(formattedUniversities)
+			} catch (error) {
+				console.error('Failed to fetch universities:', error)
+
+				setUniversityError(
+					error instanceof Error
+						? error.message
+						: 'Failed to load universities.',
+				)
+			} finally {
+				setUniversityLoading(false)
+			}
+		}
+
+		fetchUniversities()
+	}, [])
+
 	// Fetch logged-in student's profile
 	useEffect(() => {
 		const fetchStudentProfile = async () => {
@@ -436,16 +471,10 @@ function StudentBrowseListings() {
 		fetchStudentProfile()
 	}, [])
 
-	const filteredListings = listings.filter((listing) => {
-		const searchText = query.toLowerCase().trim()
+	const selectedUniversity = universities.find(
+		(university) => university.id === selectedUniversityId,
+	)
 
-<<<<<<< Updated upstream
-		const matchesQuery =
-			!searchText ||
-			listing.title.toLowerCase().includes(searchText) ||
-			listing.area.toLowerCase().includes(searchText) ||
-			listing.description.toLowerCase().includes(searchText)
-=======
 	// Factors the student has rated. "Close to university" only counts
 	// once a university is selected.
 	const activeFactors: ActiveFactor[] = preferenceFactors
@@ -494,22 +523,18 @@ function StudentBrowseListings() {
 		// 3. Apply filters
 		.filter((listing) => {
 			const searchText = query.toLowerCase().trim()
->>>>>>> Stashed changes
 
-		const matchesType =
-			propertyType === 'All Types' ||
-			getPropertyTypeLabel(listing.propertyType) === propertyType
+			const matchesQuery =
+				!searchText ||
+				listing.title.toLowerCase().includes(searchText) ||
+				listing.area.toLowerCase().includes(searchText) ||
+				listing.description.toLowerCase().includes(searchText)
 
-		const matchesPrice = matchesPriceRange(listing.price, priceRange)
+			const matchesType =
+				propertyType === 'All Types' ||
+				getPropertyTypeLabel(listing.propertyType) === propertyType
 
-<<<<<<< Updated upstream
-		return matchesQuery && matchesType && matchesPrice
-	})
-=======
-			const matchesPrice = matchesPriceRange(
-				listing.price,
-				priceRange,
-			)
+			const matchesPrice = matchesPriceRange(listing.price, priceRange)
 
 			const matchesDistance =
 				!selectedUniversity ||
@@ -543,7 +568,6 @@ function StudentBrowseListings() {
 			if (b.distanceKm === null) return -1
 			return a.distanceKm - b.distanceKm
 		})
->>>>>>> Stashed changes
 
 	const studentInitial = studentName
 		? studentName.charAt(0).toUpperCase()
@@ -616,30 +640,34 @@ function StudentBrowseListings() {
 				</div>
 
 				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
-					<div className="flex flex-col gap-3 lg:flex-row">
-						<div className="relative flex-1">
-							<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+					<div className="flex flex-col gap-3">
+						{/* University */}
+						<div className="relative">
+							<University className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
-							<input
-								type="text"
-								value={query}
-								onChange={(event) => setQuery(event.target.value)}
-								placeholder="Search by area or listing name"
-								className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
-
-						<div className="relative lg:w-48">
 							<select
-								value={propertyType}
+								value={selectedUniversityId}
 								onChange={(event) =>
-									setPropertyType(event.target.value)
+									setSelectedUniversityId(event.target.value)
 								}
-								className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								disabled={
+									universityLoading ||
+									universities.length === 0
+								}
+								className="w-full appearance-none rounded-xl border border-blue-200 bg-blue-50 py-3 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
 							>
-								{propertyTypes.map((type) => (
-									<option key={type} value={type}>
-										{type}
+								<option value="">
+									{universityLoading
+										? 'Loading universities...'
+										: 'Select your university'}
+								</option>
+
+								{universities.map((university) => (
+									<option
+										key={university.id}
+										value={university.id}
+									>
+										{university.name}
 									</option>
 								))}
 							</select>
@@ -647,24 +675,6 @@ function StudentBrowseListings() {
 							<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 						</div>
 
-<<<<<<< Updated upstream
-						<div className="relative lg:w-48">
-							<select
-								value={priceRange}
-								onChange={(event) =>
-									setPriceRange(event.target.value)
-								}
-								className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-							>
-								{priceRanges.map((range) => (
-									<option key={range} value={range}>
-										{range}
-									</option>
-								))}
-							</select>
-
-							<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-=======
 						{universityError && (
 							<p className="text-xs font-medium text-rose-600">
 								{universityError}
@@ -690,17 +700,12 @@ function StudentBrowseListings() {
 								<select
 									value={propertyType}
 									onChange={(event) =>
-										setPropertyType(
-											event.target.value,
-										)
+										setPropertyType(event.target.value)
 									}
 									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 								>
 									{propertyTypes.map((type) => (
-										<option
-											key={type}
-											value={type}
-										>
+										<option key={type} value={type}>
 											{type}
 										</option>
 									))}
@@ -713,17 +718,12 @@ function StudentBrowseListings() {
 								<select
 									value={priceRange}
 									onChange={(event) =>
-										setPriceRange(
-											event.target.value,
-										)
+										setPriceRange(event.target.value)
 									}
 									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 								>
 									{priceRanges.map((range) => (
-										<option
-											key={range}
-											value={range}
-										>
+										<option key={range} value={range}>
 											{range}
 										</option>
 									))}
@@ -739,9 +739,7 @@ function StudentBrowseListings() {
 										value={maxDistance}
 										onChange={(event) =>
 											setMaxDistance(
-												Number(
-													event.target.value,
-												),
+												Number(event.target.value),
 											)
 										}
 										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
@@ -780,21 +778,10 @@ function StudentBrowseListings() {
 									</span>
 								)}
 							</button>
->>>>>>> Stashed changes
 						</div>
-
-						<button
-							type="button"
-							className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
-						>
-							<SlidersHorizontal className="h-4 w-4" />
-							More Filters
-						</button>
 					</div>
 				</div>
 
-<<<<<<< Updated upstream
-=======
 				{showPreferences && (
 					<div className="mt-4 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
 						<div className="flex flex-wrap items-start justify-between gap-3">
@@ -804,10 +791,10 @@ function StudentBrowseListings() {
 								</h2>
 
 								<p className="mt-1 text-sm text-slate-500">
-									Rate each factor from 1 (nice to have)
-									to 5 (essential). Skip anything you
-									don&apos;t care about. Listings are
-									ranked by how well they match.
+									Rate each factor from 1 (nice to have) to 5
+									(essential). Skip anything you
+									don&apos;t care about. Listings are ranked
+									by how well they match.
 								</p>
 							</div>
 
@@ -882,40 +869,36 @@ function StudentBrowseListings() {
 											role="group"
 											aria-label={`Importance of ${factor.label}`}
 										>
-											{[1, 2, 3, 4, 5].map(
-												(value) => (
-													<button
-														key={value}
-														type="button"
-														disabled={disabled}
-														aria-pressed={
-															current === value
-														}
-														aria-label={`${factor.label}: ${value} out of 5`}
-														onClick={() =>
-															setRatings(
-																(previous) => ({
-																	...previous,
-																	// Clicking the same rating again clears it
-																	[factor.key]:
-																		previous[
-																			factor.key
-																		] === value
-																			? 0
-																			: value,
-																}),
-															)
-														}
-														className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-bold transition disabled:cursor-not-allowed ${
-															value <= current
-																? 'bg-blue-600 text-white'
-																: 'border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600'
-														}`}
-													>
-														{value}
-													</button>
-												),
-											)}
+											{[1, 2, 3, 4, 5].map((value) => (
+												<button
+													key={value}
+													type="button"
+													disabled={disabled}
+													aria-pressed={current === value}
+													aria-label={`${factor.label}: ${value} out of 5`}
+													onClick={() =>
+														setRatings(
+															(previous) => ({
+																...previous,
+																// Clicking the same rating again clears it
+																[factor.key]:
+																	previous[
+																		factor.key
+																	] === value
+																		? 0
+																		: value,
+															}),
+														)
+													}
+													className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-bold transition disabled:cursor-not-allowed ${
+														value <= current
+															? 'bg-blue-600 text-white'
+															: 'border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600'
+													}`}
+												>
+													{value}
+												</button>
+											))}
 										</div>
 									</div>
 								)
@@ -942,7 +925,6 @@ function StudentBrowseListings() {
 					</div>
 				)}
 
->>>>>>> Stashed changes
 				{loading && (
 					<div className="mt-10 rounded-2xl border border-slate-200 bg-white p-10 text-center">
 						<p className="text-sm font-semibold text-slate-600">
@@ -1002,6 +984,15 @@ function StudentBrowseListings() {
 													Verified
 												</span>
 											)}
+
+											{listing.distanceKm !== null && (
+												<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-slate-950/80 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur">
+													<University className="h-3.5 w-3.5" />
+													{formatDistance(
+														listing.distanceKm,
+													)}
+												</span>
+											)}
 										</div>
 
 										<div className="p-5">
@@ -1011,14 +1002,21 @@ function StudentBrowseListings() {
 												)}
 											</p>
 
-											<h3 className="mt-2 text-base font-bold text-slate-950">
-												{listing.title}
-											</h3>
-
-											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+											<p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
 												<MapPin className="h-3.5 w-3.5" />
 												{listing.area}
 											</p>
+
+											{listing.distanceKm !== null &&
+												selectedUniversity && (
+													<p className="mt-1 text-xs text-slate-400">
+														{formatDistance(
+															listing.distanceKm,
+														)}{' '}
+														from{' '}
+														{selectedUniversity.name}
+													</p>
+												)}
 
 											<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
 												M{listing.price.toLocaleString()}
@@ -1056,13 +1054,8 @@ function StudentBrowseListings() {
 								</p>
 
 								<p className="mt-1 text-sm text-slate-400">
-<<<<<<< Updated upstream
-									Try a different area, property type, or price
-									range.
-=======
-									Try a different area, property type,
-									price range, distance, or minimum match.
->>>>>>> Stashed changes
+									Try a different area, property type, price
+									range, distance, or minimum match.
 								</p>
 							</div>
 						)}
