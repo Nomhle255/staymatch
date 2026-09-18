@@ -161,9 +161,33 @@ export default function UniversitiesPage() {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
 
+	const [adminName, setAdminName] = useState('Administrator')
+
 	useEffect(() => {
 		fetchUniversities()
+		fetchProfile()
 	}, [])
+
+	async function fetchProfile() {
+		try {
+			const response = await fetch('/api/profile')
+
+			if (!response.ok) {
+				return
+			}
+
+			const data = await response.json()
+
+			if (data.user?.name) {
+				setAdminName(data.user.name)
+			}
+		} catch (error) {
+			console.error(
+				'Failed to fetch admin profile:',
+				error
+			)
+		}
+	}
 
 	async function fetchUniversities() {
 		try {
@@ -201,6 +225,8 @@ export default function UniversitiesPage() {
 		router.push('/login')
 	}
 
+	const adminInitial = adminName.charAt(0).toUpperCase()
+
 	return (
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
@@ -211,7 +237,8 @@ export default function UniversitiesPage() {
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">
+							Stay
+							<span className="text-blue-600">
 								Match
 							</span>
 						</p>
@@ -231,16 +258,16 @@ export default function UniversitiesPage() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								A
+								{adminInitial}
 							</div>
 
 							<div>
 								<p className="text-sm font-bold text-slate-900">
-									Administrator
+									{adminName}
 								</p>
 
 								<p className="text-xs text-slate-500">
-									Admin
+									Administrator
 								</p>
 							</div>
 						</div>

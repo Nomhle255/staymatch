@@ -1,6 +1,7 @@
 'use client'
 
 import type { ComponentType, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
 	LayoutDashboard,
@@ -130,6 +131,35 @@ function AdminOption({
 export default function AdminDashboard() {
 	const router = useRouter()
 
+	const [adminName, setAdminName] = useState('Administrator')
+
+	useEffect(() => {
+		async function fetchProfile() {
+			try {
+				const response = await fetch('/api/profile')
+
+				if (!response.ok) {
+					return
+				}
+
+				const data = await response.json()
+
+				if (data.user?.name) {
+					setAdminName(data.user.name)
+				}
+			} catch (error) {
+				console.error(
+					'Failed to fetch admin profile:',
+					error
+				)
+			}
+		}
+
+		fetchProfile()
+	}, [])
+
+	const adminInitial = adminName.charAt(0).toUpperCase()
+
 	function handleLogout() {
 		router.push('/login')
 	}
@@ -144,7 +174,8 @@ export default function AdminDashboard() {
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">
+							Stay
+							<span className="text-blue-600">
 								Match
 							</span>
 						</p>
@@ -164,16 +195,16 @@ export default function AdminDashboard() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								A
+								{adminInitial}
 							</div>
 
 							<div>
 								<p className="text-sm font-bold text-slate-900">
-									Administrator
+									{adminName}
 								</p>
 
 								<p className="text-xs text-slate-500">
-									Admin
+									Administrator
 								</p>
 							</div>
 						</div>
@@ -195,7 +226,7 @@ export default function AdminDashboard() {
 					<div className="flex flex-wrap items-center justify-between gap-4">
 						<div>
 							<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
-								Welcome back, Administrator
+								Welcome back, {adminName}
 							</h1>
 
 							<p className="mt-1 text-sm text-slate-500">

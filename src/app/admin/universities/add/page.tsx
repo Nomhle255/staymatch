@@ -1,7 +1,7 @@
 'use client'
 
 import type { ComponentType, ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
 	LayoutDashboard,
@@ -93,6 +93,8 @@ function SidebarShell({
 export default function AddUniversityPage() {
 	const router = useRouter()
 
+	const [adminName, setAdminName] = useState('Administrator')
+
 	const [name, setName] = useState('')
 	const [location, setLocation] = useState('')
 	const [latitude, setLatitude] = useState('')
@@ -102,6 +104,33 @@ export default function AddUniversityPage() {
 	const [loading, setLoading] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState('')
+
+	useEffect(() => {
+		async function fetchProfile() {
+			try {
+				const response = await fetch('/api/profile')
+
+				if (!response.ok) {
+					return
+				}
+
+				const data = await response.json()
+
+				if (data.user?.name) {
+					setAdminName(data.user.name)
+				}
+			} catch (error) {
+				console.error(
+					'Failed to fetch admin profile:',
+					error
+				)
+			}
+		}
+
+		fetchProfile()
+	}, [])
+
+	const adminInitial = adminName.charAt(0).toUpperCase()
 
 	async function findCoordinates() {
 		if (!location.trim()) {
@@ -247,16 +276,16 @@ export default function AddUniversityPage() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								A
+								{adminInitial}
 							</div>
 
 							<div>
 								<p className="text-sm font-bold text-slate-900">
-									Administrator
+									{adminName}
 								</p>
 
 								<p className="text-xs text-slate-500">
-									Admin
+									Administrator
 								</p>
 							</div>
 						</div>
@@ -275,7 +304,6 @@ export default function AddUniversityPage() {
 
 			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
 				<div className="mx-auto max-w-4xl">
-					{/* Back button */}
 					<button
 						type="button"
 						onClick={() =>
@@ -287,7 +315,6 @@ export default function AddUniversityPage() {
 						Back to Universities
 					</button>
 
-					{/* Page heading */}
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
 							Add University
@@ -299,7 +326,6 @@ export default function AddUniversityPage() {
 						</p>
 					</div>
 
-					{/* Form */}
 					<div className="mt-8 rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
 						<div className="mb-8 flex items-start gap-4">
 							<div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
@@ -320,7 +346,6 @@ export default function AddUniversityPage() {
 						</div>
 
 						<div className="space-y-6">
-							{/* University name */}
 							<div>
 								<label className="mb-2 block text-sm font-semibold text-slate-800">
 									University Name
@@ -339,7 +364,6 @@ export default function AddUniversityPage() {
 								/>
 							</div>
 
-							{/* Location */}
 							<div>
 								<label className="mb-2 block text-sm font-semibold text-slate-800">
 									Location
@@ -356,8 +380,7 @@ export default function AddUniversityPage() {
 												event
 											) =>
 												setLocation(
-													event
-														.target
+													event.target
 														.value
 												)
 											}
@@ -388,7 +411,6 @@ export default function AddUniversityPage() {
 								</p>
 							</div>
 
-							{/* Search results */}
 							{results.length > 0 && (
 								<div className="overflow-hidden rounded-2xl border border-slate-200">
 									<div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
@@ -445,7 +467,6 @@ export default function AddUniversityPage() {
 								</div>
 							)}
 
-							{/* Coordinates */}
 							<div>
 								<div className="mb-3">
 									<h3 className="text-sm font-bold text-slate-900">
@@ -491,14 +512,12 @@ export default function AddUniversityPage() {
 								</div>
 							</div>
 
-							{/* Error */}
 							{error && (
 								<div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
 									{error}
 								</div>
 							)}
 
-							{/* Save */}
 							<div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
 								<button
 									type="button"
