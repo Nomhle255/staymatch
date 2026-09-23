@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 		const token = signToken({ userId: user.id, role: user.role })
 
 		const response = NextResponse.json({
-			user: { id: user.id, fullName: user.name, email: user.email, role: user.role },
+			user: { id: user.id, name: user.name, email: user.email, role: user.role },
 		})
 
 		response.cookies.set('staymatch_token', token, {
