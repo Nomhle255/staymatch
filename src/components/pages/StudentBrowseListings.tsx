@@ -15,6 +15,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	University,
+	Sparkles,
 } from 'lucide-react'
 
 const navItems = [
@@ -57,10 +58,43 @@ const priceRanges = [
 // value is the max distance in km (0 = no limit)
 const distanceOptions = [
 	{ label: 'Any Distance', value: 0 },
-	{ label: 'Within 1 km', value: 1 },
-	{ label: 'Within 2 km', value: 2 },
 	{ label: 'Within 5 km', value: 5 },
 	{ label: 'Within 10 km', value: 10 },
+	{ label: 'Within 15 km', value: 15 },
+	{ label: 'Within 20 km', value: 20 },
+]
+
+const minMatchOptions = [
+	{ label: 'Any match', value: 0 },
+	{ label: '50%+ match', value: 50 },
+	{ label: '70%+ match', value: 70 },
+	{ label: '90%+ match', value: 90 },
+]
+
+// Distance beyond this scores 0 for the "close to university" factor
+const MAX_SCORED_DISTANCE_KM = 10
+
+type PreferenceFactor = {
+	key: string
+	label: string
+	// For amenity factors: words to look for inside a listing's amenities
+	keywords?: string[]
+}
+
+const preferenceFactors: PreferenceFactor[] = [
+	{ key: 'price', label: 'Low price' },
+	{ key: 'distance', label: 'Close to university' },
+	{ key: 'verified', label: 'Verified listing' },
+	{ key: 'wifi', label: 'Wi-Fi', keywords: ['wi-fi', 'wifi', 'internet'] },
+	{ key: 'water', label: 'Water included', keywords: ['water'] },
+	{ key: 'electricity', label: 'Electricity included', keywords: ['electricity'] },
+	{ key: 'furnished', label: 'Furnished', keywords: ['furnished'] },
+	{ key: 'parking', label: 'Parking available', keywords: ['parking'] },
+	{ key: 'security', label: '24/7 security', keywords: ['24/7 security'] },
+	{ key: 'fenced', label: 'Fenced', keywords: ['fence'] },
+	{ key: 'burglar', label: 'Burglar bars', keywords: ['buglar', 'burglar'] },
+	{ key: 'ceiling', label: 'Ceiling', keywords: ['ceiling'] },
+	{ key: 'tile', label: 'Tiled floors', keywords: ['tile'] },
 ]
 
 type Accommodation = {
@@ -79,9 +113,11 @@ type Accommodation = {
 }
 
 type ListingWithDistance = Accommodation & {
-	// Straight-line distance to the selected university, in km.
+	// Distance to the selected university, in km.
 	// null when no university is selected or coordinates are invalid.
 	distanceKm: number | null
+	// 0–100. null when the student hasn't rated anything.
+	matchScore: number | null
 }
 
 type UniversityOption = {
@@ -217,11 +253,82 @@ function formatDistance(km: number) {
 	return `${km.toFixed(1)} km`
 }
 
+type PriceBounds = { min: number; max: number }
+
+type ActiveFactor = { factor: PreferenceFactor; weight: number }
+
+// Case-insensitive on both sides, so keywords can be written in any case
+function hasAmenity(amenities: string[], keywords: string[]) {
+	return amenities.some((amenity) => {
+		const text = amenity.toLowerCase()
+		return keywords.some((keyword) => text.includes(keyword.toLowerCase()))
+	})
+}
+
+// How well one listing satisfies one factor: 0 (not at all) to 1 (fully)
+function getFactorSatisfaction(
+	listing: Accommodation & { distanceKm: number | null },
+	factor: PreferenceFactor,
+	priceBounds: PriceBounds,
+) {
+	switch (factor.key) {
+		case 'price': {
+			const range = priceBounds.max - priceBounds.min
+			if (!Number.isFinite(listing.price)) return 0
+			if (range <= 0) return 1
+			return 1 - (listing.price - priceBounds.min) / range
+		}
+
+		case 'distance':
+			if (listing.distanceKm === null) return 0
+			return (
+				1 -
+				Math.min(listing.distanceKm, MAX_SCORED_DISTANCE_KM) /
+					MAX_SCORED_DISTANCE_KM
+			)
+
+		case 'verified':
+			return listing.verified ? 1 : 0
+
+		default:
+			return hasAmenity(listing.amenities, factor.keywords ?? [])
+				? 1
+				: 0
+	}
+}
+
+// Weighted average of how well the listing meets each rated factor, so a
+// factor rated 5 counts five times as much as one rated 1. Returns 0–100,
+// or null when nothing has been rated.
+function calculateMatchScore(
+	listing: Accommodation & { distanceKm: number | null },
+	activeFactors: ActiveFactor[],
+	priceBounds: PriceBounds,
+): number | null {
+	if (activeFactors.length === 0) return null
+
+	let earned = 0
+	let possible = 0
+
+	for (const { factor, weight } of activeFactors) {
+		earned +=
+			weight * getFactorSatisfaction(listing, factor, priceBounds)
+		possible += weight
+	}
+
+	return Math.round((earned / possible) * 100)
+}
+
 function StudentBrowseListings() {
 	const [query, setQuery] = useState('')
 	const [propertyType, setPropertyType] = useState('All Types')
 	const [priceRange, setPriceRange] = useState('Any Price')
 	const [maxDistance, setMaxDistance] = useState(0)
+
+	// Importance rating (1–5) per factor key; 0 or missing = not rated
+	const [ratings, setRatings] = useState<Record<string, number>>({})
+	const [minMatch, setMinMatch] = useState(0)
+	const [showPreferences, setShowPreferences] = useState(false)
 
 	const [universities, setUniversities] = useState<UniversityOption[]>([])
 	const [selectedUniversityId, setSelectedUniversityId] = useState('')
@@ -314,20 +421,18 @@ function StudentBrowseListings() {
 					)
 				}
 
-				const formattedUniversities: UniversityOption[] =
-					data.map((university: any) => ({
+				const formattedUniversities: UniversityOption[] = data.map(
+					(university: any) => ({
 						id: university.id,
 						name: university.name,
 						latitude: Number(university.latitude),
 						longitude: Number(university.longitude),
-					}))
+					}),
+				)
 
 				setUniversities(formattedUniversities)
 			} catch (error) {
-				console.error(
-					'Failed to fetch universities:',
-					error,
-				)
+				console.error('Failed to fetch universities:', error)
 
 				setUniversityError(
 					error instanceof Error
@@ -376,6 +481,29 @@ function StudentBrowseListings() {
 		(university) => university.id === selectedUniversityId,
 	)
 
+	// Factors the student has rated. "Close to university" only counts
+	// once a university is selected.
+	const activeFactors: ActiveFactor[] = preferenceFactors
+		.filter(
+			(factor) =>
+				(ratings[factor.key] ?? 0) > 0 &&
+				(factor.key !== 'distance' || Boolean(selectedUniversity)),
+		)
+		.map((factor) => ({ factor, weight: ratings[factor.key] }))
+
+	const preferencesActive = activeFactors.length > 0
+	const ratedCount = Object.values(ratings).filter(
+		(value) => value > 0,
+	).length
+
+	const prices = listings
+		.map((listing) => listing.price)
+		.filter(Number.isFinite)
+
+	const priceBounds: PriceBounds = prices.length
+		? { min: Math.min(...prices), max: Math.max(...prices) }
+		: { min: 0, max: 0 }
+
 	const filteredListings: ListingWithDistance[] = listings
 		// 1. Attach the distance to the selected university
 		.map((listing) => ({
@@ -389,7 +517,16 @@ function StudentBrowseListings() {
 					)
 				: null,
 		}))
-		// 2. Apply filters
+		// 2. Score each listing against the student's preferences
+		.map((listing) => ({
+			...listing,
+			matchScore: calculateMatchScore(
+				listing,
+				activeFactors,
+				priceBounds,
+			),
+		}))
+		// 3. Apply filters
 		.filter((listing) => {
 			const searchText = query.toLowerCase().trim()
 
@@ -403,10 +540,7 @@ function StudentBrowseListings() {
 				propertyType === 'All Types' ||
 				getPropertyTypeLabel(listing.propertyType) === propertyType
 
-			const matchesPrice = matchesPriceRange(
-				listing.price,
-				priceRange,
-			)
+			const matchesPrice = matchesPriceRange(listing.price, priceRange)
 
 			const matchesDistance =
 				!selectedUniversity ||
@@ -414,15 +548,26 @@ function StudentBrowseListings() {
 				(listing.distanceKm !== null &&
 					listing.distanceKm <= maxDistance)
 
+			const matchesMinMatch =
+				minMatch === 0 ||
+				(listing.matchScore !== null &&
+					listing.matchScore >= minMatch)
+
 			return (
 				matchesQuery &&
 				matchesType &&
 				matchesPrice &&
-				matchesDistance
+				matchesDistance &&
+				matchesMinMatch
 			)
 		})
-		// 3. Nearest first when a university is selected
+		// 4. Rank by preference match first. Listings with the same match
+		// score are then ordered nearest first (distance is only a tie-breaker
+		// unless the student rated "Close to university" themselves).
 		.sort((a, b) => {
+			const matchDiff = (b.matchScore ?? -1) - (a.matchScore ?? -1)
+			if (matchDiff !== 0) return matchDiff
+
 			if (!selectedUniversity) return 0
 			if (a.distanceKm === null && b.distanceKm === null) return 0
 			if (a.distanceKm === null) return 1
@@ -518,9 +663,7 @@ function StudentBrowseListings() {
 							<select
 								value={selectedUniversityId}
 								onChange={(event) =>
-									setSelectedUniversityId(
-										event.target.value,
-									)
+									setSelectedUniversityId(event.target.value)
 								}
 								disabled={
 									universityLoading ||
@@ -572,17 +715,12 @@ function StudentBrowseListings() {
 								<select
 									value={propertyType}
 									onChange={(event) =>
-										setPropertyType(
-											event.target.value,
-										)
+										setPropertyType(event.target.value)
 									}
 									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 								>
 									{propertyTypes.map((type) => (
-										<option
-											key={type}
-											value={type}
-										>
+										<option key={type} value={type}>
 											{type}
 										</option>
 									))}
@@ -595,17 +733,12 @@ function StudentBrowseListings() {
 								<select
 									value={priceRange}
 									onChange={(event) =>
-										setPriceRange(
-											event.target.value,
-										)
+										setPriceRange(event.target.value)
 									}
 									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 								>
 									{priceRanges.map((range) => (
-										<option
-											key={range}
-											value={range}
-										>
+										<option key={range} value={range}>
 											{range}
 										</option>
 									))}
@@ -621,9 +754,7 @@ function StudentBrowseListings() {
 										value={maxDistance}
 										onChange={(event) =>
 											setMaxDistance(
-												Number(
-													event.target.value,
-												),
+												Number(event.target.value),
 											)
 										}
 										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
@@ -644,14 +775,170 @@ function StudentBrowseListings() {
 
 							<button
 								type="button"
-								className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
+								onClick={() =>
+									setShowPreferences((open) => !open)
+								}
+								aria-expanded={showPreferences}
+								className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition ${
+									showPreferences || ratedCount > 0
+										? 'border-blue-300 bg-blue-50 text-blue-600'
+										: 'border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+								}`}
 							>
 								<SlidersHorizontal className="h-4 w-4" />
-								More Filters
+								Preferences
+								{ratedCount > 0 && (
+									<span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">
+										{ratedCount}
+									</span>
+								)}
 							</button>
 						</div>
 					</div>
 				</div>
+
+				{showPreferences && (
+					<div className="mt-4 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
+						<div className="flex flex-wrap items-start justify-between gap-3">
+							<div className="max-w-xl">
+								<h2 className="text-base font-black tracking-[-0.02em] text-slate-950">
+									What matters most to you?
+								</h2>
+
+								<p className="mt-1 text-sm text-slate-500">
+									Rate each factor from 1 (nice to have) to 5
+									(essential). Skip anything you
+									don&apos;t care about. Listings are ranked
+									by how well they match.
+								</p>
+							</div>
+
+							<div className="flex items-center gap-3">
+								<div className="relative">
+									<select
+										value={minMatch}
+										onChange={(event) =>
+											setMinMatch(
+												Number(event.target.value),
+											)
+										}
+										disabled={!preferencesActive}
+										aria-label="Minimum match"
+										className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										{minMatchOptions.map((option) => (
+											<option
+												key={option.value}
+												value={option.value}
+											>
+												{option.label}
+											</option>
+										))}
+									</select>
+
+									<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								</div>
+
+								<button
+									type="button"
+									onClick={() => {
+										setRatings({})
+										setMinMatch(0)
+									}}
+									disabled={ratedCount === 0}
+									className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+								>
+									Reset
+								</button>
+							</div>
+						</div>
+
+						<div className="mt-4 grid gap-3 md:grid-cols-2">
+							{preferenceFactors.map((factor) => {
+								const disabled =
+									factor.key === 'distance' &&
+									!selectedUniversity
+								const current = ratings[factor.key] ?? 0
+
+								return (
+									<div
+										key={factor.key}
+										className={`flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 ${
+											disabled ? 'opacity-50' : ''
+										}`}
+									>
+										<div>
+											<p className="text-sm font-semibold text-slate-800">
+												{factor.label}
+											</p>
+
+											{disabled && (
+												<p className="text-xs text-slate-400">
+													Select a university first
+												</p>
+											)}
+										</div>
+
+										<div
+											className="flex gap-1"
+											role="group"
+											aria-label={`Importance of ${factor.label}`}
+										>
+											{[1, 2, 3, 4, 5].map((value) => (
+												<button
+													key={value}
+													type="button"
+													disabled={disabled}
+													aria-pressed={current === value}
+													aria-label={`${factor.label}: ${value} out of 5`}
+													onClick={() =>
+														setRatings(
+															(previous) => ({
+																...previous,
+																// Clicking the same rating again clears it
+																[factor.key]:
+																	previous[
+																		factor.key
+																	] === value
+																		? 0
+																		: value,
+															}),
+														)
+													}
+													className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-bold transition disabled:cursor-not-allowed ${
+														value <= current
+															? 'bg-blue-600 text-white'
+															: 'border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600'
+													}`}
+												>
+													{value}
+												</button>
+											))}
+										</div>
+									</div>
+								)
+							})}
+						</div>
+					</div>
+				)}
+
+				{selectedUniversity && (
+					<div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+						<p className="text-sm text-blue-700">
+							<span className="font-bold">
+								Selected university:
+							</span>{' '}
+							{selectedUniversity.name}
+							<span className="text-blue-500">
+								{' '}
+								—{' '}
+								{preferencesActive
+									? 'ranked by your preferences'
+									: 'sorted by distance, nearest first'}
+							</span>
+						</p>
+					</div>
+				)}
 
 				{selectedUniversity && (
 					<div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
@@ -701,6 +988,9 @@ function StudentBrowseListings() {
 								{filteredListings.length}
 							</span>{' '}
 							properties found
+							{preferencesActive
+								? ' · ranked by your preferences'
+								: ''}
 						</p>
 
 						<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -713,6 +1003,13 @@ function StudentBrowseListings() {
 										<div
 											className={`relative h-44 bg-gradient-to-br ${getGradient(index)}`}
 										>
+											{listing.matchScore !== null && (
+												<span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-blue-600 shadow-sm">
+													<Sparkles className="h-3.5 w-3.5" />
+													{listing.matchScore}% match
+												</span>
+											)}
+
 											{listing.verified && (
 												<span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-emerald-600 shadow-sm">
 													<BadgeCheck className="h-3.5 w-3.5" />
@@ -720,8 +1017,7 @@ function StudentBrowseListings() {
 												</span>
 											)}
 
-											{listing.distanceKm !==
-												null && (
+											{listing.distanceKm !== null && (
 												<span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-slate-950/80 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur">
 													<University className="h-3.5 w-3.5" />
 													{formatDistance(
@@ -743,17 +1039,14 @@ function StudentBrowseListings() {
 												{listing.area}
 											</p>
 
-											{listing.distanceKm !==
-												null &&
+											{listing.distanceKm !== null &&
 												selectedUniversity && (
 													<p className="mt-1 text-xs text-slate-400">
 														{formatDistance(
 															listing.distanceKm,
 														)}{' '}
 														from{' '}
-														{
-															selectedUniversity.name
-														}
+														{selectedUniversity.name}
 													</p>
 												)}
 
@@ -794,8 +1087,8 @@ function StudentBrowseListings() {
 								</p>
 
 								<p className="mt-1 text-sm text-slate-400">
-									Try a different area, property type,
-									price range, or distance.
+									Try a different area, property type, price
+									range, distance, or minimum match.
 								</p>
 							</div>
 						)}

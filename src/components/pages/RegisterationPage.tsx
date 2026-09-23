@@ -148,12 +148,6 @@ function RegisterUser() {
 						<p className="text-xs font-medium text-slate-500">Student Accommodation Made Easy</p>
 					</div>
 				</div>
-				<p className="text-sm text-slate-500">
-					Already have an account?{' '}
-					<Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
-						Log in
-					</Link>
-				</p>
 			</div>
 
 			<div className="mx-auto mt-8 max-w-2xl rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:p-10">
@@ -300,25 +294,6 @@ function RegisterUser() {
 							</button>
 						</div>
 					</Field>
-
-					<label className="flex items-start gap-3 text-sm text-slate-600">
-						<input
-							type="checkbox"
-							checked={agreed}
-							onChange={(event) => setAgreed(event.target.checked)}
-							className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-						/>
-						<span>
-							I agree to the{' '}
-							<a href="#" className="font-semibold text-blue-600 hover:text-blue-700">
-								Terms of Service
-							</a>{' '}
-							and{' '}
-							<a href="#" className="font-semibold text-blue-600 hover:text-blue-700">
-								Privacy Policy
-							</a>
-						</span>
-					</label>
 
 					<button
 						type="submit"
