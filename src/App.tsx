@@ -4,8 +4,8 @@ import RegisterationPage from './app/register/page.tsx'
 import LoginPage from './app/login/page.tsx'
 import StudentDashboard from './app/student/dashboard/page.tsx'
 import LandlordDashboard from './app/landlord/dashboard/page.tsx'
-import AddAccommodation from './app/landlord/AddAccommodation/page.tsx'
-import AccommodationListings from './app/landlord/AccommodationListing/page.tsx'
+import AddAccommodation from './app/landlord/addaccommodation/page.js'
+import AccommodationListings from './app/landlord/accommodationlisting/page.js'
 import StudentBrowseListings from './app/student/browseListings/page.tsx'
 
 function App() {
