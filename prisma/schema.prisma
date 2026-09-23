@@ -5,6 +5,63 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  phone          String?
+  passwordHash   String
+  role           Role
+  university     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accommodations Accommodation[] @relation("LandlordAccommodations")
+  applications   Application[]   @relation("StudentApplications")
+}
+
+model Accommodation {
+  id            String              @id @default(cuid())
+  landlordId    String
+  description   String
+  area          String
+  price         Int
+  propertyType  PropertyType
+  amenities     String[]            @default([])
+  availableFrom DateTime?
+  status        AccommodationStatus @default(PENDING_REVIEW)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  latitude      Float
+  longitude     Float
+  photos        String[]            @default([])
+  landlord      User                @relation("LandlordAccommodations", fields: [landlordId], references: [id])
+  applications  Application[]
+}
+
+model Application {
+  id              String            @id @default(cuid())
+  studentId       String
+  accommodationId String
+  message         String?
+  status          ApplicationStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  accommodation   Accommodation     @relation(fields: [accommodationId], references: [id])
+  student         User              @relation("StudentApplications", fields: [studentId], references: [id])
+
+  @@unique([studentId, accommodationId])
+}
+
+model University {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum Role {
   STUDENT
   LANDLORD
@@ -28,63 +85,4 @@ enum ApplicationStatus {
   PENDING
   APPROVED
   DECLINED
-}
-
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String
-  role         Role
-  university   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  accommodations Accommodation[] @relation("LandlordAccommodations")
-  applications   Application[]   @relation("StudentApplications")
-}
-model Accommodation {
-  id            String              @id @default(cuid())
-  landlord      User                @relation("LandlordAccommodations", fields: [landlordId], references: [id])
-  landlordId    String
-
-  description   String
-  area          String
-  price         Int
-  propertyType  PropertyType
-
-  latitude      Float
-  longitude     Float
-
-  amenities     String[]            @default([])
-  availableFrom DateTime?
-  status        AccommodationStatus @default(PENDING_REVIEW)
-
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-
-  applications  Application[]
-}
-model Application {
-  id              String             @id @default(cuid())
-  student         User               @relation("StudentApplications", fields: [studentId], references: [id])
-  studentId       String
-  accommodation   Accommodation      @relation(fields: [accommodationId], references: [id])
-  accommodationId String
-  message         String?
-  status          ApplicationStatus  @default(PENDING)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  @@unique([studentId, accommodationId])
-}
-model University {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  latitude  Float
-  longitude Float
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
