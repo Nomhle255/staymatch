@@ -386,7 +386,10 @@ function StudentBrowseListings() {
 
 				setListings(formattedListings)
 			} catch (error) {
-				console.error('Failed to fetch accommodation listings:', error)
+				console.error(
+					'Failed to fetch accommodation listings:',
+					error,
+				)
 
 				setError(
 					error instanceof Error
@@ -462,7 +465,10 @@ function StudentBrowseListings() {
 
 				setStudentName(data.user.name)
 			} catch (error) {
-				console.error('Failed to fetch student profile:', error)
+				console.error(
+					'Failed to fetch student profile:',
+					error,
+				)
 			} finally {
 				setStudentLoading(false)
 			}
@@ -577,19 +583,28 @@ function StudentBrowseListings() {
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
 				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
+					<Link
+						href="/"
+						className="flex items-center gap-3 px-2"
+					>
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
+							Stay
+							<span className="text-blue-600">
+								Match
+							</span>
 						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton key={item.label} {...item} />
+							<NavButton
+								key={item.label}
+								{...item}
+							/>
 						))}
 					</nav>
 				</div>
@@ -633,8 +648,8 @@ function StudentBrowseListings() {
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Explore verified rooms and apartments near your
-							university.
+							Explore verified rooms and apartments near
+							your university.
 						</p>
 					</div>
 				</div>
@@ -925,6 +940,21 @@ function StudentBrowseListings() {
 					</div>
 				)}
 
+				{selectedUniversity && (
+					<div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+						<p className="text-sm text-blue-700">
+							<span className="font-bold">
+								Selected university:
+							</span>{' '}
+							{selectedUniversity.name}
+							<span className="text-blue-500">
+								{' '}
+								— sorted by distance, nearest first
+							</span>
+						</p>
+					</div>
+				)}
+
 				{loading && (
 					<div className="mt-10 rounded-2xl border border-slate-200 bg-white p-10 text-center">
 						<p className="text-sm font-semibold text-slate-600">
@@ -941,7 +971,9 @@ function StudentBrowseListings() {
 
 						<button
 							type="button"
-							onClick={() => window.location.reload()}
+							onClick={() =>
+								window.location.reload()
+							}
 							className="mt-4 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
 						>
 							Try Again
@@ -1019,7 +1051,8 @@ function StudentBrowseListings() {
 												)}
 
 											<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
-												M{listing.price.toLocaleString()}
+												M
+												{listing.price.toLocaleString()}
 												<span className="text-sm font-medium text-slate-400">
 													{' '}
 													/ month
