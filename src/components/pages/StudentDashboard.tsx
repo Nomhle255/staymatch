@@ -1,6 +1,7 @@
 'use client'
 
 import type { ComponentType, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
 	LayoutDashboard,
@@ -26,7 +27,7 @@ const navItems = [
 		label: 'Browse Listings',
 		icon: Search,
 		active: false,
-		href: '/student-browse-listings',
+		href: '/student/browseListings',
 	},
 	{
 		label: 'Applications',
@@ -158,6 +159,42 @@ function SidebarShell({ children }: { children: ReactNode }) {
 export default function StudentDashboard() {
 	const router = useRouter()
 
+	const [studentName, setStudentName] = useState('')
+	const [studentLoading, setStudentLoading] = useState(true)
+
+	useEffect(() => {
+		const fetchStudentProfile = async () => {
+			try {
+				setStudentLoading(true)
+
+				const response = await fetch('/api/student/profile')
+				const data = await response.json()
+
+				if (!response.ok) {
+					throw new Error(
+						data.error || 'Failed to load student profile.'
+					)
+				}
+
+				setStudentName(data.user.name)
+			} catch (error) {
+				console.error('Failed to fetch student profile:', error)
+			} finally {
+				setStudentLoading(false)
+			}
+		}
+
+		fetchStudentProfile()
+	}, [])
+
+	const studentInitial = studentName
+		? studentName.charAt(0).toUpperCase()
+		: 'S'
+
+	const firstName = studentName
+		? studentName.split(' ')[0]
+		: 'Student'
+
 	return (
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
@@ -186,12 +223,14 @@ export default function StudentDashboard() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								N
+								{studentInitial}
 							</div>
 
 							<div>
 								<p className="text-sm font-bold text-slate-900">
-									Nomhle Cathala
+									{studentLoading
+										? 'Loading...'
+										: studentName || 'Student'}
 								</p>
 
 								<p className="text-xs text-slate-500">
@@ -215,7 +254,7 @@ export default function StudentDashboard() {
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
-							Welcome back, Nomhle
+							Welcome back, {studentLoading ? '...' : firstName}
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
@@ -226,7 +265,9 @@ export default function StudentDashboard() {
 					<div className="flex items-center gap-3">
 						<button
 							type="button"
-							onClick={() => router.push('/student-browse-listings')}
+							onClick={() =>
+								router.push('/student/browseListings')
+							}
 							className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
 						>
 							Browse Listings
@@ -254,7 +295,9 @@ export default function StudentDashboard() {
 								<button
 									type="button"
 									onClick={() =>
-										router.push('/student-browse-listings')
+										router.push(
+											'/student-browse-listings'
+										)
 									}
 									className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
 								>
