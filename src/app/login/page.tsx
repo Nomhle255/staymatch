@@ -1,4 +1,8 @@
+'use client'
+
 import { useState, type ReactNode, type ComponentType } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 const inputClasses =
@@ -33,7 +37,39 @@ function InputShell({ icon: Icon, children }: InputShellProps) {
 }
 
 function LoginPage() {
+	const router = useRouter()
 	const [showPassword, setShowPassword] = useState(false)
+	const [email, setEmail] = useState('')
+	const [password, setPassword] = useState('')
+	const [error, setError] = useState('')
+	const [isSubmitting, setIsSubmitting] = useState(false)
+
+	const handleSubmit = async (event: React.FormEvent) => {
+		event.preventDefault()
+		setError('')
+		setIsSubmitting(true)
+
+		try {
+			const response = await fetch('/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, password }),
+			})
+
+			const data = await response.json()
+
+			if (!response.ok) {
+				setError(data.error ?? 'Something went wrong.')
+				return
+			}
+
+			router.push('/')
+		} catch {
+			setError('Could not reach the server. Please try again.')
+		} finally {
+			setIsSubmitting(false)
+		}
+	}
 
 	return (
 		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-6 sm:px-6 lg:px-10">
@@ -51,9 +87,9 @@ function LoginPage() {
 				</div>
 				<p className="text-sm text-slate-500">
 					Don't have an account?{' '}
-					<a href="#register" className="font-semibold text-blue-600 hover:text-blue-700">
+					<Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700">
 						Sign up
-					</a>
+					</Link>
 				</p>
 			</div>
 
@@ -67,10 +103,21 @@ function LoginPage() {
 					</p>
 				</div>
 
-				<form className="mt-8 space-y-5">
+				<form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+					{error && (
+						<div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">{error}</div>
+					)}
+
 					<Field label="Email Address">
 						<InputShell icon={Mail}>
-							<input type="email" placeholder="Enter your email address" className={inputClasses} />
+							<input
+								type="email"
+								value={email}
+								onChange={(event) => setEmail(event.target.value)}
+								placeholder="Enter your email address"
+								required
+								className={inputClasses}
+							/>
 						</InputShell>
 					</Field>
 
@@ -79,7 +126,10 @@ function LoginPage() {
 							<Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 							<input
 								type={showPassword ? 'text' : 'password'}
+								value={password}
+								onChange={(event) => setPassword(event.target.value)}
 								placeholder="Enter your password"
+								required
 								className={`${inputClasses} pr-11`}
 							/>
 							<button
@@ -108,10 +158,11 @@ function LoginPage() {
 
 					<button
 						type="submit"
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700"
+						disabled={isSubmitting}
+						className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 disabled:opacity-60"
 					>
-						Sign In
-						<ArrowRight className="h-4 w-4" />
+						{isSubmitting ? 'Signing in...' : 'Sign In'}
+						{!isSubmitting && <ArrowRight className="h-4 w-4" />}
 					</button>
 
 					<div className="flex items-center gap-4 text-xs font-medium text-slate-400">
@@ -147,9 +198,9 @@ function LoginPage() {
 
 					<p className="text-center text-sm text-slate-500">
 						Don't have an account?{' '}
-						<a href="#register" className="font-semibold text-blue-600 hover:text-blue-700">
+						<Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700">
 							Sign up
-						</a>
+						</Link>
 					</p>
 				</form>
 			</div>

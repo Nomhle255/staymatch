@@ -1,4 +1,5 @@
 import type { ReactNode, ComponentType } from 'react'
+import Link from 'next/link'
 import {
 	LayoutDashboard,
 	Home,
@@ -12,9 +13,9 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-	{ label: 'Dashboard', icon: LayoutDashboard, active: true, href: '#landlord-dashboard' },
-	{ label: 'My Listings', icon: Home, active: false, href: '#accommodation-listings' },
-	{ label: 'Applications', icon: Users, active: false, href: '#applications' },
+	{ label: 'Dashboard', icon: LayoutDashboard, active: true, href: '/landlord/dashboard' },
+	{ label: 'My Listings', icon: Home, active: false, href: '/landlord/listings' },
+	{ label: 'Applications', icon: Users, active: false, href: '/landlord/applications' },
 ]
 
 const stats = [
@@ -63,11 +64,8 @@ function NavButton({
 	href: string
 }) {
 	return (
-		<button
-			type="button"
-			onClick={() => {
-				window.location.hash = href
-			}}
+		<Link
+			href={href}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
 				active
 					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
@@ -76,7 +74,7 @@ function NavButton({
 		>
 			<Icon className="h-4 w-4" />
 			{label}
-		</button>
+		</Link>
 	)
 }
 function StatCard({
@@ -119,7 +117,7 @@ function LandlordDashboard() {
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
 				<div>
-					<div className="flex items-center gap-3 px-2">
+					<Link href="/" className="flex items-center gap-3 px-2">
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
@@ -127,7 +125,7 @@ function LandlordDashboard() {
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
 							Stay<span className="text-blue-600">Match</span>
 						</p>
-					</div>
+					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
@@ -153,13 +151,13 @@ function LandlordDashboard() {
 						</div>
 					</div>
 
-					<button
-						type="button"
+					<Link
+						href="/"
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
 						Log out
-					</button>
+					</Link>
 				</div>
 			</SidebarShell>
 
@@ -176,17 +174,13 @@ function LandlordDashboard() {
 					</div>
 
 					<div className="flex items-center gap-3">
-
-						<button
-                            type="button"
-                            onClick={() => {
-                                window.location.hash = 'add-accommodation'
-                            }}
-                            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
-                        >
-                            <PlusCircle className="h-4 w-4" />
-                            Add Listing
-                        </button>
+						<Link
+							href="/landlord/listings/new"
+							className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+						>
+							<PlusCircle className="h-4 w-4" />
+							Add Listing
+						</Link>
 					</div>
 				</div>
 
@@ -203,12 +197,12 @@ function LandlordDashboard() {
 								Your listings
 							</h2>
 
-							<a
-								href="#accommodation-listings"
+							<Link
+								href="/landlord/listings"
 								className="text-sm font-semibold text-blue-600 hover:text-blue-700"
 							>
 								Manage all
-							</a>
+							</Link>
 						</div>
 
 						<div className="mt-5 space-y-4">
