@@ -75,7 +75,7 @@ function LoginPage() {
 				} else if (role === 'LANDLORD') {
 					router.push('/landlord/dashboard')
 				} else if (role === 'STUDENT') {
-					router.push('/student/dashboard')
+					router.push('/students/dashboard')
 				} else {
 					router.push('/')
 				}
