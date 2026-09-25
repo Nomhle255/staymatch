@@ -28,7 +28,7 @@ const navItems = [
 		label: 'Browse Listings',
 		icon: Search,
 		active: false,
-		href: '/student/browseListings',
+		href: '/students/browseListings',
 	},
 	{
 		label: 'Applications',
