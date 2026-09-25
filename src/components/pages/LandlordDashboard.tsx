@@ -13,6 +13,7 @@ import {
 	MoreVertical,
 	CheckCircle2,
 	XCircle,
+	Image as ImageIcon,
 } from 'lucide-react'
 
 type Accommodation = {
@@ -22,6 +23,7 @@ type Accommodation = {
 	price: number
 	propertyType: string
 	amenities: string[]
+	photos: string[]
 	availableFrom: string | null
 	status: string
 	latitude: number
@@ -153,7 +155,9 @@ function StatCard({
 				{value}
 			</p>
 
-			<p className="mt-1 text-sm text-slate-500">{label}</p>
+			<p className="mt-1 text-sm text-slate-500">
+				{label}
+			</p>
 		</div>
 	)
 }
@@ -167,9 +171,15 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function LandlordDashboard() {
-	const [listings, setListings] = useState<Accommodation[]>([])
-	const [loadingListings, setLoadingListings] = useState(true)
-	const [listingsError, setListingsError] = useState('')
+	const [listings, setListings] = useState<
+		Accommodation[]
+	>([])
+
+	const [loadingListings, setLoadingListings] =
+		useState(true)
+
+	const [listingsError, setListingsError] =
+		useState('')
 
 	useEffect(() => {
 		const fetchListings = async () => {
@@ -190,7 +200,22 @@ function LandlordDashboard() {
 					)
 				}
 
-				setListings(data.accommodations || [])
+				setListings(
+					(data.accommodations || []).map(
+						(
+							accommodation: Accommodation,
+						) => ({
+							...accommodation,
+
+							// Make sure photos is always an array
+							photos: Array.isArray(
+								accommodation.photos,
+							)
+								? accommodation.photos
+								: [],
+						}),
+					),
+				)
 			} catch (error) {
 				console.error(
 					'Failed to fetch dashboard listings:',
@@ -215,19 +240,28 @@ function LandlordDashboard() {
 			{/* Sidebar */}
 			<SidebarShell>
 				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
+					<Link
+						href="/"
+						className="flex items-center gap-3 px-2"
+					>
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
+							Stay
+							<span className="text-blue-600">
+								Match
+							</span>
 						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton key={item.label} {...item} />
+							<NavButton
+								key={item.label}
+								{...item}
+							/>
 						))}
 					</nav>
 				</div>
@@ -272,7 +306,8 @@ function LandlordDashboard() {
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Here's how your listings are performing.
+							Here's how your listings are
+							performing.
 						</p>
 					</div>
 
@@ -290,7 +325,10 @@ function LandlordDashboard() {
 				{/* Stats */}
 				<div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 					{stats.map((stat) => (
-						<StatCard key={stat.label} {...stat} />
+						<StatCard
+							key={stat.label}
+							{...stat}
+						/>
 					))}
 				</div>
 
@@ -316,34 +354,44 @@ function LandlordDashboard() {
 							{loadingListings && (
 								<div className="rounded-2xl border border-slate-200/70 p-6 text-center">
 									<p className="text-sm text-slate-500">
-										Loading your accommodations...
+										Loading your
+										accommodations...
 									</p>
 								</div>
 							)}
 
 							{/* Error */}
-							{!loadingListings && listingsError && (
-								<div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-									<p className="text-sm font-medium text-red-600">
-										{listingsError}
-									</p>
-								</div>
-							)}
+							{!loadingListings &&
+								listingsError && (
+									<div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+										<p className="text-sm font-medium text-red-600">
+											{
+												listingsError
+											}
+										</p>
+									</div>
+								)}
 
 							{/* No listings */}
 							{!loadingListings &&
 								!listingsError &&
-								listings.length === 0 && (
+								listings.length ===
+									0 && (
 									<div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center">
 										<Home className="mx-auto h-8 w-8 text-slate-300" />
 
 										<p className="mt-3 text-sm font-semibold text-slate-700">
-											No accommodations yet
+											No
+											accommodations
+											yet
 										</p>
 
 										<p className="mt-1 text-xs text-slate-500">
-											Add your first accommodation to
-											start receiving applications.
+											Add your first
+											accommodation
+											to start
+											receiving
+											applications.
 										</p>
 
 										<Link
@@ -351,7 +399,8 @@ function LandlordDashboard() {
 											className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700"
 										>
 											<PlusCircle className="h-4 w-4" />
-											Add Accommodation
+											Add
+											Accommodation
 										</Link>
 									</div>
 								)}
@@ -359,75 +408,128 @@ function LandlordDashboard() {
 							{/* Database Listings */}
 							{!loadingListings &&
 								!listingsError &&
-								listings.slice(0, 3).map((listing) => (
-									<div
-										key={listing.id}
-										className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 p-4 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center"
-									>
-										{/* Image placeholder */}
-										<div className="h-24 w-full shrink-0 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:w-32">
-											<div className="flex h-full items-center justify-center">
-												<Home className="h-8 w-8 text-white/80" />
-											</div>
-										</div>
+								listings
+									.slice(0, 3)
+									.map(
+										(
+											listing,
+										) => {
+											const firstPhoto =
+												listing
+													.photos?.[0]
 
-										<div className="flex-1">
-											<div className="flex flex-wrap items-center gap-2">
-												<h3 className="text-base font-bold text-slate-950">
-													{getPropertyTypeLabel(
-														listing.propertyType,
-													)}
-												</h3>
+											return (
+												<div
+													key={
+														listing.id
+													}
+													className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 p-4 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center"
+												>
+													{/* Listing Image */}
+													<div className="relative h-24 w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:w-32">
+														{firstPhoto ? (
+															<img
+																src={
+																	firstPhoto
+																}
+																alt={`${getPropertyTypeLabel(
+																	listing.propertyType,
+																)} in ${listing.area}`}
+																className="h-full w-full object-cover"
+															/>
+														) : (
+															<div className="flex h-full items-center justify-center">
+																<ImageIcon className="h-8 w-8 text-white/80" />
+															</div>
+														)}
 
-												{listing.status ===
-													'VERIFIED' && (
-													<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
-														Verified
-													</span>
-												)}
+														{/* Photo count */}
+														{listing
+															.photos
+															?.length >
+															0 && (
+															<div className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+																{
+																	listing
+																		.photos
+																		.length
+																}{' '}
+																photo
+																{listing
+																	.photos
+																	.length !==
+																1
+																	? 's'
+																	: ''}
+															</div>
+														)}
+													</div>
 
-												{listing.status ===
-													'PENDING_REVIEW' && (
-													<span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
-														Pending review
-													</span>
-												)}
+													<div className="flex-1">
+														<div className="flex flex-wrap items-center gap-2">
+															<h3 className="text-base font-bold text-slate-950">
+																{getPropertyTypeLabel(
+																	listing.propertyType,
+																)}
+															</h3>
 
-												{listing.status === 'INACTIVE' && (
-													<span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
-														Inactive
-													</span>
-												)}
-											</div>
+															{listing.status ===
+																'VERIFIED' && (
+																<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
+																	Verified
+																</span>
+															)}
 
-											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-												<MapPin className="h-3.5 w-3.5" />
-												{listing.area}
-											</p>
+															{listing.status ===
+																'PENDING_REVIEW' && (
+																<span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
+																	Pending
+																	review
+																</span>
+															)}
 
-											<div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
-												<span className="font-bold text-slate-900">
-													M
-													{listing.price.toLocaleString()}{' '}
-													/ month
-												</span>
+															{listing.status ===
+																'INACTIVE' && (
+																<span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
+																	Inactive
+																</span>
+															)}
+														</div>
 
-												<span className="flex items-center gap-1 text-slate-500">
-													<Users className="h-3.5 w-3.5" />
-													0 applicants
-												</span>
-											</div>
-										</div>
+														<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+															<MapPin className="h-3.5 w-3.5" />
+															{
+																listing.area
+															}
+														</p>
 
-										<button
-											type="button"
-											className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-											aria-label="More options"
-										>
-											<MoreVertical className="h-4 w-4" />
-										</button>
-									</div>
-								))}
+														<div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
+															<span className="font-bold text-slate-900">
+																M
+																{listing.price.toLocaleString()}{' '}
+																/
+																month
+															</span>
+
+															<span className="flex items-center gap-1 text-slate-500">
+																<Users className="h-3.5 w-3.5" />
+																0
+																applicants
+															</span>
+														</div>
+													</div>
+
+													<button
+														type="button"
+														className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+														aria-label="More options"
+													>
+														<MoreVertical className="h-4 w-4" />
+													</button>
+												</div>
+											)
+										},
+									)}
 						</div>
 					</section>
 
@@ -439,42 +541,54 @@ function LandlordDashboard() {
 							</h2>
 
 							<div className="mt-4 space-y-3">
-								{applications.map((application) => (
-									<div
-										key={application.name}
-										className="rounded-xl border border-slate-200/70 p-4"
-									>
-										<p className="text-sm font-bold text-slate-900">
-											{application.name}
-										</p>
+								{applications.map(
+									(
+										application,
+									) => (
+										<div
+											key={
+												application.name
+											}
+											className="rounded-xl border border-slate-200/70 p-4"
+										>
+											<p className="text-sm font-bold text-slate-900">
+												{
+													application.name
+												}
+											</p>
 
-										<p className="mt-0.5 text-xs font-medium text-blue-600">
-											{application.listing}
-										</p>
+											<p className="mt-0.5 text-xs font-medium text-blue-600">
+												{
+													application.listing
+												}
+											</p>
 
-										<p className="mt-1 text-xs text-slate-500">
-											{application.date}
-										</p>
+											<p className="mt-1 text-xs text-slate-500">
+												{
+													application.date
+												}
+											</p>
 
-										<div className="mt-3 flex gap-2">
-											<button
-												type="button"
-												className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-100"
-											>
-												<CheckCircle2 className="h-3.5 w-3.5" />
-												Approve
-											</button>
+											<div className="mt-3 flex gap-2">
+												<button
+													type="button"
+													className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-100"
+												>
+													<CheckCircle2 className="h-3.5 w-3.5" />
+													Approve
+												</button>
 
-											<button
-												type="button"
-												className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
-											>
-												<XCircle className="h-3.5 w-3.5" />
-												Decline
-											</button>
+												<button
+													type="button"
+													className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
+												>
+													<XCircle className="h-3.5 w-3.5" />
+													Decline
+												</button>
+											</div>
 										</div>
-									</div>
-								))}
+									),
+								)}
 							</div>
 						</section>
 					</div>
@@ -485,4 +599,3 @@ function LandlordDashboard() {
 }
 
 export default LandlordDashboard
-

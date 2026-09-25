@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
 			description,
 			availableFrom,
 			amenities,
+			photos,
 			latitude,
 			longitude,
 		} = body
@@ -76,9 +77,8 @@ export async function POST(request: NextRequest) {
 				area: area || 'Maseru',
 				price: Number(price),
 				propertyType,
-				amenities: Array.isArray(amenities)
-					? amenities
-					: [],
+				amenities: Array.isArray(amenities) ? amenities : [],
+				photos: Array.isArray(photos) ? photos : [],
 				latitude,
 				longitude,
 				availableFrom: availableFrom

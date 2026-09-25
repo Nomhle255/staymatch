@@ -20,6 +20,7 @@ type Accommodation = {
     price: number
     propertyType: string
     amenities: string[]
+    photos: string[]
     availableFrom: string | null
     status: string
     latitude: number
@@ -70,8 +71,7 @@ export default function AccommodationDetails() {
 
                 if (!response.ok) {
                     throw new Error(
-                        data.error ||
-                            'Failed to load accommodation'
+                        data.error || 'Failed to load accommodation'
                     )
                 }
 
@@ -157,6 +157,7 @@ export default function AccommodationDetails() {
 
                 <div className="grid gap-6 md:grid-cols-2">
 
+                    {/* Property Information */}
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="mb-5 text-lg font-semibold text-slate-900">
                             Property Information
@@ -178,8 +179,7 @@ export default function AccommodationDetails() {
                                     <p className="font-medium text-slate-900">
                                         {propertyTypeLabels[
                                             accommodation.propertyType
-                                        ] ||
-                                            accommodation.propertyType}
+                                        ] || accommodation.propertyType}
                                     </p>
                                 </div>
                             </div>
@@ -233,8 +233,8 @@ export default function AccommodationDetails() {
                                     <p className="font-medium text-slate-900">
                                         {accommodation.availableFrom
                                             ? new Date(
-                                                    accommodation.availableFrom
-                                                ).toLocaleDateString()
+                                                accommodation.availableFrom
+                                            ).toLocaleDateString()
                                             : 'Not specified'}
                                     </p>
                                 </div>
@@ -254,8 +254,7 @@ export default function AccommodationDetails() {
                                     <p className="font-medium text-slate-900">
                                         {statusLabels[
                                             accommodation.status
-                                        ] ||
-                                            accommodation.status}
+                                        ] || accommodation.status}
                                     </p>
                                 </div>
                             </div>
@@ -263,6 +262,7 @@ export default function AccommodationDetails() {
                         </div>
                     </div>
 
+                    {/* Accommodation Details */}
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="mb-5 text-lg font-semibold text-slate-900">
                             Accommodation Details
@@ -305,6 +305,40 @@ export default function AccommodationDetails() {
                     </div>
                 </div>
 
+                {/* Photos */}
+                <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="mb-5 text-lg font-semibold text-slate-900">
+                        Photos
+                    </h2>
+
+                    {accommodation.photos &&
+                    accommodation.photos.length > 0 ? (
+                        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                            {accommodation.photos.map(
+                                (photo, index) => (
+                                    <div
+                                        key={`${photo}-${index}`}
+                                        className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+                                    >
+                                        <img
+                                            src={photo}
+                                            alt={`Accommodation photo ${index + 1}`}
+                                            className="h-56 w-full object-cover transition-transform duration-200 hover:scale-105"
+                                        />
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex h-40 items-center justify-center rounded-lg bg-slate-100">
+                            <p className="text-sm text-slate-500">
+                                No photos available for this accommodation.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Property Location */}
                 <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h2 className="mb-5 text-lg font-semibold text-slate-900">
                         Property Location
