@@ -502,7 +502,7 @@ function StudentBrowseListings() {
 				setStudentLoading(true)
 
 				const response = await fetch(
-					'/api/student/profile',
+					'/api/students/profile',
 				)
 
 				const data = await response.json()
