@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import type { ReactNode, ComponentType } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -36,19 +36,19 @@ const navItems = [
 		label: 'Dashboard',
 		icon: LayoutDashboard,
 		active: false,
-		href: '/student/dashboard',
+		href: '/students/dashboard',
 	},
 	{
 		label: 'Browse Listings',
 		icon: Search,
 		active: true,
-		href: '/student/browseListings',
+		href: '/students/browseListings',
 	},
 	{
 		label: 'Applications',
 		icon: FileText,
 		active: false,
-		href: '/student/applications',
+		href: '/students/applications',
 	},
 ]
 
@@ -65,6 +65,7 @@ type Accommodation = {
 	status: string
 	latitude: number
 	longitude: number
+	photos: string[]
 }
 
 type IconComponent = ComponentType<{ className?: string }>
@@ -122,6 +123,21 @@ function isVerified(status: string) {
 	return status === 'VERIFIED'
 }
 
+// Accepts ["https://..."] or [{ url: "https://..." }] and returns clean URLs.
+// Adjust the field names below to match what your API actually returns.
+function normalizePhotos(match: any): string[] {
+	const raw =
+		match.photos ?? match.images ?? match.photoUrls ?? match.pictures ?? []
+
+	if (!Array.isArray(raw)) return []
+
+	return raw
+		.map((item: any) =>
+			typeof item === 'string' ? item : item?.url || item?.src || '',
+		)
+		.filter((url: string) => typeof url === 'string' && url.length > 0)
+}
+
 // Picks an icon from the amenity label so new amenities still get a sensible one
 function getAmenityIcon(label: string): IconComponent {
 	const text = label.toLowerCase()
@@ -175,6 +191,7 @@ function StudentAccommodationDetails() {
 	const [listing, setListing] = useState<Accommodation | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [activePhoto, setActivePhoto] = useState(0)
 
 	const [studentName, setStudentName] = useState('')
 	const [studentLoading, setStudentLoading] = useState(true)
@@ -234,7 +251,10 @@ function StudentAccommodationDetails() {
 					status: match.status,
 					latitude: Number(match.latitude),
 					longitude: Number(match.longitude),
+					photos: normalizePhotos(match),
 				})
+
+				setActivePhoto(0)
 			} catch (error) {
 				console.error('Failed to fetch accommodation details:', error)
 
@@ -257,17 +277,20 @@ function StudentAccommodationDetails() {
 			try {
 				setStudentLoading(true)
 
-				const response = await fetch('/api/student/profile')
+				const response = await fetch('/api/students/profile')
 
-				const data = await response.json()
+				// If the route returns HTML (e.g. a 404 page), this resolves to null
+				// instead of throwing a JSON syntax error.
+				const data = await response.json().catch(() => null)
 
-				if (!response.ok) {
+				if (!response.ok || !data) {
 					throw new Error(
-						data.error || 'Failed to load student profile.',
+						data?.error ||
+							`Failed to load student profile (${response.status}).`,
 					)
 				}
 
-				setStudentName(data.user.name)
+				setStudentName(data.user?.name || '')
 			} catch (error) {
 				console.error('Failed to fetch student profile:', error)
 			} finally {
@@ -341,7 +364,7 @@ function StudentAccommodationDetails() {
 
 			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
 				<Link
-					href="/student/browseListings"
+					href="/students/browseListings"
 					className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-blue-600"
 				>
 					<ChevronLeft className="h-4 w-4" />
@@ -386,7 +409,7 @@ function StudentAccommodationDetails() {
 						</p>
 
 						<Link
-							href="/student/browseListings"
+							href="/students/browseListings"
 							className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
 						>
 							Browse listings
@@ -397,16 +420,62 @@ function StudentAccommodationDetails() {
 				{!loading && !error && listing && (
 					<div className="mt-6 grid gap-6 lg:grid-cols-3">
 						<div className="space-y-6 lg:col-span-2">
-							<div className="relative h-64 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-blue-400 to-indigo-500 sm:h-80">
-								<span className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-blue-600 shadow-sm">
-									{getPropertyTypeLabel(listing.propertyType)}
-								</span>
+							<div className="space-y-3">
+								<div className="relative h-64 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-blue-400 to-indigo-500 sm:h-80">
+									{listing.photos.length > 0 && (
+										// eslint-disable-next-line @next/next/no-img-element
+										<img
+											src={listing.photos[activePhoto]}
+											alt={`${listing.title} photo ${activePhoto + 1}`}
+											className="absolute inset-0 h-full w-full object-cover"
+										/>
+									)}
 
-								{listing.verified && (
-									<span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-emerald-600 shadow-sm">
-										<BadgeCheck className="h-3.5 w-3.5" />
-										Verified
+									<span className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-blue-600 shadow-sm">
+										{getPropertyTypeLabel(
+											listing.propertyType,
+										)}
 									</span>
+
+									{listing.verified && (
+										<span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-emerald-600 shadow-sm">
+											<BadgeCheck className="h-3.5 w-3.5" />
+											Verified
+										</span>
+									)}
+
+									{listing.photos.length > 1 && (
+										<span className="absolute bottom-4 right-4 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-semibold text-white">
+											{activePhoto + 1} /{' '}
+											{listing.photos.length}
+										</span>
+									)}
+								</div>
+
+								{listing.photos.length > 1 && (
+									<div className="flex gap-2 overflow-x-auto pb-1">
+										{listing.photos.map((photo, index) => (
+											<button
+												key={photo + index}
+												type="button"
+												onClick={() =>
+													setActivePhoto(index)
+												}
+												className={`h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition ${
+													index === activePhoto
+														? 'border-blue-600'
+														: 'border-transparent opacity-70 hover:opacity-100'
+												}`}
+											>
+												{/* eslint-disable-next-line @next/next/no-img-element */}
+												<img
+													src={photo}
+													alt={`Thumbnail ${index + 1}`}
+													className="h-full w-full object-cover"
+												/>
+											</button>
+										))}
+									</div>
 								)}
 							</div>
 
@@ -560,4 +629,12 @@ function StudentAccommodationDetails() {
 	)
 }
 
-export default StudentAccommodationDetails
+// useSearchParams() requires a Suspense boundary or `next build` fails.
+// Wrapping here means the parent page.tsx doesn't need to.
+export default function StudentAccommodationDetailsPage() {
+	return (
+		<Suspense fallback={null}>
+			<StudentAccommodationDetails />
+		</Suspense>
+	)
+}

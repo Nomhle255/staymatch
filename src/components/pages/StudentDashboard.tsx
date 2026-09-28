@@ -297,7 +297,7 @@ export default function StudentDashboard() {
 						<button
 							type="button"
 							onClick={() =>
-								router.push('/student/browseListings')
+								router.push('/students/browseListings')
 							}
 							className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
 						>
@@ -327,7 +327,7 @@ export default function StudentDashboard() {
 									type="button"
 									onClick={() =>
 										router.push(
-											'/student/browseListings'
+											'/students/browseListings'
 										)
 									}
 									className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
@@ -423,7 +423,7 @@ export default function StudentDashboard() {
 												type="button"
 												onClick={() =>
 													router.push(
-														`/student/accommodationdetails?id=${listing.id}`
+														`/students/accommodationdetails?id=${listing.id}`
 													)
 												}
 												className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"

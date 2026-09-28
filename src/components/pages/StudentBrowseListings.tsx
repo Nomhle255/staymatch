@@ -24,19 +24,19 @@ const navItems = [
 		label: 'Dashboard',
 		icon: LayoutDashboard,
 		active: false,
-		href: '/student/dashboard',
+		href: '/students/dashboard',
 	},
 	{
 		label: 'Browse Listings',
 		icon: Search,
 		active: true,
-		href: '/student/browse',
+		href: '/students/browseListings',
 	},
 	{
 		label: 'Applications',
 		icon: FileText,
 		active: false,
-		href: '/student/applications',
+		href: '/students/applications',
 	},
 ]
 
@@ -1291,7 +1291,7 @@ function StudentBrowseListings() {
 
 												<div className="mt-4 flex gap-2">
 													<Link
-														href={`/student/accommodationdetails?id=${listing.id}`}
+														href={`/students/accommodationdetails?id=${listing.id}`}
 														className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
 													>
 														View
