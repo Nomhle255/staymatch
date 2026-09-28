@@ -155,7 +155,7 @@ export default function StudentDashboard() {
 			try {
 				setStudentLoading(true)
 
-				const response = await fetch('/api/student/profile')
+				const response = await fetch('/api/students/profile')
 				const data = await response.json()
 
 				if (!response.ok) {
