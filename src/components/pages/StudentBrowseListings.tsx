@@ -18,6 +18,10 @@ import {
 	Sparkles,
 	Image as ImageIcon,
 } from 'lucide-react'
+import {
+	useSavedPreferences,
+	type SaveStatus,
+} from '@/hooks/useSavedPreferences'
 
 const navItems = [
 	{
@@ -47,6 +51,21 @@ const propertyTypes = [
 	'Commune',
 	'Bachelor',
 ]
+
+const propertyTypeMap: Record<string, string | null> = {
+	'All Types': null,
+	'Single Room': 'SINGLE_ROOM',
+	Double: 'DOUBLE',
+	Commune: 'COMMUNE',
+	Bachelor: 'BACHELOR',
+}
+
+const reversePropertyTypeMap: Record<string, string> = {
+	SINGLE_ROOM: 'Single Room',
+	DOUBLE: 'Double',
+	COMMUNE: 'Commune',
+	BACHELOR: 'Bachelor',
+}
 
 const priceRanges = [
 	'Any Price',
@@ -83,20 +102,56 @@ const preferenceFactors: PreferenceFactor[] = [
 	{ key: 'price', label: 'Low price' },
 	{ key: 'distance', label: 'Close to university' },
 	{ key: 'verified', label: 'Verified listing' },
-	{ key: 'wifi', label: 'Wi-Fi', keywords: ['wi-fi', 'wifi', 'internet'] },
-	{ key: 'water', label: 'Water included', keywords: ['water'] },
+	{
+		key: 'wifi',
+		label: 'Wi-Fi',
+		keywords: ['wi-fi', 'wifi', 'internet'],
+	},
+	{
+		key: 'water',
+		label: 'Water included',
+		keywords: ['water'],
+	},
 	{
 		key: 'electricity',
 		label: 'Electricity included',
 		keywords: ['electricity'],
 	},
-	{ key: 'furnished', label: 'Furnished', keywords: ['furnished'] },
-	{ key: 'parking', label: 'Parking available', keywords: ['parking'] },
-	{ key: 'security', label: '24/7 security', keywords: ['24/7 security'] },
-	{ key: 'fenced', label: 'Fenced', keywords: ['fence'] },
-	{ key: 'burglar', label: 'Burglar bars', keywords: ['buglar', 'burglar'] },
-	{ key: 'ceiling', label: 'Ceiling', keywords: ['ceiling'] },
-	{ key: 'tile', label: 'Tiled floors', keywords: ['tile'] },
+	{
+		key: 'furnished',
+		label: 'Furnished',
+		keywords: ['furnished'],
+	},
+	{
+		key: 'parking',
+		label: 'Parking available',
+		keywords: ['parking'],
+	},
+	{
+		key: 'security',
+		label: '24/7 security',
+		keywords: ['24/7 security'],
+	},
+	{
+		key: 'fenced',
+		label: 'Fenced',
+		keywords: ['fence'],
+	},
+	{
+		key: 'burglar',
+		label: 'Burglar bars',
+		keywords: ['buglar', 'burglar'],
+	},
+	{
+		key: 'ceiling',
+		label: 'Ceiling',
+		keywords: ['ceiling'],
+	},
+	{
+		key: 'tile',
+		label: 'Tiled floors',
+		keywords: ['tile'],
+	},
 ]
 
 type Accommodation = {
@@ -123,8 +178,8 @@ type ListingWithDistance = Accommodation & {
 type UniversityOption = {
 	id: string
 	name: string
-	latitude: number
-	longitude: number
+	latitude: number | null
+	longitude: number | null
 }
 
 function NavButton({
@@ -237,7 +292,8 @@ function calculateDistanceKm(
 			Math.cos(toRadians(lat2)) *
 			Math.sin(dLon / 2) ** 2
 
-	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+	const c =
+		2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
 	return EARTH_RADIUS_KM * c
 }
@@ -250,13 +306,23 @@ function formatDistance(km: number) {
 	return `${km.toFixed(1)} km`
 }
 
-type PriceBounds = { min: number; max: number }
+type PriceBounds = {
+	min: number
+	max: number
+}
 
-type ActiveFactor = { factor: PreferenceFactor; weight: number }
+type ActiveFactor = {
+	factor: PreferenceFactor
+	weight: number
+}
 
-function hasAmenity(amenities: string[], keywords: string[]) {
+function hasAmenity(
+	amenities: string[],
+	keywords: string[],
+) {
 	return amenities.some((amenity) => {
 		const text = amenity.toLowerCase()
+
 		return keywords.some((keyword) =>
 			text.includes(keyword.toLowerCase()),
 		)
@@ -264,24 +330,41 @@ function hasAmenity(amenities: string[], keywords: string[]) {
 }
 
 function getFactorSatisfaction(
-	listing: Accommodation & { distanceKm: number | null },
+	listing: Accommodation & {
+		distanceKm: number | null
+	},
 	factor: PreferenceFactor,
 	priceBounds: PriceBounds,
 ) {
 	switch (factor.key) {
 		case 'price': {
-			const range = priceBounds.max - priceBounds.min
+			const range =
+				priceBounds.max - priceBounds.min
 
-			if (!Number.isFinite(listing.price)) return 0
-			if (range <= 0) return 1
+			if (!Number.isFinite(listing.price)) {
+				return 0
+			}
 
-			return (
-				1 - (listing.price - priceBounds.min) / range
+			if (range <= 0) {
+				return 1
+			}
+
+			return Math.max(
+				0,
+				Math.min(
+					1,
+					1 -
+						(listing.price -
+							priceBounds.min) /
+							range,
+				),
 			)
 		}
 
 		case 'distance':
-			if (listing.distanceKm === null) return 0
+			if (listing.distanceKm === null) {
+				return 0
+			}
 
 			return (
 				1 -
@@ -306,11 +389,15 @@ function getFactorSatisfaction(
 }
 
 function calculateMatchScore(
-	listing: Accommodation & { distanceKm: number | null },
+	listing: Accommodation & {
+		distanceKm: number | null
+	},
 	activeFactors: ActiveFactor[],
 	priceBounds: PriceBounds,
 ): number | null {
-	if (activeFactors.length === 0) return null
+	if (activeFactors.length === 0) {
+		return null
+	}
 
 	let earned = 0
 	let possible = 0
@@ -327,34 +414,122 @@ function calculateMatchScore(
 		possible += weight
 	}
 
+	if (possible <= 0) {
+		return null
+	}
+
 	return Math.round((earned / possible) * 100)
+}
+
+function getSaveStatusMessage(status: SaveStatus) {
+	switch (status) {
+		case 'saving':
+			return 'Saving preferences...'
+
+		case 'saved':
+			return 'Preferences saved.'
+
+		case 'error':
+			return 'Could not save preferences.'
+
+		default:
+			return ''
+	}
 }
 
 function StudentBrowseListings() {
 	const [query, setQuery] = useState('')
-	const [propertyType, setPropertyType] = useState('All Types')
-	const [priceRange, setPriceRange] = useState('Any Price')
+	const [propertyType, setPropertyType] =
+		useState('All Types')
+	const [priceRange, setPriceRange] =
+		useState('Any Price')
 	const [maxDistance, setMaxDistance] = useState(0)
 
-	const [ratings, setRatings] = useState<Record<string, number>>({})
+	const [ratings, setRatings] = useState<
+		Record<string, number>
+	>({})
+
 	const [minMatch, setMinMatch] = useState(0)
-	const [showPreferences, setShowPreferences] = useState(false)
+
+	const [showPreferences, setShowPreferences] =
+		useState(false)
 
 	const [universities, setUniversities] = useState<
 		UniversityOption[]
 	>([])
-	const [selectedUniversityId, setSelectedUniversityId] =
-		useState('')
 
-	const [listings, setListings] = useState<Accommodation[]>([])
+	/*
+	 * University IDs are CUID/string values in the database.
+	 *
+	 * Example:
+	 * cmu7gi7av0001lgu0733rgl64
+	 */
+	const [selectedUniversityId, setSelectedUniversityId] =
+		useState<string | null>(null)
+
+	const [listings, setListings] = useState<Accommodation[]>(
+		[],
+	)
+
 	const [loading, setLoading] = useState(true)
+
 	const [universityLoading, setUniversityLoading] =
 		useState(true)
+
 	const [error, setError] = useState('')
-	const [universityError, setUniversityError] = useState('')
+	const [universityError, setUniversityError] =
+		useState('')
 
 	const [studentName, setStudentName] = useState('')
-	const [studentLoading, setStudentLoading] = useState(true)
+	const [studentLoading, setStudentLoading] =
+		useState(true)
+
+	/*
+	 * Saved student preferences
+	 *
+	 * The hook:
+	 * - loads the student's saved preferences
+	 * - populates the existing state through onLoad
+	 * - automatically saves changes after a short debounce
+	 */
+	const {
+		loaded: preferencesLoaded,
+		status: preferenceSaveStatus,
+	} = useSavedPreferences({
+		propertyType:
+			propertyTypeMap[propertyType] ?? null,
+		priceRange,
+		maxDistance,
+		ratings,
+		minMatch,
+		universityId: selectedUniversityId,
+
+		onLoad: (saved) => {
+			setSelectedUniversityId(
+				saved.universityId ?? null,
+			)
+
+			setPropertyType(
+				saved.propertyType
+					? reversePropertyTypeMap[
+							saved.propertyType
+						] ?? 'All Types'
+					: 'All Types',
+			)
+
+			setPriceRange(
+				saved.priceRange || 'Any Price',
+			)
+
+			setMaxDistance(
+				saved.maxDistance ?? 0,
+			)
+
+			setRatings(saved.ratings ?? {})
+
+			setMinMatch(saved.minMatch ?? 0)
+		},
+	})
 
 	// Fetch accommodation listings
 	useEffect(() => {
@@ -385,7 +560,9 @@ function StudentBrowseListings() {
 				const formattedListings: Accommodation[] =
 					accommodations.map(
 						(accommodation: any) => ({
-							id: accommodation.id,
+							id: String(
+								accommodation.id,
+							),
 							title:
 								accommodation.title ||
 								`${getPropertyTypeLabel(
@@ -393,29 +570,37 @@ function StudentBrowseListings() {
 								)} in ${
 									accommodation.area
 								}`,
-							area: accommodation.area,
-							price: Number(accommodation.price),
+							area:
+								accommodation.area ||
+								'',
+							price: Number(
+								accommodation.price,
+							),
 							propertyType:
 								accommodation.propertyType,
 							verified: isVerified(
 								accommodation.status,
 							),
 							description:
-								accommodation.description || '',
-							amenities: Array.isArray(
-								accommodation.amenities,
-							)
-								? accommodation.amenities
-								: [],
-							photos: Array.isArray(
-								accommodation.photos,
-							)
-								? accommodation.photos
-								: [],
+								accommodation.description ||
+								'',
+							amenities:
+								Array.isArray(
+									accommodation.amenities,
+								)
+									? accommodation.amenities
+									: [],
+							photos:
+								Array.isArray(
+									accommodation.photos,
+								)
+									? accommodation.photos
+									: [],
 							availableFrom:
 								accommodation.availableFrom ||
 								null,
-							status: accommodation.status,
+							status:
+								accommodation.status,
 							latitude: Number(
 								accommodation.latitude,
 							),
@@ -452,7 +637,9 @@ function StudentBrowseListings() {
 				setUniversityLoading(true)
 				setUniversityError('')
 
-				const response = await fetch('/api/universities')
+				const response = await fetch(
+					'/api/universities',
+				)
 
 				const data = await response.json()
 
@@ -463,19 +650,53 @@ function StudentBrowseListings() {
 					)
 				}
 
-				const formattedUniversities: UniversityOption[] =
-					data.map((university: any) => ({
-						id: university.id,
-						name: university.name,
-						latitude: Number(
-							university.latitude,
-						),
-						longitude: Number(
-							university.longitude,
-						),
-					}))
+				/*
+				 * University IDs are strings/CUIDs.
+				 *
+				 * Do NOT use Number(university.id)
+				 * because values such as
+				 * "cmu7gi7av0001lgu0733rgl64"
+				 * would become NaN.
+				 */
+				const universityList = Array.isArray(
+					data,
+				)
+					? data
+					: data.universities || []
 
-				setUniversities(formattedUniversities)
+				const formattedUniversities: UniversityOption[] =
+					universityList.map(
+						(university: any) => ({
+							id: String(
+								university.id,
+							),
+							name: String(
+								university.name,
+							),
+							latitude:
+								university.latitude ===
+									null ||
+								university.latitude ===
+									undefined
+									? null
+									: Number(
+											university.latitude,
+										),
+							longitude:
+								university.longitude ===
+									null ||
+								university.longitude ===
+									undefined
+									? null
+									: Number(
+											university.longitude,
+										),
+						}),
+					)
+
+				setUniversities(
+					formattedUniversities,
+				)
 			} catch (error) {
 				console.error(
 					'Failed to fetch universities:',
@@ -514,7 +735,9 @@ function StudentBrowseListings() {
 					)
 				}
 
-				setStudentName(data.user.name)
+				setStudentName(
+					data.user?.name || '',
+				)
 			} catch (error) {
 				console.error(
 					'Failed to fetch student profile:',
@@ -533,20 +756,32 @@ function StudentBrowseListings() {
 			university.id === selectedUniversityId,
 	)
 
+	const hasSelectedUniversityCoordinates =
+		selectedUniversity !== undefined &&
+		selectedUniversity.latitude !== null &&
+		selectedUniversity.longitude !== null &&
+		Number.isFinite(
+			selectedUniversity.latitude,
+		) &&
+		Number.isFinite(
+			selectedUniversity.longitude,
+		)
+
 	const activeFactors: ActiveFactor[] =
 		preferenceFactors
 			.filter(
 				(factor) =>
 					(ratings[factor.key] ?? 0) > 0 &&
 					(factor.key !== 'distance' ||
-						Boolean(selectedUniversity)),
+						hasSelectedUniversityCoordinates),
 			)
 			.map((factor) => ({
 				factor,
 				weight: ratings[factor.key],
 			}))
 
-	const preferencesActive = activeFactors.length > 0
+	const preferencesActive =
+		activeFactors.length > 0
 
 	const ratedCount = Object.values(ratings).filter(
 		(value) => value > 0,
@@ -561,20 +796,28 @@ function StudentBrowseListings() {
 				min: Math.min(...prices),
 				max: Math.max(...prices),
 			}
-		: { min: 0, max: 0 }
+		: {
+				min: 0,
+				max: 0,
+			}
 
 	const filteredListings: ListingWithDistance[] =
 		listings
 			.map((listing) => ({
 				...listing,
-				distanceKm: selectedUniversity
-					? calculateDistanceKm(
-							selectedUniversity.latitude,
-							selectedUniversity.longitude,
-							listing.latitude,
-							listing.longitude,
-						)
-					: null,
+				distanceKm:
+					hasSelectedUniversityCoordinates &&
+					selectedUniversity?.latitude !==
+						null &&
+					selectedUniversity?.longitude !==
+						null
+						? calculateDistanceKm(
+								selectedUniversity.latitude,
+								selectedUniversity.longitude,
+								listing.latitude,
+								listing.longitude,
+							)
+						: null,
 			}))
 			.map((listing) => ({
 				...listing,
@@ -623,7 +866,8 @@ function StudentBrowseListings() {
 				const matchesMinMatch =
 					minMatch === 0 ||
 					(listing.matchScore !== null &&
-						listing.matchScore >= minMatch)
+						listing.matchScore >=
+							minMatch)
 
 				return (
 					matchesQuery &&
@@ -638,16 +882,28 @@ function StudentBrowseListings() {
 					(b.matchScore ?? -1) -
 					(a.matchScore ?? -1)
 
-				if (matchDiff !== 0) return matchDiff
+				if (matchDiff !== 0) {
+					return matchDiff
+				}
 
-				if (!selectedUniversity) return 0
+				if (!selectedUniversity) {
+					return 0
+				}
+
 				if (
 					a.distanceKm === null &&
 					b.distanceKm === null
-				)
+				) {
 					return 0
-				if (a.distanceKm === null) return 1
-				if (b.distanceKm === null) return -1
+				}
+
+				if (a.distanceKm === null) {
+					return 1
+				}
+
+				if (b.distanceKm === null) {
+					return -1
+				}
 
 				return a.distanceKm - b.distanceKm
 			})
@@ -738,15 +994,22 @@ function StudentBrowseListings() {
 							<University className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
 							<select
-								value={selectedUniversityId}
-								onChange={(event) =>
-									setSelectedUniversityId(
-										event.target.value,
-									)
+								value={
+									selectedUniversityId ??
+									''
 								}
+								onChange={(event) => {
+									const value =
+										event.target.value
+
+									setSelectedUniversityId(
+										value || null,
+									)
+								}}
 								disabled={
 									universityLoading ||
-									universities.length === 0
+									universities.length ===
+										0
 								}
 								className="w-full appearance-none rounded-xl border border-blue-200 bg-blue-50 py-3 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
 							>
@@ -816,9 +1079,7 @@ function StudentBrowseListings() {
 										(type) => (
 											<option
 												key={type}
-												value={
-													type
-												}
+												value={type}
 											>
 												{type}
 											</option>
@@ -844,9 +1105,7 @@ function StudentBrowseListings() {
 										(range) => (
 											<option
 												key={range}
-												value={
-													range
-												}
+												value={range}
 											>
 												{range}
 											</option>
@@ -995,16 +1254,11 @@ function StudentBrowseListings() {
 								<button
 									type="button"
 									onClick={() => {
-										setRatings(
-											{},
-										)
-										setMinMatch(
-											0,
-										)
+										setRatings({})
+										setMinMatch(0)
 									}}
 									disabled={
-										ratedCount ===
-										0
+										ratedCount === 0
 									}
 									className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
 								>
@@ -1019,7 +1273,7 @@ function StudentBrowseListings() {
 									const disabled =
 										factor.key ===
 											'distance' &&
-										!selectedUniversity
+										!hasSelectedUniversityCoordinates
 
 									const current =
 										ratings[
@@ -1046,7 +1300,7 @@ function StudentBrowseListings() {
 
 												{disabled && (
 													<p className="text-xs text-slate-400">
-														Select a university first
+														Select a university with coordinates first
 													</p>
 												)}
 											</div>
@@ -1114,6 +1368,28 @@ function StudentBrowseListings() {
 								},
 							)}
 						</div>
+
+						<div className="mt-5">
+							{preferencesLoaded &&
+								preferenceSaveStatus !==
+									'idle' && (
+									<p
+										className={`text-sm font-medium ${
+											preferenceSaveStatus ===
+											'error'
+												? 'text-rose-600'
+												: preferenceSaveStatus ===
+														'saved'
+													? 'text-emerald-600'
+													: 'text-slate-500'
+										}`}
+									>
+										{getSaveStatusMessage(
+											preferenceSaveStatus,
+										)}
+									</p>
+								)}
+						</div>
 					</div>
 				)}
 
@@ -1124,12 +1400,15 @@ function StudentBrowseListings() {
 								Selected university:
 							</span>{' '}
 							{selectedUniversity.name}
+
 							<span className="text-blue-500">
 								{' '}
 								—{' '}
 								{preferencesActive
 									? 'ranked by your preferences'
-									: 'sorted by distance, nearest first'}
+									: hasSelectedUniversityCoordinates
+										? 'sorted by distance, nearest first'
+										: 'distance unavailable because university coordinates are not set'}
 							</span>
 						</p>
 					</div>
