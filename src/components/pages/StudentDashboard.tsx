@@ -10,7 +10,6 @@ import {
 	LogOut,
 	MapPin,
 	BadgeCheck,
-	Wallet,
 	BedDouble,
 	Pencil,
 	ChevronRight,
@@ -44,24 +43,6 @@ const stats = [
 		value: '3',
 		icon: FileText,
 		tint: 'bg-blue-50 text-blue-600',
-	},
-]
-
-const preferences = [
-	{
-		label: 'Budget',
-		value: 'M600 – M1,000',
-		icon: Wallet,
-	},
-	{
-		label: 'Preferred Area',
-		value: 'Ha Abia, Maseru',
-		icon: MapPin,
-	},
-	{
-		label: 'Room Type',
-		value: 'Single room',
-		icon: BedDouble,
 	},
 ]
 
@@ -433,49 +414,6 @@ export default function StudentDashboard() {
 										</div>
 									))
 								)}
-							</div>
-						</section>
-					</div>
-
-					<div className="space-y-6">
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<div className="flex items-center justify-between">
-								<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
-									Your search profile
-								</h2>
-
-								<button
-									type="button"
-									className="text-slate-400 transition hover:text-blue-600"
-									aria-label="Edit preferences"
-								>
-									<Pencil className="h-4 w-4" />
-								</button>
-							</div>
-
-							<div className="mt-4 space-y-3">
-								{preferences.map((pref) => {
-									const Icon = pref.icon
-
-									return (
-										<div
-											key={pref.label}
-											className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"
-										>
-											<Icon className="h-4 w-4 shrink-0 text-blue-600" />
-
-											<div>
-												<p className="text-xs font-medium text-slate-500">
-													{pref.label}
-												</p>
-
-												<p className="text-sm font-semibold text-slate-900">
-													{pref.value}
-												</p>
-											</div>
-										</div>
-									)
-								})}
 							</div>
 						</section>
 					</div>
