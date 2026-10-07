@@ -66,6 +66,7 @@ type Accommodation = {
 	latitude: number
 	longitude: number
 	photos: string[]
+	landlordPhone: string | null
 }
 
 type IconComponent = ComponentType<{ className?: string }>
@@ -102,6 +103,19 @@ function SidebarShell({ children }: { children: ReactNode }) {
 			{children}
 		</aside>
 	)
+}
+
+function normalizePhotos(match: any): string[] {
+	const raw =
+		match.photos ?? match.images ?? match.photoUrls ?? match.pictures ?? []
+
+	if (!Array.isArray(raw)) return []
+
+	return raw
+		.map((item: any) =>
+			typeof item === 'string' ? item : item?.url || item?.src || '',
+		)
+		.filter((url: string) => typeof url === 'string' && url.length > 0)
 }
 
 function getPropertyTypeLabel(propertyType: string) {
@@ -184,6 +198,26 @@ function formatAvailability(availableFrom: string | null) {
 	})
 }
 
+function openWhatsAppApplication(
+	listing: Accommodation,
+	studentName: string,
+) {
+	const phone = listing.landlordPhone?.replace(/\D/g, '')
+
+	if (!phone) {
+		window.alert('This landlord has not added a WhatsApp number yet.')
+		return
+	}
+
+	const message = `Hello, my name is ${studentName || 'a student'}. I am interested in the ${listing.title} listed on StayMatch. I would like to know the next steps, arrange a viewing, and understand how payment for the room is made.`
+
+	window.open(
+		`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+		'_blank',
+		'noopener,noreferrer',
+	)
+}
+
 function StudentAccommodationDetails() {
 	const searchParams = useSearchParams()
 	const id = searchParams.get('id')
@@ -252,6 +286,7 @@ function StudentAccommodationDetails() {
 					latitude: Number(match.latitude),
 					longitude: Number(match.longitude),
 					photos: normalizePhotos(match),
+					landlordPhone: match.landlord?.phone || null,
 				})
 
 				setActivePhoto(0)
@@ -600,9 +635,15 @@ function StudentAccommodationDetails() {
 
 								<button
 									type="button"
+									onClick={() =>
+										openWhatsAppApplication(
+											listing,
+											studentName,
+										)
+									}
 									className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
 								>
-									Apply Now
+									Contact Landlord
 								</button>
 							</div>
 
