@@ -5,8 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-<<<<<<< Updated upstream
-=======
 
 model User {
   id                String             @id @default(cuid())
@@ -21,6 +19,8 @@ model User {
   accommodations    Accommodation[]    @relation("LandlordAccommodations")
   applications      Application[]      @relation("StudentApplications")
   studentPreference StudentPreference?
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Accommodation {
@@ -32,7 +32,7 @@ model Accommodation {
   propertyType  PropertyType
   amenities     String[]            @default([])
   availableFrom DateTime?
-  status        AccommodationStatus @default(AVAILABLE)
+  status        AccommodationStatus @default(PENDING_REVIEW)
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   latitude      Float
@@ -41,6 +41,7 @@ model Accommodation {
 
   landlord     User          @relation("LandlordAccommodations", fields: [landlordId], references: [id])
   applications Application[]
+  notifications Notification[]
 }
 
 model Application {
@@ -82,7 +83,35 @@ model StudentPreference {
   university University? @relation(fields: [universityId], references: [id])
 }
 
->>>>>>> Stashed changes
+model Notification {
+  id              String        @id @default(cuid())
+  studentId       String
+  accommodationId String
+  title           String
+  message         String
+  read            Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  student       User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  accommodation Accommodation @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, read, createdAt])
+  @@unique([studentId, accommodationId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  studentId String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
 enum Role {
   STUDENT
   LANDLORD
@@ -108,54 +137,4 @@ enum ApplicationStatus {
   PENDING
   APPROVED
   DECLINED
-}
-
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String
-  role         Role
-  university   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  accommodations Accommodation[] @relation("LandlordAccommodations")
-  applications   Application[]   @relation("StudentApplications")
-}
-model Accommodation {
-  id            String              @id @default(cuid())
-  landlord      User                @relation("LandlordAccommodations", fields: [landlordId], references: [id])
-  landlordId    String
-
-  description   String
-  area          String
-  price         Int
-  propertyType  PropertyType
-
-  latitude      Float
-  longitude     Float
-
-  amenities     String[]            @default([])
-  availableFrom DateTime?
-  status        AccommodationStatus @default(PENDING_REVIEW)
-
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-
-  applications  Application[]
-}
-model Application {
-  id              String             @id @default(cuid())
-  student         User               @relation("StudentApplications", fields: [studentId], references: [id])
-  studentId       String
-  accommodation   Accommodation      @relation(fields: [accommodationId], references: [id])
-  accommodationId String
-  message         String?
-  status          ApplicationStatus  @default(PENDING)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  @@unique([studentId, accommodationId])
 }

@@ -12,6 +12,7 @@ import {
 	MapPin,
 	CheckCircle2,
 	XCircle,
+	Image as ImageIcon,
 } from 'lucide-react'
 
 type Accommodation = {
@@ -21,6 +22,7 @@ type Accommodation = {
 	price: number
 	propertyType: string
 	amenities: string[]
+	photos: string[]
 	availableFrom: string | null
 	status: string
 	latitude: number
@@ -124,7 +126,9 @@ function StatCard({
 				{value}
 			</p>
 
-			<p className="mt-1 text-sm text-slate-500">{label}</p>
+			<p className="mt-1 text-sm text-slate-500">
+				{label}
+			</p>
 		</div>
 	)
 }
@@ -168,7 +172,22 @@ function LandlordDashboard() {
 					)
 				}
 
-				setListings(data.accommodations || [])
+				setListings(
+					(data.accommodations || []).map(
+						(
+							accommodation: Accommodation,
+						) => ({
+							...accommodation,
+
+							// Make sure photos is always an array
+							photos: Array.isArray(
+								accommodation.photos,
+							)
+								? accommodation.photos
+								: [],
+						}),
+					),
+				)
 			} catch (error) {
 				console.error(
 					'Failed to fetch dashboard listings:',
@@ -250,19 +269,28 @@ function LandlordDashboard() {
 			{/* Sidebar */}
 			<SidebarShell>
 				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
+					<Link
+						href="/"
+						className="flex items-center gap-3 px-2"
+					>
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
+							Stay
+							<span className="text-blue-600">
+								Match
+							</span>
 						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton key={item.label} {...item} />
+							<NavButton
+								key={item.label}
+								{...item}
+							/>
 						))}
 					</nav>
 				</div>
@@ -307,7 +335,8 @@ function LandlordDashboard() {
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Here's how your listings are performing.
+							Here's how your listings are
+							performing.
 						</p>
 					</div>
 
@@ -325,7 +354,10 @@ function LandlordDashboard() {
 				{/* Stats */}
 				<div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 					{stats.map((stat) => (
-						<StatCard key={stat.label} {...stat} />
+						<StatCard
+							key={stat.label}
+							{...stat}
+						/>
 					))}
 				</div>
 
@@ -351,34 +383,44 @@ function LandlordDashboard() {
 							{loadingListings && (
 								<div className="rounded-2xl border border-slate-200/70 p-6 text-center">
 									<p className="text-sm text-slate-500">
-										Loading your accommodations...
+										Loading your
+										accommodations...
 									</p>
 								</div>
 							)}
 
 							{/* Error */}
-							{!loadingListings && listingsError && (
-								<div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-									<p className="text-sm font-medium text-red-600">
-										{listingsError}
-									</p>
-								</div>
-							)}
+							{!loadingListings &&
+								listingsError && (
+									<div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+										<p className="text-sm font-medium text-red-600">
+											{
+												listingsError
+											}
+										</p>
+									</div>
+								)}
 
 							{/* No listings */}
 							{!loadingListings &&
 								!listingsError &&
-								listings.length === 0 && (
+								listings.length ===
+									0 && (
 									<div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center">
 										<Home className="mx-auto h-8 w-8 text-slate-300" />
 
 										<p className="mt-3 text-sm font-semibold text-slate-700">
-											No accommodations yet
+											No
+											accommodations
+											yet
 										</p>
 
 										<p className="mt-1 text-xs text-slate-500">
-											Add your first accommodation to
-											start receiving applications.
+											Add your first
+											accommodation
+											to start
+											receiving
+											applications.
 										</p>
 
 										<Link
@@ -386,7 +428,8 @@ function LandlordDashboard() {
 											className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700"
 										>
 											<PlusCircle className="h-4 w-4" />
-											Add Accommodation
+											Add
+											Accommodation
 										</Link>
 									</div>
 								)}
@@ -465,4 +508,3 @@ function LandlordDashboard() {
 }
 
 export default LandlordDashboard
-

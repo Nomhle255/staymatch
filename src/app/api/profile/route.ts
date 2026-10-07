@@ -22,13 +22,6 @@ export async function GET(request: NextRequest) {
 			)
 		}
 
-		if (payload.role !== 'STUDENT') {
-			return NextResponse.json(
-				{ error: 'Only students can access this profile.' },
-				{ status: 403 },
-			)
-		}
-
 		const user = await prisma.user.findUnique({
 			where: {
 				id: payload.userId,
@@ -37,20 +30,22 @@ export async function GET(request: NextRequest) {
 				id: true,
 				name: true,
 				email: true,
+				phone: true,
 				role: true,
+				university: true,
 			},
 		})
 
 		if (!user) {
 			return NextResponse.json(
-				{ error: 'Student account not found.' },
+				{ error: 'User account not found.' },
 				{ status: 404 },
 			)
 		}
 
 		return NextResponse.json({ user })
 	} catch (error) {
-		console.error('Fetch student profile error:', error)
+		console.error('Fetch profile error:', error)
 
 		return NextResponse.json(
 			{ error: 'Something went wrong. Please try again.' },

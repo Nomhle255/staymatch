@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { getAccommodationMatchScore } from '@/lib/accommodationMatching'
+import { sendBrowserPush } from '@/lib/webPush'
 
 const VALID_PROPERTY_TYPES = [
 	'SINGLE_ROOM',
@@ -37,6 +39,7 @@ export async function POST(request: NextRequest) {
 			description,
 			availableFrom,
 			amenities,
+			photos,
 			latitude,
 			longitude,
 		} = body
@@ -76,9 +79,8 @@ export async function POST(request: NextRequest) {
 				area: area || 'Maseru',
 				price: Number(price),
 				propertyType,
-				amenities: Array.isArray(amenities)
-					? amenities
-					: [],
+				amenities: Array.isArray(amenities) ? amenities : [],
+				photos: Array.isArray(photos) ? photos : [],
 				latitude,
 				longitude,
 				availableFrom: availableFrom
@@ -87,6 +89,112 @@ export async function POST(request: NextRequest) {
 				status: 'AVAILABLE',
 			},
 		})
+
+		try {
+			const preferences = await prisma.studentPreference.findMany({
+				include: {
+					university: {
+						select: {
+							latitude: true,
+							longitude: true,
+						},
+					},
+				},
+			})
+
+			const notifications = preferences.flatMap((preference) => {
+				const score = getAccommodationMatchScore(
+					{
+						price: accommodation.price,
+						propertyType: accommodation.propertyType,
+						amenities: accommodation.amenities,
+						status: accommodation.status,
+						latitude: accommodation.latitude,
+						longitude: accommodation.longitude,
+					},
+					preference,
+				)
+
+				if (score === null) {
+					return []
+				}
+
+				const propertyLabel = accommodation.propertyType
+					.toLowerCase()
+					.replace(/_/g, ' ')
+
+				return [
+					{
+						studentId: preference.studentId,
+						accommodationId: accommodation.id,
+						title: 'New accommodation match',
+						message: `A new ${propertyLabel} in ${accommodation.area} matches your saved preferences (${score}% match).`,
+					},
+				]
+			})
+
+			if (notifications.length > 0) {
+				await prisma.notification.createMany({
+					data: notifications,
+					skipDuplicates: true,
+				})
+			}
+
+			const matchingNotifications = await prisma.notification.findMany({
+				where: { accommodationId: accommodation.id },
+				select: {
+					studentId: true,
+					title: true,
+					message: true,
+				},
+			})
+
+			after(async () => {
+				await Promise.all(
+					matchingNotifications.map(async (notification) => {
+						const subscriptions = await prisma.pushSubscription.findMany({
+							where: { studentId: notification.studentId },
+						})
+
+						await Promise.all(
+							subscriptions.map(async (subscription) => {
+								const result = await sendBrowserPush(
+									{
+										endpoint: subscription.endpoint,
+										keys: {
+											p256dh: subscription.p256dh,
+											auth: subscription.auth,
+										},
+									},
+									{
+										title: notification.title,
+										message: notification.message,
+										accommodationId: accommodation.id,
+									},
+								)
+
+								if (result.statusCode === 404 || result.statusCode === 410) {
+									await prisma.pushSubscription.delete({
+										where: { endpoint: subscription.endpoint },
+									})
+								} else if (!result.sent) {
+									console.error('Push notification was not sent:', {
+										studentId: notification.studentId,
+										message: result.message,
+										code: result.code,
+									})
+								}
+							}),
+						)
+					}),
+				)
+			})
+		} catch (notificationError) {
+			console.error(
+				'Accommodation created, but notifications could not be processed:',
+				notificationError,
+			)
+		}
 
 		return NextResponse.json(
 			{ accommodation },
