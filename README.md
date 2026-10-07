@@ -1,4 +1,41 @@
-# React + TypeScript + Vite
+# StayMatch
+
+## Browser Push Notifications
+
+Browser push is optional and works alongside the existing in-app notifications.
+
+1. Generate VAPID keys:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+2. Add the generated values to `.env`:
+
+```env
+WEB_PUSH_SUBJECT="mailto:admin@example.com"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="your-public-key"
+VAPID_PRIVATE_KEY="your-private-key"
+```
+
+3. Apply the database migrations:
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
+
+4. Start the app over HTTPS in production. Students can enable device alerts from their
+dashboard. The service worker is served from `/sw.js`, and matching accommodations trigger
+push messages for subscribed student devices.
+
+## Development
+
+```bash
+npm run dev
+```
+
+The remainder of this file contains the original Vite template notes.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

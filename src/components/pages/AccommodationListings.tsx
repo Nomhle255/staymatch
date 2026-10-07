@@ -21,6 +21,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Eye,
+	Image as ImageIcon,
 } from 'lucide-react'
 
 const navItems = [
@@ -64,6 +65,7 @@ type Accommodation = {
 	price: number
 	propertyType: string
 	amenities: string[]
+	photos: string[]
 	availableFrom: string | null
 	status: string
 	latitude: number
@@ -196,7 +198,22 @@ function AccommodationListings() {
 					)
 				}
 
-				setListings(data.accommodations || [])
+				setListings(
+					(data.accommodations || []).map(
+						(
+							accommodation: Accommodation,
+						) => ({
+							...accommodation,
+
+							// Make sure photos is always an array
+							photos: Array.isArray(
+								accommodation.photos,
+							)
+								? accommodation.photos
+								: [],
+						}),
+					),
+				)
 			} catch (error) {
 				console.error(
 					'Failed to fetch accommodations:',
@@ -436,6 +453,9 @@ function AccommodationListings() {
 									const StatusIcon =
 										style.icon
 
+									const firstPhoto =
+										listing.photos?.[0]
+
 									return (
 										<article
 											key={
@@ -443,7 +463,36 @@ function AccommodationListings() {
 											}
 											className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
 										>
-											<div className="relative h-40 bg-gradient-to-br from-blue-400 to-indigo-500">
+											{/* Listing image */}
+											<div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500">
+												{firstPhoto ? (
+													<img
+														src={
+															firstPhoto
+														}
+														alt={`${getPropertyTypeLabel(
+															listing.propertyType,
+														)} in ${
+															listing.area
+														}`}
+														className="h-full w-full object-cover"
+													/>
+												) : (
+													<div className="flex h-full w-full flex-col items-center justify-center text-white/80">
+														<ImageIcon className="h-10 w-10" />
+
+														<span className="mt-2 text-xs font-semibold">
+															No
+															photo
+															available
+														</span>
+													</div>
+												)}
+
+												{/* Dark overlay for readability */}
+												<div className="absolute inset-0 bg-black/10" />
+
+												{/* Status */}
 												<span
 													className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${style.tint}`}
 												>
@@ -460,6 +509,25 @@ function AccommodationListings() {
 												>
 													<MoreVertical className="h-4 w-4" />
 												</button>
+
+												{/* Photo count */}
+												{listing.photos?.length >
+													0 && (
+													<div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+														{
+															listing
+																.photos
+																.length
+														}{' '}
+														photo
+														{listing
+															.photos
+															.length !==
+														1
+															? 's'
+															: ''}
+													</div>
+												)}
 											</div>
 
 											<div className="p-5">
@@ -484,10 +552,12 @@ function AccommodationListings() {
 
 												<div className="mt-4 flex gap-2">
 													<Link
-														href={`/landlord/accommodationdetails?id=${listing.id}`}														className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+														href={`/landlord/accommodationdetails?id=${listing.id}`}
+														className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
 													>
 														<Eye className="h-3.5 w-3.5" />
-														View Details
+														View
+														Details
 													</Link>
 
 													<Link
@@ -499,10 +569,21 @@ function AccommodationListings() {
 													</Link>
 
 													<DeleteAccommodation
-														accommodationId={listing.id}
+														accommodationId={
+															listing.id
+														}
 														onDeleted={() => {
-															setListings(currentListings =>
-																currentListings.filter(item => item.id !== listing.id)
+															setListings(
+																(
+																	currentListings,
+																) =>
+																	currentListings.filter(
+																		(
+																			item,
+																		) =>
+																			item.id !==
+																			listing.id,
+																	),
 															)
 														}}
 													/>

@@ -88,6 +88,7 @@ const amenitiesList = [
 	{ label: 'Parking available', icon: Car },
 	{ label: '24/7 security', icon: ShieldCheck },
 ]
+
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100'
 
@@ -99,10 +100,7 @@ type FieldProps = {
 function Field({ label, children }: FieldProps) {
 	return (
 		<label className="grid gap-2">
-			<span className="text-sm font-bold text-slate-900">
-				{label}
-			</span>
-
+			<span className="text-sm font-bold text-slate-900">{label}</span>
 			{children}
 		</label>
 	)
@@ -113,10 +111,7 @@ type InputShellProps = {
 	children: ReactNode
 }
 
-function InputShell({
-	icon: Icon,
-	children,
-}: InputShellProps) {
+function InputShell({ icon: Icon, children }: InputShellProps) {
 	return (
 		<div className="relative">
 			<Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -151,16 +146,17 @@ function NavButton({
 	)
 }
 
-function SidebarShell({
-	children,
-}: {
-	children: ReactNode
-}) {
+function SidebarShell({ children }: { children: ReactNode }) {
 	return (
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
 	)
+}
+
+type PhotoItem = {
+	name: string
+	dataUrl: string
 }
 
 function AddAccommodation() {
@@ -172,28 +168,20 @@ function AddAccommodation() {
 	const [description, setDescription] = useState('')
 	const [availableFrom, setAvailableFrom] = useState('')
 
-	const [selectedAmenities, setSelectedAmenities] =
-		useState<string[]>([])
-	const [photos, setPhotos] = useState<string[]>([])
+	const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+	const [photos, setPhotos] = useState<PhotoItem[]>([])
 
 	// Property location
-	const [latitude, setLatitude] =
-		useState<number | null>(null)
-	const [longitude, setLongitude] =
-		useState<number | null>(null)
-	const [locationConfirmed, setLocationConfirmed] =
-		useState(false)
-	const [locationLoading, setLocationLoading] =
-		useState(false)
+	const [latitude, setLatitude] = useState<number | null>(null)
+	const [longitude, setLongitude] = useState<number | null>(null)
+	const [locationConfirmed, setLocationConfirmed] = useState(false)
+	const [locationLoading, setLocationLoading] = useState(false)
 	const [locationError, setLocationError] = useState('')
-	const [searchLocation, setSearchLocation] =
-		useState('')
+	const [searchLocation, setSearchLocation] = useState('')
 
 	const mapRef = useRef<HTMLDivElement | null>(null)
-	const mapInstanceRef =
-		useRef<Leaflet.Map | null>(null)
-	const markerRef =
-		useRef<Leaflet.Marker | null>(null)
+	const mapInstanceRef = useRef<Leaflet.Map | null>(null)
+	const markerRef = useRef<Leaflet.Marker | null>(null)
 
 	const [loading, setLoading] = useState(false)
 	const [message, setMessage] = useState('')
@@ -203,16 +191,14 @@ function AddAccommodation() {
 	 * Initialise Leaflet map.
 	 */
 	useEffect(() => {
-		if (!mapRef.current || mapInstanceRef.current)
-			return
+		if (!mapRef.current || mapInstanceRef.current) return
 
 		let cancelled = false
 
 		const initializeMap = async () => {
 			const leafletModule = await import('leaflet')
 
-			if (cancelled || !mapRef.current)
-				return
+			if (cancelled || !mapRef.current) return
 
 			const L = leafletModule.default
 
@@ -226,65 +212,42 @@ function AddAccommodation() {
 				doubleClickZoom: true,
 				boxZoom: true,
 				keyboard: true,
-			}).setView(
-				[defaultLatitude, defaultLongitude],
-				12,
-			)
+			}).setView([defaultLatitude, defaultLongitude], 12)
 
 			map.dragging.enable()
 
 			L.tileLayer(
 				'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 				{
-					attribution:
-						'&copy; OpenStreetMap contributors',
+					attribution: '&copy; OpenStreetMap contributors',
 				},
 			).addTo(map)
 
-			map.on(
-				'click',
-				(event: Leaflet.LeafletMouseEvent) => {
-					const { lat, lng } = event.latlng
+			map.on('click', (event: Leaflet.LeafletMouseEvent) => {
+				const { lat, lng } = event.latlng
 
-					setLatitude(lat)
-					setLongitude(lng)
-					setLocationConfirmed(false)
+				setLatitude(lat)
+				setLongitude(lng)
+				setLocationConfirmed(false)
 
-					if (markerRef.current) {
-						markerRef.current.setLatLng([
-							lat,
-							lng,
-						])
-					} else {
-						const marker = L.marker(
-							[lat, lng],
-							{
-								draggable: true,
-							},
-						).addTo(map)
+				if (markerRef.current) {
+					markerRef.current.setLatLng([lat, lng])
+				} else {
+					const marker = L.marker([lat, lng], {
+						draggable: true,
+					}).addTo(map)
 
-						marker.on(
-							'dragend',
-							() => {
-								const position =
-									marker.getLatLng()
+					marker.on('dragend', () => {
+						const position = marker.getLatLng()
 
-								setLatitude(
-									position.lat,
-								)
-								setLongitude(
-									position.lng,
-								)
-								setLocationConfirmed(
-									false,
-								)
-							},
-						)
+						setLatitude(position.lat)
+						setLongitude(position.lng)
+						setLocationConfirmed(false)
+					})
 
-						markerRef.current = marker
-					}
-				},
-			)
+					markerRef.current = marker
+				}
+			})
 
 			mapInstanceRef.current = map
 		}
@@ -306,11 +269,7 @@ function AddAccommodation() {
 	/*
 	 * Set marker on map.
 	 */
-	const setMapLocation = (
-		lat: number,
-		lng: number,
-		zoom = 16,
-	) => {
+	const setMapLocation = (lat: number, lng: number, zoom = 16) => {
 		setLatitude(lat)
 		setLongitude(lng)
 		setLocationConfirmed(false)
@@ -359,9 +318,7 @@ function AddAccommodation() {
 		setLocationConfirmed(false)
 
 		if (!navigator.geolocation) {
-			setLocationError(
-				'Geolocation is not supported by this browser.',
-			)
+			setLocationError('Geolocation is not supported by this browser.')
 			setLocationLoading(false)
 			return
 		}
@@ -410,9 +367,7 @@ function AddAccommodation() {
 			)
 
 			if (!response.ok) {
-				throw new Error(
-					'Location search failed.',
-				)
+				throw new Error('Location search failed.')
 			}
 
 			const results = await response.json()
@@ -442,13 +397,8 @@ function AddAccommodation() {
 	}
 
 	const confirmLocation = () => {
-		if (
-			latitude === null ||
-			longitude === null
-		) {
-			setLocationError(
-				'Please select a location on the map first.',
-			)
+		if (latitude === null || longitude === null) {
+			setLocationError('Please select a location on the map first.')
 			return
 		}
 
@@ -459,60 +409,52 @@ function AddAccommodation() {
 	const toggleAmenity = (label: string) => {
 		setSelectedAmenities((current) =>
 			current.includes(label)
-				? current.filter(
-						(item) => item !== label,
-					)
+				? current.filter((item) => item !== label)
 				: [...current, label],
 		)
 	}
 
-	const handlePhotoSelect = (
-		event: ChangeEvent<HTMLInputElement>,
-	) => {
+	/*
+	 * Read each selected file as base64 for local preview.
+	 * The actual Cloudinary upload happens on submit.
+	 */
+	const handlePhotoSelect = (event: ChangeEvent<HTMLInputElement>) => {
 		const files = event.target.files
 
 		if (!files) return
 
-		const names = Array.from(files).map(
-			(file) => file.name,
-		)
+		Array.from(files).forEach((file) => {
+			const reader = new FileReader()
 
-		setPhotos((current) => [
-			...current,
-			...names,
-		])
+			reader.onload = () => {
+				const dataUrl = reader.result as string
+
+				setPhotos((current) => [
+					...current,
+					{ name: file.name, dataUrl },
+				])
+			}
+
+			reader.readAsDataURL(file)
+		})
+
+		// Reset so selecting the same file again still fires onChange
+		event.target.value = ''
 	}
 
 	const removePhoto = (index: number) => {
-		setPhotos((current) =>
-			current.filter(
-				(_, i) => i !== index,
-			),
-		)
+		setPhotos((current) => current.filter((_, i) => i !== index))
 	}
 
-	const handleSubmit = async (
-		event: FormEvent<HTMLFormElement>,
-	) => {
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
-		if (
-			!propertyType ||
-			!price ||
-			!area ||
-			!description
-		) {
-			setError(
-				'Please complete all required accommodation details.',
-			)
+		if (!propertyType || !price || !area || !description) {
+			setError('Please complete all required accommodation details.')
 			return
 		}
 
-		if (
-			latitude === null ||
-			longitude === null ||
-			!locationConfirmed
-		) {
+		if (latitude === null || longitude === null || !locationConfirmed) {
 			setError(
 				'Please select and confirm the property location before publishing.',
 			)
@@ -524,57 +466,62 @@ function AddAccommodation() {
 		setError('')
 
 		try {
-			const response = await fetch(
-				'/api/addaccommodation',
-				{
+			// Upload each selected photo to Cloudinary and collect the
+			// hosted URLs that come back.
+			const uploadedUrls: string[] = []
+
+			for (const photo of photos) {
+				const uploadResponse = await fetch('/api/upload', {
 					method: 'POST',
-					headers: {
-						'Content-Type':
-							'application/json',
-					},
-					body: JSON.stringify({
-						propertyType,
-						price: Number(price),
-						area,
-						description,
-						availableFrom:
-							availableFrom ||
-							null,
-						amenities:
-							selectedAmenities,
-						photos,
-						latitude,
-						longitude,
-					}),
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ image: photo.dataUrl }),
+				})
+
+				const uploadData = await uploadResponse.json()
+
+				if (!uploadResponse.ok) {
+					throw new Error(
+						uploadData.error || `Failed to upload ${photo.name}.`,
+					)
+				}
+
+				uploadedUrls.push(uploadData.url)
+			}
+
+			const response = await fetch('/api/addaccommodation', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
 				},
-			)
+				body: JSON.stringify({
+					propertyType,
+					price: Number(price),
+					area,
+					description,
+					availableFrom: availableFrom || null,
+					amenities: selectedAmenities,
+					photos: uploadedUrls,
+					latitude,
+					longitude,
+				}),
+			})
 
 			const data = await response.json()
 
 			if (!response.ok) {
-				throw new Error(
-					data.error ||
-						'Failed to add accommodation.',
-				)
+				throw new Error(data.error || 'Failed to add accommodation.')
 			}
 
 			// Show success message
-			setMessage(
-				'Accommodation added successfully!',
-			)
+			setMessage('Accommodation added successfully!')
 
-			// Redirect after the message
-			// has been displayed for 2 seconds
+			// Redirect after the message has been displayed for 2 seconds
 			setTimeout(() => {
-				router.push(
-					'/landlord/accommodationlisting',
-				)
+				router.push('/landlord/accommodationlisting')
 			}, 2000)
 		} catch (error) {
 			setError(
-				error instanceof Error
-					? error.message
-					: 'Something went wrong.',
+				error instanceof Error ? error.message : 'Something went wrong.',
 			)
 		} finally {
 			setLoading(false)
@@ -585,28 +532,19 @@ function AddAccommodation() {
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
 				<div>
-					<Link
-						href="/"
-						className="flex items-center gap-3 px-2"
-					>
+					<Link href="/" className="flex items-center gap-3 px-2">
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay
-							<span className="text-blue-600">
-								Match
-							</span>
+							Stay<span className="text-blue-600">Match</span>
 						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton
-								key={item.label}
-								{...item}
-							/>
+							<NavButton key={item.label} {...item} />
 						))}
 					</nav>
 				</div>
@@ -623,9 +561,7 @@ function AddAccommodation() {
 									Khaya Cathala
 								</p>
 
-								<p className="text-xs text-slate-500">
-									Landlord
-								</p>
+								<p className="text-xs text-slate-500">Landlord</p>
 							</div>
 						</div>
 					</div>
@@ -647,9 +583,8 @@ function AddAccommodation() {
 					</h1>
 
 					<p className="mt-1 text-sm text-slate-500">
-						Fill in the details below to
-						publish a listing for students
-						to find.
+						Fill in the details below to publish a listing for
+						students to find.
 					</p>
 				</div>
 
@@ -684,46 +619,22 @@ function AddAccommodation() {
 									<Field label="Property type">
 										<div className="relative">
 											<select
-												value={
-													propertyType
-												}
-												onChange={(
-													event,
-												) =>
-													setPropertyType(
-														event
-															.target
-															.value,
-													)
+												value={propertyType}
+												onChange={(event) =>
+													setPropertyType(event.target.value)
 												}
 												required
 												className={`${inputClasses} appearance-none pl-4`}
 											>
-												<option
-													value=""
-													disabled
-												>
+												<option value="" disabled>
 													Select type
 												</option>
 
-												{propertyTypes.map(
-													(
-														type,
-													) => (
-														<option
-															key={
-																type.value
-															}
-															value={
-																type.value
-															}
-														>
-															{
-																type.label
-															}
-														</option>
-													),
-												)}
+												{propertyTypes.map((type) => (
+													<option key={type.value} value={type.value}>
+														{type.label}
+													</option>
+												))}
 											</select>
 
 											<ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -735,15 +646,7 @@ function AddAccommodation() {
 										<input
 											type="number"
 											value={price}
-											onChange={(
-												event,
-											) =>
-												setPrice(
-													event
-														.target
-														.value,
-												)
-											}
+											onChange={(event) => setPrice(event.target.value)}
 											placeholder="2800"
 											required
 											min="0"
@@ -758,15 +661,7 @@ function AddAccommodation() {
 										<input
 											type="text"
 											value={area}
-											onChange={(
-												event,
-											) =>
-												setArea(
-													event
-														.target
-														.value,
-												)
-											}
+											onChange={(event) => setArea(event.target.value)}
 											placeholder="e.g. Ha Abia, Masowe, Qoaling"
 											required
 											className={inputClasses}
@@ -774,10 +669,8 @@ function AddAccommodation() {
 									</InputShell>
 
 									<p className="text-xs text-slate-400">
-										Enter the specific
-										area where the
-										accommodation is
-										located.
+										Enter the specific area where the
+										accommodation is located.
 									</p>
 								</Field>
 
@@ -788,17 +681,9 @@ function AddAccommodation() {
 
 										<textarea
 											rows={4}
-											value={
-												description
-											}
-											onChange={(
-												event,
-											) =>
-												setDescription(
-													event
-														.target
-														.value,
-												)
+											value={description}
+											onChange={(event) =>
+												setDescription(event.target.value)
 											}
 											placeholder="Describe the property, what's nearby, and what makes it a good fit for students..."
 											required
@@ -810,44 +695,29 @@ function AddAccommodation() {
 								{/* Facilities */}
 								<Field label="Property facilities">
 									<div className="mt-5 grid gap-3 sm:grid-cols-2">
-										{amenitiesList.map(
-											(
-												amenity,
-											) => {
-												const isSelected =
-													selectedAmenities.includes(
-														amenity.label,
-													)
+										{amenitiesList.map((amenity) => {
+											const isSelected = selectedAmenities.includes(
+												amenity.label,
+											)
 
-												const Icon =
-													amenity.icon
+											const Icon = amenity.icon
 
-												return (
-													<button
-														type="button"
-														key={
-															amenity.label
-														}
-														onClick={() =>
-															toggleAmenity(
-																amenity.label,
-															)
-														}
-														className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
-															isSelected
-																? 'border-blue-400 bg-blue-50 text-blue-700'
-																: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-														}`}
-													>
-														<Icon className="h-4 w-4 shrink-0" />
-
-														{
-															amenity.label
-														}
-													</button>
-												)
-											},
-										)}
+											return (
+												<button
+													type="button"
+													key={amenity.label}
+													onClick={() => toggleAmenity(amenity.label)}
+													className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
+														isSelected
+															? 'border-blue-400 bg-blue-50 text-blue-700'
+															: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+													}`}
+												>
+													<Icon className="h-4 w-4 shrink-0" />
+													{amenity.label}
+												</button>
+											)
+										})}
 									</div>
 								</Field>
 							</div>
@@ -862,14 +732,10 @@ function AddAccommodation() {
 									</h2>
 
 									<p className="mt-1 text-sm leading-6 text-slate-500">
-										Select the exact
-										location of the
-										accommodation so
-										students can find
-										it and distance
-										from their
-										university can be
-										calculated.
+										Select the exact location of the
+										accommodation so students can find it
+										and distance from their university can
+										be calculated.
 									</p>
 								</div>
 							</div>
@@ -878,12 +744,8 @@ function AddAccommodation() {
 							<div className="mt-5">
 								<button
 									type="button"
-									onClick={
-										getCurrentLocation
-									}
-									disabled={
-										locationLoading
-									}
+									onClick={getCurrentLocation}
+									disabled={locationLoading}
 									className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
 								>
 									<Crosshair className="h-4 w-4" />
@@ -911,25 +773,12 @@ function AddAccommodation() {
 
 									<input
 										type="text"
-										value={
-											searchLocation
+										value={searchLocation}
+										onChange={(event) =>
+											setSearchLocation(event.target.value)
 										}
-										onChange={(
-											event,
-										) =>
-											setSearchLocation(
-												event
-													.target
-													.value,
-											)
-										}
-										onKeyDown={(
-											event,
-										) => {
-											if (
-												event.key ===
-												'Enter'
-											) {
+										onKeyDown={(event) => {
+											if (event.key === 'Enter') {
 												event.preventDefault()
 												searchPropertyLocation()
 											}
@@ -941,12 +790,9 @@ function AddAccommodation() {
 
 								<button
 									type="button"
-									onClick={
-										searchPropertyLocation
-									}
+									onClick={searchPropertyLocation}
 									disabled={
-										locationLoading ||
-										!searchLocation.trim()
+										locationLoading || !searchLocation.trim()
 									}
 									className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
 								>
@@ -961,46 +807,36 @@ function AddAccommodation() {
 							/>
 
 							<p className="mt-3 text-xs text-slate-400">
-								Click anywhere on the map
-								to select the property.
-								You can drag the map in
-								any direction and drag
-								the marker to adjust the
+								Click anywhere on the map to select the
+								property. You can drag the map in any
+								direction and drag the marker to adjust the
 								exact location.
 							</p>
 
 							{/* Coordinates */}
-							{latitude !== null &&
-								longitude !== null && (
-									<div className="mt-4 rounded-xl bg-slate-50 p-4">
-										<div className="flex items-center justify-between gap-3">
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-													Selected
-													location
-												</p>
+							{latitude !== null && longitude !== null && (
+								<div className="mt-4 rounded-xl bg-slate-50 p-4">
+									<div className="flex items-center justify-between gap-3">
+										<div>
+											<p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+												Selected location
+											</p>
 
-												<p className="mt-1 text-sm font-semibold text-slate-700">
-													Latitude:{' '}
-													{latitude.toFixed(
-														6,
-													)}
-												</p>
+											<p className="mt-1 text-sm font-semibold text-slate-700">
+												Latitude: {latitude.toFixed(6)}
+											</p>
 
-												<p className="text-sm font-semibold text-slate-700">
-													Longitude:{' '}
-													{longitude.toFixed(
-														6,
-													)}
-												</p>
-											</div>
-
-											{locationConfirmed && (
-												<CheckCircle2 className="h-6 w-6 shrink-0 text-green-600" />
-											)}
+											<p className="text-sm font-semibold text-slate-700">
+												Longitude: {longitude.toFixed(6)}
+											</p>
 										</div>
+
+										{locationConfirmed && (
+											<CheckCircle2 className="h-6 w-6 shrink-0 text-green-600" />
+										)}
 									</div>
-								)}
+								</div>
+							)}
 
 							{/* Location Error */}
 							{locationError && (
@@ -1012,15 +848,8 @@ function AddAccommodation() {
 							{/* Confirm Location */}
 							<button
 								type="button"
-								onClick={
-									confirmLocation
-								}
-								disabled={
-									latitude ===
-										null ||
-									longitude ===
-										null
-								}
+								onClick={confirmLocation}
+								disabled={latitude === null || longitude === null}
 								className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition ${
 									locationConfirmed
 										? 'bg-green-600 text-white'
@@ -1045,22 +874,19 @@ function AddAccommodation() {
 							</h2>
 
 							<p className="mt-1 text-sm text-slate-500">
-								Add clear photos of
-								the room, common
-								areas, and exterior.
+								Add clear photos of the room, common areas,
+								and exterior.
 							</p>
 
 							<label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50/40">
 								<UploadCloud className="h-6 w-6 text-slate-400" />
 
 								<p className="text-sm font-semibold text-slate-600">
-									Click to upload
-									photos
+									Click to upload photos
 								</p>
 
 								<p className="text-xs text-slate-400">
-									PNG or JPG, up to
-									5MB each
+									PNG or JPG, up to 5MB each
 								</p>
 
 								<input
@@ -1068,43 +894,33 @@ function AddAccommodation() {
 									accept="image/*"
 									multiple
 									className="hidden"
-									onChange={
-										handlePhotoSelect
-									}
+									onChange={handlePhotoSelect}
 								/>
 							</label>
 
 							{photos.length > 0 && (
-								<ul className="mt-4 space-y-2">
-									{photos.map(
-										(
-											name,
-											index,
-										) => (
-											<li
-												key={`${name}-${index}`}
-												className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600"
-											>
-												<span className="truncate">
-													{
-														name
-													}
-												</span>
+								<ul className="mt-4 grid grid-cols-3 gap-3">
+									{photos.map((photo, index) => (
+										<li
+											key={`${photo.name}-${index}`}
+											className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200"
+										>
+											<img
+												src={photo.dataUrl}
+												alt={photo.name}
+												className="h-full w-full object-cover"
+											/>
 
-												<button
-													type="button"
-													onClick={() =>
-														removePhoto(
-															index,
-														)
-													}
-													className="text-slate-400 transition hover:text-rose-500"
-												>
-													<X className="h-4 w-4" />
-												</button>
-											</li>
-										),
-									)}
+											<button
+												type="button"
+												onClick={() => removePhoto(index)}
+												className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100"
+												aria-label={`Remove ${photo.name}`}
+											>
+												<X className="h-3.5 w-3.5" />
+											</button>
+										</li>
+									))}
 								</ul>
 							)}
 						</section>
@@ -1116,11 +932,8 @@ function AddAccommodation() {
 							</h2>
 
 							<p className="mt-1 text-sm leading-6 text-slate-500">
-								New listings are
-								reviewed before
-								appearing as
-								"Verified" to
-								students.
+								New listings are reviewed before appearing as
+								"Verified" to students.
 							</p>
 
 							<div className="mt-5">
@@ -1129,9 +942,7 @@ function AddAccommodation() {
 									disabled={loading}
 									className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
 								>
-									{loading
-										? 'Submitting...'
-										: 'Publish Listing'}
+									{loading ? 'Submitting...' : 'Publish Listing'}
 								</button>
 							</div>
 						</section>
