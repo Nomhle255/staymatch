@@ -4,6 +4,13 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
 	try {
 		const accommodations = await prisma.accommodation.findMany({
+			include: {
+				landlord: {
+					select: {
+						phone: true,
+					},
+				},
+			},
             orderBy: {
                 createdAt: 'desc',
             },

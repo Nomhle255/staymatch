@@ -110,6 +110,7 @@ type Accommodation = {
 	status: string
 	latitude: number
 	longitude: number
+	landlordPhone: string | null
 }
 
 type ListingWithDistance = Accommodation & {
@@ -191,6 +192,26 @@ function getGradient(index: number) {
 
 function isVerified(status: string) {
 	return status === 'VERIFIED'
+}
+
+function openWhatsAppApplication(
+	listing: Accommodation,
+	studentName: string,
+) {
+	const phone = listing.landlordPhone?.replace(/\D/g, '')
+
+	if (!phone) {
+		window.alert('This landlord has not added a WhatsApp number yet.')
+		return
+	}
+
+	const message = `Hello, my name is ${studentName || 'a student'}. I am interested in the ${listing.title} listed on StayMatch. I would like to know the next steps, arrange a viewing, and understand how payment for the room is made.`
+
+	window.open(
+		`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+		'_blank',
+		'noopener,noreferrer',
+	)
 }
 
 function matchesPriceRange(price: number, range: string) {
@@ -363,26 +384,60 @@ function StudentBrowseListings() {
 					? data
 					: data.accommodations || data.listings || []
 
-				const formattedListings: Accommodation[] = accommodations.map(
-					(accommodation: any) => ({
-						id: accommodation.id,
-						title:
-							accommodation.title ||
-							`${getPropertyTypeLabel(accommodation.propertyType)} in ${accommodation.area}`,
-						area: accommodation.area,
-						price: Number(accommodation.price),
-						propertyType: accommodation.propertyType,
-						verified: isVerified(accommodation.status),
-						description: accommodation.description || '',
-						amenities: Array.isArray(accommodation.amenities)
-							? accommodation.amenities
-							: [],
-						availableFrom: accommodation.availableFrom || null,
-						status: accommodation.status,
-						latitude: Number(accommodation.latitude),
-						longitude: Number(accommodation.longitude),
-					}),
-				)
+				const formattedListings: Accommodation[] =
+					accommodations.map(
+						(accommodation: any) => ({
+							id: String(
+								accommodation.id,
+							),
+							title:
+								accommodation.title ||
+								`${getPropertyTypeLabel(
+									accommodation.propertyType,
+								)} in ${
+									accommodation.area
+								}`,
+							area:
+								accommodation.area ||
+								'',
+							price: Number(
+								accommodation.price,
+							),
+							propertyType:
+								accommodation.propertyType,
+							verified: isVerified(
+								accommodation.status,
+							),
+							description:
+								accommodation.description ||
+								'',
+							amenities:
+								Array.isArray(
+									accommodation.amenities,
+								)
+									? accommodation.amenities
+									: [],
+							photos:
+								Array.isArray(
+									accommodation.photos,
+								)
+									? accommodation.photos
+									: [],
+							availableFrom:
+								accommodation.availableFrom ||
+								null,
+							status:
+								accommodation.status,
+							latitude: Number(
+								accommodation.latitude,
+							),
+							longitude: Number(
+								accommodation.longitude,
+							),
+							landlordPhone:
+								accommodation.landlord?.phone || null,
+						}),
+					)
 
 				setListings(formattedListings)
 			} catch (error) {
@@ -1074,10 +1129,74 @@ function StudentBrowseListings() {
 													Apply Now
 												</button>
 											</div>
-										</div>
-									</article>
-								)
-							})}
+
+											<div className="p-5">
+												<p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">
+													{getPropertyTypeLabel(
+														listing.propertyType,
+													)}
+												</p>
+
+												<p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
+													<MapPin className="h-3.5 w-3.5" />
+													{
+														listing.area
+													}
+												</p>
+
+												{listing.distanceKm !==
+													null &&
+													selectedUniversity && (
+														<p className="mt-1 text-xs text-slate-400">
+															{formatDistance(
+																listing.distanceKm,
+															)}{' '}
+															from{' '}
+															{
+																selectedUniversity.name
+															}
+														</p>
+													)}
+
+												<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
+													M
+													{listing.price.toLocaleString()}
+													<span className="text-sm font-medium text-slate-400">
+														{' '}
+														/ month
+													</span>
+												</p>
+
+												<div className="mt-4 flex gap-2">
+													<Link
+														href={`/students/accommodationdetails?id=${listing.id}`}
+														className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+													>
+														View
+														Details
+													</Link>
+
+													<button
+														type="button"
+														onClick={() =>
+															openWhatsAppApplication(
+																listing,
+																studentName,
+															)
+														}
+														className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
+													>
+														Contact
+														Landlord
+													</button>
+												</div>
+											</div>
+											</div>
+
+										</article>
+									)
+								},
+							)}
 						</div>
 
 						{filteredListings.length === 0 && (
