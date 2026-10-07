@@ -56,34 +56,6 @@ const navItems = [
 	},
 ]
 
-const stats = [
-	{
-		label: 'Active Listings',
-		value: '8',
-		icon: Home,
-		tint: 'bg-blue-50 text-blue-600',
-	},
-	{
-		label: 'Pending Applications',
-		value: '5',
-		icon: Users,
-		tint: 'bg-amber-50 text-amber-600',
-	},
-]
-
-const applications = [
-	{
-		name: 'Meme Cathala',
-		listing: 'Two room',
-		date: 'Applied Sep 5',
-	},
-	{
-		name: 'Nonko Cathala',
-		listing: 'Single room',
-		date: 'Applied Sep 5',
-	},
-]
-
 function getPropertyTypeLabel(propertyType: string) {
 	switch (propertyType) {
 		case 'SINGLE_ROOM':
@@ -254,6 +226,24 @@ function LandlordDashboard() {
 			setUpdatingStatusId(null)
 		}
 	}
+
+	const stats = [
+		{
+			label: 'Your Listings',
+			value: String(listings.length),
+			icon: Home,
+			tint: 'bg-blue-50 text-blue-600',
+		},
+		{
+			label: 'Occupied Listings',
+			value: String(
+				listings.filter((listing) => listing.status === 'OCCUPIED')
+					.length,
+			),
+			icon: Home,
+			tint: 'bg-amber-50 text-amber-600',
+		},
+	]
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -482,54 +472,6 @@ function LandlordDashboard() {
 								))}
 						</div>
 					</section>
-
-					{/* Applications */}
-					<div className="space-y-6">
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
-								New applications
-							</h2>
-
-							<div className="mt-4 space-y-3">
-								{applications.map((application) => (
-									<div
-										key={application.name}
-										className="rounded-xl border border-slate-200/70 p-4"
-									>
-										<p className="text-sm font-bold text-slate-900">
-											{application.name}
-										</p>
-
-										<p className="mt-0.5 text-xs font-medium text-blue-600">
-											{application.listing}
-										</p>
-
-										<p className="mt-1 text-xs text-slate-500">
-											{application.date}
-										</p>
-
-										<div className="mt-3 flex gap-2">
-											<button
-												type="button"
-												className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-100"
-											>
-												<CheckCircle2 className="h-3.5 w-3.5" />
-												Approve
-											</button>
-
-											<button
-												type="button"
-												className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
-											>
-												<XCircle className="h-3.5 w-3.5" />
-												Decline
-											</button>
-										</div>
-									</div>
-								))}
-							</div>
-						</section>
-					</div>
 				</div>
 			</main>
 		</div>
