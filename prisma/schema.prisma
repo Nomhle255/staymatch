@@ -19,6 +19,8 @@ model User {
   accommodations    Accommodation[]    @relation("LandlordAccommodations")
   applications      Application[]      @relation("StudentApplications")
   studentPreference StudentPreference?
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Accommodation {
@@ -39,6 +41,7 @@ model Accommodation {
 
   landlord     User          @relation("LandlordAccommodations", fields: [landlordId], references: [id])
   applications Application[]
+  notifications Notification[]
 }
 
 model Application {
@@ -78,6 +81,36 @@ model StudentPreference {
 
   student    User        @relation(fields: [studentId], references: [id])
   university University? @relation(fields: [universityId], references: [id])
+}
+
+model Notification {
+  id              String        @id @default(cuid())
+  studentId       String
+  accommodationId String
+  title           String
+  message         String
+  read            Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  student       User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  accommodation Accommodation @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, read, createdAt])
+  @@unique([studentId, accommodationId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  studentId String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
 }
 
 enum Role {

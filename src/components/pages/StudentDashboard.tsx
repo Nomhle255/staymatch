@@ -10,6 +10,7 @@ import {
 	LogOut,
 	MapPin,
 	BadgeCheck,
+	Bell,
 	BedDouble,
 	Pencil,
 	ChevronRight,
@@ -55,6 +56,29 @@ type Accommodation = {
 	photos: string[]
 	status: string
 	amenities: string[]
+}
+
+type StudentNotification = {
+	id: string
+	title: string
+	message: string
+	read: boolean
+	createdAt: string
+	accommodation: {
+		id: string
+		area: string
+		propertyType: string
+		price: number
+	}
+}
+
+type PushState = 'loading' | 'unsupported' | 'disabled' | 'enabled' | 'blocked'
+
+function decodeVapidKey(base64Key: string) {
+	const padding = '='.repeat((4 - (base64Key.length % 4)) % 4)
+	const base64 = (base64Key + padding).replace(/-/g, '+').replace(/_/g, '/')
+	const rawData = window.atob(base64)
+	return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)))
 }
 
 function NavButton({
@@ -130,6 +154,11 @@ export default function StudentDashboard() {
 
 	const [matches, setMatches] = useState<Accommodation[]>([])
 	const [matchesLoading, setMatchesLoading] = useState(true)
+	const [notifications, setNotifications] = useState<StudentNotification[]>([])
+	const [notificationsLoading, setNotificationsLoading] = useState(true)
+	const [pushState, setPushState] = useState<PushState>('loading')
+	const [pushBusy, setPushBusy] = useState(false)
+	const [pushError, setPushError] = useState('')
 
 	useEffect(() => {
 		const fetchStudentProfile = async () => {
@@ -199,6 +228,167 @@ export default function StudentDashboard() {
 		fetchRecommendedListings()
 	}, [])
 
+	useEffect(() => {
+		const checkPushSupport = async () => {
+			if (
+				!('serviceWorker' in navigator) ||
+				!('PushManager' in window) ||
+				!('Notification' in window)
+			) {
+				setPushState('unsupported')
+				return
+			}
+
+			try {
+				const registration = await navigator.serviceWorker.register('/sw.js')
+				const subscription = await registration.pushManager.getSubscription()
+
+				if (Notification.permission === 'denied') {
+					setPushState('blocked')
+				} else {
+					setPushState(subscription ? 'enabled' : 'disabled')
+				}
+			} catch (error) {
+				console.error('Failed to register push notifications:', error)
+				setPushState('unsupported')
+			}
+		}
+
+		checkPushSupport()
+	}, [])
+
+	useEffect(() => {
+		const fetchNotifications = async () => {
+			try {
+				setNotificationsLoading(true)
+
+				const response = await fetch('/api/students/notifications')
+				const data = await response.json()
+
+				if (response.status === 401) {
+					setNotifications([])
+					return
+				}
+
+				if (!response.ok) {
+					throw new Error(data.error || 'Failed to load notifications.')
+				}
+
+				setNotifications(data.notifications || [])
+			} catch (error) {
+				console.error('Failed to fetch notifications:', error)
+				setNotifications([])
+			} finally {
+				setNotificationsLoading(false)
+			}
+		}
+
+		fetchNotifications()
+	}, [])
+
+	const enableBrowserNotifications = async () => {
+		setPushBusy(true)
+		setPushError('')
+
+		try {
+			if (!window.isSecureContext) {
+				throw new Error(
+					'Browser notifications require HTTPS. They work on localhost during development.',
+				)
+			}
+
+			const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+			if (!publicKey) {
+				throw new Error('Browser notifications are not configured yet.')
+			}
+
+			const permission = await Notification.requestPermission()
+
+			if (permission !== 'granted') {
+				setPushState(permission === 'denied' ? 'blocked' : 'disabled')
+				return
+			}
+
+			const registration = await navigator.serviceWorker.ready
+			const subscription =
+				(await registration.pushManager.getSubscription()) ||
+				(await registration.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: decodeVapidKey(publicKey),
+				}))
+
+			const response = await fetch('/api/students/push-subscription', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(subscription.toJSON()),
+			})
+
+			if (!response.ok) {
+				const data = await response.json().catch(() => null)
+				throw new Error(data?.error || 'Could not save notification settings.')
+			}
+
+			setPushState('enabled')
+		} catch (error) {
+			console.error('Failed to enable browser notifications:', error)
+			setPushError(error instanceof Error ? error.message : 'Could not enable notifications.')
+		} finally {
+			setPushBusy(false)
+		}
+	}
+
+	const disableBrowserNotifications = async () => {
+		setPushBusy(true)
+		setPushError('')
+
+		try {
+			const registration = await navigator.serviceWorker.getRegistration('/sw.js')
+			const subscription = await registration?.pushManager.getSubscription()
+
+			if (subscription) {
+				await fetch('/api/students/push-subscription', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ endpoint: subscription.endpoint }),
+				})
+				await subscription.unsubscribe()
+			}
+
+			setPushState('disabled')
+		} catch (error) {
+			console.error('Failed to disable browser notifications:', error)
+			setPushError('Could not disable notifications.')
+		} finally {
+			setPushBusy(false)
+		}
+	}
+
+	const markNotificationsRead = async () => {
+		if (!notifications.some((notification) => !notification.read)) {
+			return
+		}
+
+		try {
+			await fetch('/api/students/notifications', { method: 'PATCH' })
+			setNotifications((current) =>
+				current.map((notification) => ({ ...notification, read: true })),
+			)
+		} catch (error) {
+			console.error('Failed to mark notifications as read:', error)
+		}
+	}
+
+	const handleLogout = async () => {
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' })
+		} catch (error) {
+			console.error('Failed to log out:', error)
+		} finally {
+			router.replace('/login')
+		}
+	}
+
 	const studentInitial = studentName
 		? studentName.charAt(0).toUpperCase()
 		: 'S'
@@ -254,6 +444,7 @@ export default function StudentDashboard() {
 
 					<button
 						type="button"
+						onClick={handleLogout}
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
@@ -295,6 +486,106 @@ export default function StudentDashboard() {
 						/>
 					))}
 				</div>
+
+				<section className="mt-6 rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm">
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div className="flex items-center gap-3">
+							<div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
+								<Bell className="h-5 w-5" />
+							</div>
+							<div>
+								<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
+									New accommodation matches
+								</h2>
+								<p className="text-sm text-slate-500">
+									Notifications are created when landlords add a listing that fits your saved preferences.
+								</p>
+							</div>
+						</div>
+
+						<div className="flex flex-wrap items-center gap-3">
+							<button
+								type="button"
+								onClick={markNotificationsRead}
+								className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+							>
+								Mark all as read
+							</button>
+							{pushState === 'enabled' ? (
+								<button
+									type="button"
+									onClick={disableBrowserNotifications}
+									disabled={pushBusy}
+									className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
+								>
+									{pushBusy ? 'Updating...' : 'Disable device alerts'}
+								</button>
+							) : pushState === 'unsupported' || pushState === 'blocked' ? null : (
+								<button
+									type="button"
+									onClick={enableBrowserNotifications}
+									disabled={pushBusy || pushState === 'loading'}
+									className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+								>
+									{pushBusy ? 'Enabling...' : 'Enable device alerts'}
+								</button>
+							)}
+						</div>
+					</div>
+						{pushError && <p className="mt-3 text-sm font-medium text-red-600">{pushError}</p>}
+						{pushState === 'unsupported' && !pushError && (
+							<p className="mt-3 text-sm text-amber-700">
+								This browser or connection does not support push notifications. Use HTTPS or localhost in a supported browser.
+							</p>
+						)}
+						{pushState === 'blocked' && !pushError && (
+							<p className="mt-3 text-sm text-amber-700">
+								Notifications are blocked in this browser. Allow notifications for StayMatch in the browser site settings, then reload.
+							</p>
+						)}
+
+					<div className="mt-5 space-y-3">
+						{notificationsLoading ? (
+							<p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">
+								Loading notifications...
+							</p>
+						) : notifications.length === 0 ? (
+							<p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">
+								No matching accommodation alerts yet. We will notify you when one is added.
+							</p>
+						) : (
+							notifications.slice(0, 5).map((notification) => (
+								<button
+									key={notification.id}
+									type="button"
+									onClick={() =>
+										router.push(
+											`/students/accommodationdetails?id=${notification.accommodation.id}`,
+										)
+									}
+									className={`w-full rounded-2xl border p-4 text-left transition hover:border-blue-300 hover:shadow-md ${
+										notification.read
+											? 'border-slate-200/70 bg-white/70'
+											: 'border-blue-200 bg-white'
+									}`}
+								>
+									<div className="flex items-start justify-between gap-3">
+										<div>
+											<p className="font-bold text-slate-950">{notification.title}</p>
+											<p className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</p>
+										</div>
+										{!notification.read && (
+											<span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" />
+										)}
+									</div>
+									<p className="mt-2 text-xs text-slate-400">
+										{new Date(notification.createdAt).toLocaleDateString()}
+									</p>
+								</button>
+							))
+						)}
+					</div>
+				</section>
 
 				<div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
 					<div className="space-y-6">
