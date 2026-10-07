@@ -112,7 +112,6 @@ model PushSubscription {
 
   @@index([studentId])
 }
-
 enum Role {
   STUDENT
   LANDLORD
@@ -127,6 +126,8 @@ enum PropertyType {
 }
 
 enum AccommodationStatus {
+  AVAILABLE
+  OCCUPIED
   VERIFIED
   PENDING_REVIEW
   INACTIVE
