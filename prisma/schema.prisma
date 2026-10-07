@@ -38,6 +38,7 @@ model Accommodation {
   latitude      Float
   longitude     Float
   photos        String[]            @default([])
+  roomIdentifier String?   @map("roomName")
 
   landlord     User          @relation("LandlordAccommodations", fields: [landlordId], references: [id])
   applications Application[]

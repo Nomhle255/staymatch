@@ -17,6 +17,7 @@ import {
 
 type Accommodation = {
 	id: string
+	roomIdentifier: string
 	description: string
 	area: string
 	price: number
@@ -178,6 +179,7 @@ function LandlordDashboard() {
 							accommodation: Accommodation,
 						) => ({
 							...accommodation,
+							roomIdentifier: accommodation.roomIdentifier || '',
 
 							// Make sure photos is always an array
 							photos: Array.isArray(
@@ -484,6 +486,12 @@ function LandlordDashboard() {
 															)}
 														</div>
 
+
+													{listing.roomIdentifier && (
+														<p className="mt-1 text-sm font-semibold text-slate-700">
+															Room: {listing.roomIdentifier}
+														</p>
+													)}
 											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
 												<MapPin className="h-3.5 w-3.5" />
 												{listing.area}

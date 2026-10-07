@@ -156,6 +156,7 @@ const preferenceFactors: PreferenceFactor[] = [
 
 type Accommodation = {
 	id: string
+	roomIdentifier: string
 	title: string
 	area: string
 	price: number
@@ -260,7 +261,7 @@ function openWhatsAppApplication(
 		return
 	}
 
-	const message = `Hello, my name is ${studentName || 'a student'}. I am interested in the ${listing.title} listed on StayMatch. I would like to know the next steps, arrange a viewing, and understand how payment for the room is made.`
+	const message = `Hello, my name is ${studentName || 'a student'}. I am interested in the ${listing.title} ${listing.roomIdentifier} listed on StayMatch. I would like to know the next steps, arrange a viewing, and understand how payment for the room is made.`
 
 	window.open(
 		`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
@@ -539,6 +540,11 @@ function StudentBrowseListings() {
 				const formattedListings: Accommodation[] =
 					accommodations.map((accommodation: any) => ({
 						id: String(accommodation.id),
+						roomIdentifier:
+							accommodation.roomIdentifier ||
+							accommodation.roomName ||
+							accommodation.roomNumber ||
+							'',
 						title:
 							accommodation.title ||
 							`${getPropertyTypeLabel(
@@ -1296,6 +1302,12 @@ function StudentBrowseListings() {
 												listing.propertyType,
 											)}
 										</p>
+
+										{listing.roomIdentifier && (
+											<p className="mt-2 text-sm font-semibold text-slate-700">
+												Room: {listing.roomIdentifier}
+											</p>
+										)}
 
 										<p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
 											<MapPin className="h-3.5 w-3.5" />

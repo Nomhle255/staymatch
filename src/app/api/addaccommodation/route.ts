@@ -11,6 +11,8 @@ const VALID_PROPERTY_TYPES = [
 	'BACHELOR',
 ] as const
 
+const MAX_ROOM_IDENTIFIER_LENGTH = 50
+
 export async function POST(request: NextRequest) {
 	try {
 		const token = request.cookies.get('staymatch_token')?.value
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest) {
 
 		const {
 			propertyType,
+			roomIdentifier,
 			price,
 			area,
 			description,
@@ -62,6 +65,26 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		// Room name / number
+		const cleanRoomIdentifier =
+			typeof roomIdentifier === 'string' ? roomIdentifier.trim() : ''
+
+		if (!cleanRoomIdentifier) {
+			return NextResponse.json(
+				{ error: 'Please enter a room name or number.' },
+				{ status: 400 },
+			)
+		}
+
+		if (cleanRoomIdentifier.length > MAX_ROOM_IDENTIFIER_LENGTH) {
+			return NextResponse.json(
+				{
+					error: `Room name or number must be ${MAX_ROOM_IDENTIFIER_LENGTH} characters or fewer.`,
+				},
+				{ status: 400 },
+			)
+		}
+
 		if (typeof latitude !== 'number' || typeof longitude !== 'number') {
 			return NextResponse.json(
 				{
@@ -75,6 +98,7 @@ export async function POST(request: NextRequest) {
 		const accommodation = await prisma.accommodation.create({
 			data: {
 				landlordId: payload.userId,
+				roomIdentifier: cleanRoomIdentifier,
 				description,
 				area: area || 'Maseru',
 				price: Number(price),
@@ -123,12 +147,16 @@ export async function POST(request: NextRequest) {
 					.toLowerCase()
 					.replace(/_/g, ' ')
 
+				const roomText = accommodation.roomIdentifier
+					? ` (${accommodation.roomIdentifier})`
+					: ''
+
 				return [
 					{
 						studentId: preference.studentId,
 						accommodationId: accommodation.id,
 						title: 'New accommodation match',
-						message: `A new ${propertyLabel} in ${accommodation.area} matches your saved preferences (${score}% match).`,
+						message: `A new ${propertyLabel}${roomText} in ${accommodation.area} matches your saved preferences (${score}% match).`,
 					},
 				]
 			})
@@ -196,20 +224,13 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		return NextResponse.json(
-			{ accommodation },
-			{ status: 201 },
-		)
+		return NextResponse.json({ accommodation }, { status: 201 })
 	} catch (error) {
-		console.error(
-			'Create accommodation error:',
-			error,
-		)
+		console.error('Create accommodation error:', error)
 
 		return NextResponse.json(
 			{
-				error:
-					'Something went wrong. Please try again.',
+				error: 'Something went wrong. Please try again.',
 			},
 			{ status: 500 },
 		)

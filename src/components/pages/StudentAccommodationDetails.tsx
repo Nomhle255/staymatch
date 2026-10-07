@@ -67,6 +67,7 @@ type Accommodation = {
 	longitude: number
 	photos: string[]
 	landlordPhone: string | null
+	roomIdentifier: string
 }
 
 type IconComponent = ComponentType<{ className?: string }>
@@ -137,21 +138,6 @@ function isVerified(status: string) {
 	return status === 'VERIFIED'
 }
 
-// Accepts ["https://..."] or [{ url: "https://..." }] and returns clean URLs.
-// Adjust the field names below to match what your API actually returns.
-function normalizePhotos(match: any): string[] {
-	const raw =
-		match.photos ?? match.images ?? match.photoUrls ?? match.pictures ?? []
-
-	if (!Array.isArray(raw)) return []
-
-	return raw
-		.map((item: any) =>
-			typeof item === 'string' ? item : item?.url || item?.src || '',
-		)
-		.filter((url: string) => typeof url === 'string' && url.length > 0)
-}
-
 // Picks an icon from the amenity label so new amenities still get a sensible one
 function getAmenityIcon(label: string): IconComponent {
 	const text = label.toLowerCase()
@@ -209,7 +195,11 @@ function openWhatsAppApplication(
 		return
 	}
 
-	const message = `Hello, my name is ${studentName || 'a student'}. I am interested in the ${listing.title} listed on StayMatch. I would like to know the next steps, arrange a viewing, and understand how payment for the room is made.`
+	const roomText = listing.roomIdentifier
+		? ` (${listing.roomIdentifier})`
+		: ''
+
+	const message = `Hello, my name is ${studentName || 'a student'}. I am interested in the ${listing.title}${roomText} listed on StayMatch. I would like to know the next steps, arrange a viewing, and understand how payment for the room is made.`
 
 	window.open(
 		`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
@@ -286,6 +276,7 @@ function StudentAccommodationDetails() {
 					latitude: Number(match.latitude),
 					longitude: Number(match.longitude),
 					photos: normalizePhotos(match),
+					roomIdentifier: match.roomIdentifier?.trim() || '',
 					landlordPhone: match.landlord?.phone || null,
 				})
 
@@ -580,6 +571,19 @@ function StudentAccommodationDetails() {
 								</p>
 
 								<dl className="mt-5 space-y-3 text-sm">
+									{listing.roomIdentifier && (
+										<div className="flex items-center justify-between gap-3">
+											<dt className="flex items-center gap-2 text-slate-500">
+												<DoorClosed className="h-4 w-4" />
+												Room Number / Name
+											</dt>
+											<dd className="font-semibold text-slate-800">
+												{listing.roomIdentifier}
+											</dd>
+										</div>
+									)}
+									
+
 									<div className="flex items-center justify-between gap-3">
 										<dt className="flex items-center gap-2 text-slate-500">
 											<Home className="h-4 w-4" />
