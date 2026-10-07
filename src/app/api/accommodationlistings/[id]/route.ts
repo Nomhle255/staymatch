@@ -164,6 +164,7 @@ export async function PATCH(
 		const body = await request.json()
 
 		const {
+			status,
 			propertyType,
 			price,
 			area,
@@ -173,6 +174,22 @@ export async function PATCH(
 			latitude,
 			longitude,
 		} = body
+
+		if (status !== undefined) {
+			if (status !== 'AVAILABLE' && status !== 'OCCUPIED') {
+				return NextResponse.json(
+					{ error: 'Status must be AVAILABLE or OCCUPIED.' },
+					{ status: 400 },
+				)
+			}
+
+			const accommodation = await prisma.accommodation.update({
+				where: { id },
+				data: { status },
+			})
+
+			return NextResponse.json({ accommodation })
+		}
 
 		if (!propertyType || !price || !area || !description) {
 			return NextResponse.json(

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 				availableFrom: availableFrom
 					? new Date(availableFrom)
 					: undefined,
-				status: 'PENDING_REVIEW',
+				status: 'AVAILABLE',
 			},
 		})
 

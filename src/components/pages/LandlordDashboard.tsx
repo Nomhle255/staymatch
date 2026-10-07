@@ -10,7 +10,6 @@ import {
 	Users,
 	LogOut,
 	MapPin,
-	MoreVertical,
 	CheckCircle2,
 	XCircle,
 } from 'lucide-react'
@@ -167,9 +166,22 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function LandlordDashboard() {
+<<<<<<< Updated upstream
 	const [listings, setListings] = useState<Accommodation[]>([])
 	const [loadingListings, setLoadingListings] = useState(true)
 	const [listingsError, setListingsError] = useState('')
+=======
+	const [listings, setListings] = useState<
+		Accommodation[]
+	>([])
+
+	const [loadingListings, setLoadingListings] =
+		useState(true)
+
+	const [listingsError, setListingsError] =
+		useState('')
+	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
+>>>>>>> Stashed changes
 
 	useEffect(() => {
 		const fetchListings = async () => {
@@ -209,6 +221,45 @@ function LandlordDashboard() {
 
 		fetchListings()
 	}, [])
+
+	const updateListingStatus = async (
+		listingId: string,
+		status: 'AVAILABLE' | 'OCCUPIED',
+	) => {
+		try {
+			setUpdatingStatusId(listingId)
+			setListingsError('')
+
+			const response = await fetch(
+				`/api/accommodationlistings/${listingId}`,
+				{
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ status }),
+				},
+			)
+
+			const data = await response.json()
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Failed to update listing status.')
+			}
+
+			setListings((currentListings) =>
+				currentListings.map((listing) =>
+					listing.id === listingId ? { ...listing, status } : listing,
+				),
+			)
+		} catch (error) {
+			setListingsError(
+				error instanceof Error
+					? error.message
+					: 'Failed to update listing status.',
+			)
+		} finally {
+			setUpdatingStatusId(null)
+		}
+	}
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -393,12 +444,28 @@ function LandlordDashboard() {
 													</span>
 												)}
 
+<<<<<<< Updated upstream
 												{listing.status === 'INACTIVE' && (
 													<span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
 														Inactive
 													</span>
 												)}
 											</div>
+=======
+															{(listing.status === 'AVAILABLE' ||
+																listing.status === 'VERIFIED') && (
+																<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
+																	{listing.status === 'VERIFIED' ? 'Verified' : 'Available'}
+																</span>
+															)}
+
+
+															{listing.status === 'OCCUPIED' && (
+																<span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600">
+																	Occupied
+																</span>
+															)}
+>>>>>>> Stashed changes
 
 											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
 												<MapPin className="h-3.5 w-3.5" />
@@ -419,6 +486,7 @@ function LandlordDashboard() {
 											</div>
 										</div>
 
+<<<<<<< Updated upstream
 										<button
 											type="button"
 											className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
@@ -428,6 +496,43 @@ function LandlordDashboard() {
 										</button>
 									</div>
 								))}
+=======
+														<div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
+															<span className="font-bold text-slate-900">
+																M
+																{listing.price.toLocaleString()}{' '}
+																/
+																month
+															</span>
+
+															<span className="flex items-center gap-1 text-slate-500">
+																<Users className="h-3.5 w-3.5" />
+																0
+																applicants
+															</span>
+														</div>
+													</div>
+
+														<select
+															value={listing.status === 'OCCUPIED' ? 'OCCUPIED' : 'AVAILABLE'}
+															disabled={updatingStatusId === listing.id}
+															onChange={(event) =>
+																updateListingStatus(
+																	listing.id,
+																	event.target.value as 'AVAILABLE' | 'OCCUPIED',
+																)
+															}
+															className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-400"
+															aria-label={`Change status for ${getPropertyTypeLabel(listing.propertyType)} in ${listing.area}`}
+														>
+															<option value="AVAILABLE">Available</option>
+															<option value="OCCUPIED">Occupied</option>
+														</select>
+												</div>
+											)
+										},
+									)}
+>>>>>>> Stashed changes
 						</div>
 					</section>
 
