@@ -52,8 +52,8 @@ const navItems = [
 
 const filterTabs = [
 	'All',
-	'Verified',
-	'Pending review',
+	'Available',
+	'Occupied',
 	'Inactive',
 ]
 
@@ -79,6 +79,14 @@ const statusStyles: Record<
 		icon: ComponentType<{ className?: string }>
 	}
 > = {
+	Available: {
+		tint: 'bg-emerald-50 text-emerald-600',
+		icon: BadgeCheck,
+	},
+	Occupied: {
+		tint: 'bg-rose-50 text-rose-600',
+		icon: PauseCircle,
+	},
 	Verified: {
 		tint: 'bg-emerald-50 text-emerald-600',
 		icon: BadgeCheck,
@@ -122,6 +130,12 @@ function getDisplayStatus(status: string) {
 
 		case 'INACTIVE':
 			return 'Inactive'
+	
+		case 'OCCUPIED':
+			return 'Occupied'
+
+		case 'AVAILABLE':
+			return 'Available'
 
 		default:
 			return status
@@ -169,6 +183,7 @@ function SidebarShell({
 function AccommodationListings() {
 	const [activeFilter, setActiveFilter] = useState('All')
 	const [query, setQuery] = useState('')
+	const [propertyTypeFilter, setPropertyTypeFilter] = useState('All Types')
 
 	const [listings, setListings] = useState<
 		Accommodation[]
@@ -225,6 +240,11 @@ function AccommodationListings() {
 				activeFilter === 'All' ||
 				displayStatus === activeFilter
 
+			const matchesPropertyType =
+				propertyTypeFilter === 'All Types' ||
+				getPropertyTypeLabel(listing.propertyType) ===
+					propertyTypeFilter
+
 			const searchText = `
 				${getPropertyTypeLabel(listing.propertyType)}
 				${listing.area}
@@ -235,7 +255,7 @@ function AccommodationListings() {
 				query.toLowerCase(),
 			)
 
-			return matchesFilter && matchesQuery
+			return matchesFilter && matchesPropertyType && matchesQuery
 		},
 	)
 
@@ -366,22 +386,18 @@ function AccommodationListings() {
 							</div>
 
 							<div className="relative">
-								<select className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100">
-									<option>
-										Newest first
-									</option>
-									<option>
-										Most viewed
-									</option>
-									<option>
-										Most applicants
-									</option>
-									<option>
-										Price: low to high
-									</option>
-									<option>
-										Price: high to low
-									</option>
+								<select
+									value={propertyTypeFilter}
+									onChange={(event) =>
+										setPropertyTypeFilter(event.target.value)
+									}
+									className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								>
+									<option>All Types</option>
+									<option>Single Room</option>
+									<option>Double</option>
+									<option>Commune</option>
+									<option>Bachelor</option>
 								</select>
 
 								<ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
