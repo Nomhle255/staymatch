@@ -414,20 +414,6 @@ function LandlordDashboard() {
 													)}
 												</h3>
 
-												{listing.status ===
-													'VERIFIED' && (
-													<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
-														Verified
-													</span>
-												)}
-
-												{listing.status ===
-													'PENDING_REVIEW' && (
-													<span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
-														Pending review
-													</span>
-												)}
-
 															{(listing.status === 'AVAILABLE' ||
 																listing.status === 'VERIFIED') && (
 																<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
