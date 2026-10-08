@@ -161,6 +161,8 @@ export default function StudentDashboard() {
 	const [pushError, setPushError] = useState('')
 
 	useEffect(() => {
+		let mounted = true
+
 		const fetchStudentProfile = async () => {
 			try {
 				setStudentLoading(true)
@@ -170,232 +172,39 @@ export default function StudentDashboard() {
 
 				if (!response.ok) {
 					throw new Error(
-						data.error || 'Failed to load student profile.'
+						data.error || 'Failed to load student profile.',
 					)
 				}
 
-				setStudentName(data.user.name)
+				if (!mounted) return
+
+				// The API returns the logged-in student's database record.
+				setStudentName(data.user?.name || '')
 			} catch (error) {
 				console.error('Failed to fetch student profile:', error)
+
+				if (mounted) {
+					setStudentName('')
+				}
 			} finally {
-				setStudentLoading(false)
+				if (mounted) {
+					setStudentLoading(false)
+				}
 			}
 		}
 
 		fetchStudentProfile()
+
+		return () => {
+			mounted = false
+		}
 	}, [])
 
-	useEffect(() => {
-		const fetchRecommendedListings = async () => {
-			try {
-				setMatchesLoading(true)
+	const displayName = studentName || 'Student'
 
-				const response = await fetch('/api/studentbrowselistings')
-				const data = await response.json()
+	const studentInitial = displayName.charAt(0).toUpperCase()
 
-				if (!response.ok) {
-					throw new Error(
-						data.error ||
-							'Failed to load accommodation listings.'
-					)
-				}
-
-				const listings = Array.isArray(data)
-					? data
-					: data.accommodations || data.listings || []
-
-				const normalizedListings = listings.map(
-					(accommodation: Accommodation) => ({
-						...accommodation,
-						photos: Array.isArray(accommodation.photos)
-							? accommodation.photos
-							: [],
-					})
-				)
-
-				setMatches(normalizedListings.slice(0, 3))
-			} catch (error) {
-				console.error(
-					'Failed to fetch recommended listings:',
-					error
-				)
-				setMatches([])
-			} finally {
-				setMatchesLoading(false)
-			}
-		}
-
-		fetchRecommendedListings()
-	}, [])
-
-	useEffect(() => {
-		const checkPushSupport = async () => {
-			if (
-				!('serviceWorker' in navigator) ||
-				!('PushManager' in window) ||
-				!('Notification' in window)
-			) {
-				setPushState('unsupported')
-				return
-			}
-
-			try {
-				const registration = await navigator.serviceWorker.register('/sw.js')
-				const subscription = await registration.pushManager.getSubscription()
-
-				if (Notification.permission === 'denied') {
-					setPushState('blocked')
-				} else {
-					setPushState(subscription ? 'enabled' : 'disabled')
-				}
-			} catch (error) {
-				console.error('Failed to register push notifications:', error)
-				setPushState('unsupported')
-			}
-		}
-
-		checkPushSupport()
-	}, [])
-
-	useEffect(() => {
-		const fetchNotifications = async () => {
-			try {
-				setNotificationsLoading(true)
-
-				const response = await fetch('/api/students/notifications')
-				const data = await response.json()
-
-				if (response.status === 401) {
-					setNotifications([])
-					return
-				}
-
-				if (!response.ok) {
-					throw new Error(data.error || 'Failed to load notifications.')
-				}
-
-				setNotifications(data.notifications || [])
-			} catch (error) {
-				console.error('Failed to fetch notifications:', error)
-				setNotifications([])
-			} finally {
-				setNotificationsLoading(false)
-			}
-		}
-
-		fetchNotifications()
-	}, [])
-
-	const enableBrowserNotifications = async () => {
-		setPushBusy(true)
-		setPushError('')
-
-		try {
-			if (!window.isSecureContext) {
-				throw new Error(
-					'Browser notifications require HTTPS. They work on localhost during development.',
-				)
-			}
-
-			const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-			if (!publicKey) {
-				throw new Error('Browser notifications are not configured yet.')
-			}
-
-			const permission = await Notification.requestPermission()
-
-			if (permission !== 'granted') {
-				setPushState(permission === 'denied' ? 'blocked' : 'disabled')
-				return
-			}
-
-			const registration = await navigator.serviceWorker.ready
-			const subscription =
-				(await registration.pushManager.getSubscription()) ||
-				(await registration.pushManager.subscribe({
-					userVisibleOnly: true,
-					applicationServerKey: decodeVapidKey(publicKey),
-				}))
-
-			const response = await fetch('/api/students/push-subscription', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(subscription.toJSON()),
-			})
-
-			if (!response.ok) {
-				const data = await response.json().catch(() => null)
-				throw new Error(data?.error || 'Could not save notification settings.')
-			}
-
-			setPushState('enabled')
-		} catch (error) {
-			console.error('Failed to enable browser notifications:', error)
-			setPushError(error instanceof Error ? error.message : 'Could not enable notifications.')
-		} finally {
-			setPushBusy(false)
-		}
-	}
-
-	const disableBrowserNotifications = async () => {
-		setPushBusy(true)
-		setPushError('')
-
-		try {
-			const registration = await navigator.serviceWorker.getRegistration('/sw.js')
-			const subscription = await registration?.pushManager.getSubscription()
-
-			if (subscription) {
-				await fetch('/api/students/push-subscription', {
-					method: 'DELETE',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ endpoint: subscription.endpoint }),
-				})
-				await subscription.unsubscribe()
-			}
-
-			setPushState('disabled')
-		} catch (error) {
-			console.error('Failed to disable browser notifications:', error)
-			setPushError('Could not disable notifications.')
-		} finally {
-			setPushBusy(false)
-		}
-	}
-
-	const markNotificationsRead = async () => {
-		if (!notifications.some((notification) => !notification.read)) {
-			return
-		}
-
-		try {
-			await fetch('/api/students/notifications', { method: 'PATCH' })
-			setNotifications((current) =>
-				current.map((notification) => ({ ...notification, read: true })),
-			)
-		} catch (error) {
-			console.error('Failed to mark notifications as read:', error)
-		}
-	}
-
-	const handleLogout = async () => {
-		try {
-			await fetch('/api/auth/logout', { method: 'POST' })
-		} catch (error) {
-			console.error('Failed to log out:', error)
-		} finally {
-			router.replace('/login')
-		}
-	}
-
-	const studentInitial = studentName
-		? studentName.charAt(0).toUpperCase()
-		: 'S'
-
-	const firstName = studentName
-		? studentName.split(' ')[0]
-		: 'Student'
+	const firstName = displayName.trim().split(/\s+/)[0] || 'Student'
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -425,14 +234,14 @@ export default function StudentDashboard() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								{studentInitial}
+								{studentLoading ? '...' : studentInitial}
 							</div>
 
-							<div>
-								<p className="text-sm font-bold text-slate-900">
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
 									{studentLoading
 										? 'Loading...'
-										: studentName || 'Student'}
+										: displayName}
 								</p>
 
 								<p className="text-xs text-slate-500">
@@ -457,7 +266,8 @@ export default function StudentDashboard() {
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
-							Welcome back, {studentLoading ? '...' : firstName}
+							Welcome back,{' '}
+							{studentLoading ? '...' : firstName}
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
