@@ -2,14 +2,11 @@
 
 import {
 	useCallback,
-	useEffect,
-	useRef,
 	useState,
 	type ReactNode,
 	type ComponentType,
 } from 'react'
 import Link from 'next/link'
-import Script from 'next/script'
 import { useRouter } from 'next/navigation'
 import {
 	User,
@@ -24,14 +21,7 @@ import {
 	ShieldCheck,
 	ArrowRight,
 } from 'lucide-react'
-
-declare global {
-	interface Window {
-		google?: any
-	}
-}
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 
 const roleOptions = [
 	{
@@ -107,15 +97,10 @@ function RegisterUser() {
 	const [successMessage, setSuccessMessage] = useState('')
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	// Google sign-up
-	const googleTokenClientRef = useRef<any>(null)
-
 	// Stores the Google access token while additional
 	// registration information is being collected.
 	const [pendingGoogleToken, setPendingGoogleToken] =
 		useState<string | null>(null)
-
-	const [googleReady, setGoogleReady] = useState(false)
 
 	const selectedRole = roleOptions.find(
 		(option) => option.value === role,
@@ -142,14 +127,7 @@ function RegisterUser() {
 		[router],
 	)
 
-	/**
-	 * Send the Google access token to the backend.
-	 *
-	 * The first request only sends the access token.
-	 * If the backend identifies this as a new account,
-	 * it returns needsRole=true. We then collect the
-	 * user's role and phone number.
-	 */
+	 // Send the Google access token to the backend.
 	const submitGoogle = useCallback(
 		async (
 			accessToken: string,
@@ -191,11 +169,7 @@ function RegisterUser() {
 					return
 				}
 
-				/*
-				 * Google authentication was successful, but
-				 * this is a new account and the backend needs
-				 * the user's role before creating it.
-				 */
+				// The user's role is needed before creating a new account
 				if (data.needsRole) {
 					setPendingGoogleToken(accessToken)
 					setIsSubmitting(false)
@@ -219,82 +193,26 @@ function RegisterUser() {
 		[redirectByRole],
 	)
 
-	/**
-	 * Initialise Google Identity Services after the
-	 * Google script has loaded.
-	 */
-	useEffect(() => {
-		if (
-			!googleReady ||
-			!GOOGLE_CLIENT_ID ||
-			!window.google?.accounts?.oauth2
-		) {
-			return
-		}
+	// Reusable Google authentication hook.
+	
+	const { requestAccessToken } = useGoogleAuth({
+		onSuccess: (accessToken) => {
+			submitGoogle(accessToken)
+		},
+		onError: (message) => {
+			setError(message)
+			setIsSubmitting(false)
+		},
+	})
 
-		googleTokenClientRef.current =
-			window.google.accounts.oauth2.initTokenClient({
-				client_id: GOOGLE_CLIENT_ID,
-				scope: 'openid email profile',
-
-				callback: (response: {
-					access_token?: string
-					error?: string
-				}) => {
-					if (response.access_token) {
-						/*
-						 * IMPORTANT:
-						 * Do not check the role here.
-						 *
-						 * Google must open and authenticate first.
-						 */
-						submitGoogle(response.access_token)
-					} else if (response.error) {
-						setError(
-							'Google sign-up was cancelled or failed. Please try again.',
-						)
-						setIsSubmitting(false)
-					}
-				},
-
-				error_callback: () => {
-					setError(
-						'Google sign-up was cancelled or failed. Please try again.',
-					)
-					setIsSubmitting(false)
-				},
-			})
-	}, [googleReady, submitGoogle])
-
-	/**
-	 * Start Google OAuth.
-	 *
-	 * This intentionally does NOT require the user
-	 * to select a role first. Google opens immediately,
-	 * just like it does on the Login page.
-	 */
+	// Start Google OAuth.
+	
 	const handleGoogleClick = () => {
 		setError('')
 		setSuccessMessage('')
-
-		if (!GOOGLE_CLIENT_ID) {
-			setError(
-				'Google sign-up is not configured yet.',
-			)
-			return
-		}
-
-		if (!googleTokenClientRef.current) {
-			setError(
-				'Google sign-up is still loading. Please try again in a moment.',
-			)
-			return
-		}
-
 		setIsSubmitting(true)
 
-		// Open Google's account selection/authentication.
-		googleTokenClientRef.current.requestAccessToken()
+		requestAccessToken()
 	}
 
 	/**
@@ -413,15 +331,6 @@ function RegisterUser() {
 
 	return (
 		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-6 sm:px-6 lg:px-10">
-			{/* Google Identity Services */}
-			{GOOGLE_CLIENT_ID && (
-				<Script
-					src="https://accounts.google.com/gsi/client"
-					strategy="afterInteractive"
-					onReady={() => setGoogleReady(true)}
-				/>
-			)}
-
 			{/* Header */}
 			<div className="mx-auto flex max-w-6xl items-center justify-between">
 				<div className="flex items-center gap-3">
