@@ -27,6 +27,7 @@ type Accommodation = {
     longitude: number
     createdAt: string
     updatedAt: string
+    roomIdentifier: string | null
 }
 
 const propertyTypeLabels: Record<string, string> = {
@@ -180,6 +181,23 @@ export default function AccommodationDetails() {
                                         {propertyTypeLabels[
                                             accommodation.propertyType
                                         ] || accommodation.propertyType}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3">
+                                <MapPin
+                                    size={20}
+                                    className="mt-0.5 text-slate-500"
+                                />
+
+                                <div>
+                                    <p className="text-xs text-slate-400">
+                                        Room Number
+                                    </p>
+
+                                    <p className="font-medium text-slate-900">
+                                        {accommodation.roomIdentifier || 'Not specified'}
                                     </p>
                                 </div>
                             </div>

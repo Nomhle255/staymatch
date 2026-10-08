@@ -89,6 +89,8 @@ const amenitiesList = [
 	{ label: '24/7 security', icon: ShieldCheck },
 ]
 
+const MAX_ROOM_IDENTIFIER_LENGTH = 50
+
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100'
 
@@ -163,6 +165,7 @@ function AddAccommodation() {
 	const router = useRouter()
 
 	const [propertyType, setPropertyType] = useState('')
+	const [roomIdentifier, setRoomIdentifier] = useState('')
 	const [price, setPrice] = useState('')
 	const [area, setArea] = useState('')
 	const [description, setDescription] = useState('')
@@ -449,7 +452,13 @@ function AddAccommodation() {
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
-		if (!propertyType || !price || !area || !description) {
+		if (
+			!propertyType ||
+			!roomIdentifier.trim() ||
+			!price ||
+			!area ||
+			!description
+		) {
 			setError('Please complete all required accommodation details.')
 			return
 		}
@@ -495,6 +504,7 @@ function AddAccommodation() {
 				},
 				body: JSON.stringify({
 					propertyType,
+					roomIdentifier: roomIdentifier.trim(),
 					price: Number(price),
 					area,
 					description,
@@ -654,6 +664,28 @@ function AddAccommodation() {
 										/>
 									</Field>
 								</div>
+
+								{/* ROOM NAME / NUMBER */}
+								<Field label="Room name or number">
+									<InputShell icon={DoorClosed}>
+										<input
+											type="text"
+											value={roomIdentifier}
+											onChange={(event) =>
+												setRoomIdentifier(event.target.value)
+											}
+											placeholder="e.g. Room 12, Block B-4, Unit 3"
+											required
+											maxLength={MAX_ROOM_IDENTIFIER_LENGTH}
+											className={inputClasses}
+										/>
+									</InputShell>
+
+									<p className="text-xs text-slate-400">
+										Helps you and students tell your rooms
+										apart.
+									</p>
+								</Field>
 
 								{/* AREA */}
 								<Field label="Area">
