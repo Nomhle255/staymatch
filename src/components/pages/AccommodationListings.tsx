@@ -21,6 +21,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Eye,
+	Image as ImageIcon,
 } from 'lucide-react'
 
 const navItems = [
@@ -50,12 +51,7 @@ const navItems = [
 	},
 ]
 
-const filterTabs = [
-	'All',
-	'Verified',
-	'Pending review',
-	'Inactive',
-]
+const filterTabs = ['All', 'Available', 'Occupied', 'Inactive']
 
 type Accommodation = {
 	id: string
@@ -64,12 +60,14 @@ type Accommodation = {
 	price: number
 	propertyType: string
 	amenities: string[]
+	photos: string[]
 	availableFrom: string | null
 	status: string
 	latitude: number
 	longitude: number
 	createdAt: string
 	updatedAt: string
+	roomIdentifier: string | null
 }
 
 const statusStyles: Record<
@@ -79,6 +77,14 @@ const statusStyles: Record<
 		icon: ComponentType<{ className?: string }>
 	}
 > = {
+	Available: {
+		tint: 'bg-emerald-50 text-emerald-600',
+		icon: BadgeCheck,
+	},
+	Occupied: {
+		tint: 'bg-rose-50 text-rose-600',
+		icon: PauseCircle,
+	},
 	Verified: {
 		tint: 'bg-emerald-50 text-emerald-600',
 		icon: BadgeCheck,
@@ -123,6 +129,12 @@ function getDisplayStatus(status: string) {
 		case 'INACTIVE':
 			return 'Inactive'
 
+		case 'OCCUPIED':
+			return 'Occupied'
+
+		case 'AVAILABLE':
+			return 'Available'
+
 		default:
 			return status
 	}
@@ -154,11 +166,7 @@ function NavButton({
 	)
 }
 
-function SidebarShell({
-	children,
-}: {
-	children: ReactNode
-}) {
+function SidebarShell({ children }: { children: ReactNode }) {
 	return (
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
@@ -169,10 +177,9 @@ function SidebarShell({
 function AccommodationListings() {
 	const [activeFilter, setActiveFilter] = useState('All')
 	const [query, setQuery] = useState('')
+	const [propertyTypeFilter, setPropertyTypeFilter] = useState('All Types')
 
-	const [listings, setListings] = useState<
-		Accommodation[]
-	>([])
+	const [listings, setListings] = useState<Accommodation[]>([])
 
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
@@ -183,25 +190,38 @@ function AccommodationListings() {
 				setLoading(true)
 				setError('')
 
-				const response = await fetch(
-					'/api/accommodationlistings',
-				)
+				const response = await fetch('/api/accommodationlistings')
 
 				const data = await response.json()
 
 				if (!response.ok) {
 					throw new Error(
-						data.error ||
-							'Failed to load accommodations.',
+						data.error || 'Failed to load accommodations.',
 					)
 				}
 
-				setListings(data.accommodations || [])
-			} catch (error) {
-				console.error(
-					'Failed to fetch accommodations:',
-					error,
+				setListings(
+					(data.accommodations || []).map(
+						(accommodation: Accommodation) => ({
+							...accommodation,
+
+							// Make sure photos is always an array
+							photos: Array.isArray(accommodation.photos)
+								? accommodation.photos
+								: [],
+
+							// Treat blank room values as "no room"
+							roomIdentifier:
+								typeof accommodation.roomIdentifier ===
+									'string' &&
+								accommodation.roomIdentifier.trim()
+									? accommodation.roomIdentifier.trim()
+									: null,
+						}),
+					),
 				)
+			} catch (error) {
+				console.error('Failed to fetch accommodations:', error)
 
 				setError(
 					error instanceof Error
@@ -216,55 +236,46 @@ function AccommodationListings() {
 		fetchAccommodations()
 	}, [])
 
-	const filteredListings = listings.filter(
-		(listing) => {
-			const displayStatus =
-				getDisplayStatus(listing.status)
+	const filteredListings = listings.filter((listing) => {
+		const displayStatus = getDisplayStatus(listing.status)
 
-			const matchesFilter =
-				activeFilter === 'All' ||
-				displayStatus === activeFilter
+		const matchesFilter =
+			activeFilter === 'All' || displayStatus === activeFilter
 
-			const searchText = `
-				${getPropertyTypeLabel(listing.propertyType)}
-				${listing.area}
-				${listing.description}
-			`.toLowerCase()
+		const matchesPropertyType =
+			propertyTypeFilter === 'All Types' ||
+			getPropertyTypeLabel(listing.propertyType) ===
+				propertyTypeFilter
 
-			const matchesQuery = searchText.includes(
-				query.toLowerCase(),
-			)
+		const searchText = `
+			${getPropertyTypeLabel(listing.propertyType)}
+			${listing.roomIdentifier ?? ''}
+			${listing.area}
+			${listing.description}
+		`.toLowerCase()
 
-			return matchesFilter && matchesQuery
-		},
-	)
+		const matchesQuery = searchText.includes(query.toLowerCase().trim())
+
+		return matchesFilter && matchesPropertyType && matchesQuery
+	})
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
 				<div>
-					<Link
-						href="/"
-						className="flex items-center gap-3 px-2"
-					>
+					<Link href="/" className="flex items-center gap-3 px-2">
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
 
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay
-							<span className="text-blue-600">
-								Match
-							</span>
+							Stay<span className="text-blue-600">Match</span>
 						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton
-								key={item.label}
-								{...item}
-							/>
+							<NavButton key={item.label} {...item} />
 						))}
 					</nav>
 				</div>
@@ -281,9 +292,7 @@ function AccommodationListings() {
 									Khaya Cathala
 								</p>
 
-								<p className="text-xs text-slate-500">
-									Landlord
-								</p>
+								<p className="text-xs text-slate-500">Landlord</p>
 							</div>
 						</div>
 					</div>
@@ -306,8 +315,8 @@ function AccommodationListings() {
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Manage, edit, and track every
-							property you've published.
+							Manage, edit, and track every property you&apos;ve
+							published.
 						</p>
 					</div>
 
@@ -327,14 +336,9 @@ function AccommodationListings() {
 								<button
 									key={tab}
 									type="button"
-									onClick={() =>
-										setActiveFilter(
-											tab,
-										)
-									}
+									onClick={() => setActiveFilter(tab)}
 									className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-										activeFilter ===
-										tab
+										activeFilter === tab
 											? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
 											: 'bg-slate-50 text-slate-600 hover:bg-slate-100'
 									}`}
@@ -351,37 +355,29 @@ function AccommodationListings() {
 								<input
 									type="text"
 									value={query}
-									onChange={(
-										event,
-									) =>
-										setQuery(
-											event
-												.target
-												.value,
-										)
+									onChange={(event) =>
+										setQuery(event.target.value)
 									}
-									placeholder="Search your listings"
+									placeholder="Search by room, area or type"
 									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:w-64"
 								/>
 							</div>
 
 							<div className="relative">
-								<select className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100">
-									<option>
-										Newest first
-									</option>
-									<option>
-										Most viewed
-									</option>
-									<option>
-										Most applicants
-									</option>
-									<option>
-										Price: low to high
-									</option>
-									<option>
-										Price: high to low
-									</option>
+								<select
+									value={propertyTypeFilter}
+									onChange={(event) =>
+										setPropertyTypeFilter(
+											event.target.value,
+										)
+									}
+									className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+								>
+									<option>All Types</option>
+									<option>Single Room</option>
+									<option>Double</option>
+									<option>Commune</option>
+									<option>Bachelor</option>
 								</select>
 
 								<ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -408,134 +404,162 @@ function AccommodationListings() {
 					<>
 						<p className="mt-5 text-sm text-slate-500">
 							<span className="font-bold text-slate-950">
-								{
-									filteredListings.length
-								}
+								{filteredListings.length}
 							</span>{' '}
-							of {listings.length}{' '}
-							listings
+							of {listings.length} listings
 						</p>
 
 						<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-							{filteredListings.map(
-								(listing) => {
-									const displayStatus =
-										getDisplayStatus(
-											listing.status,
-										)
+							{filteredListings.map((listing) => {
+								const displayStatus = getDisplayStatus(
+									listing.status,
+								)
 
-									const style =
-										statusStyles[
-											displayStatus
-										]
+								const style = statusStyles[displayStatus]
 
-									if (!style) {
-										return null
-									}
+								if (!style) {
+									return null
+								}
 
-									const StatusIcon =
-										style.icon
+								const StatusIcon = style.icon
 
-									return (
-										<article
-											key={
-												listing.id
-											}
-											className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-										>
-											<div className="relative h-40 bg-gradient-to-br from-blue-400 to-indigo-500">
-												<span
-													className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${style.tint}`}
-												>
-													<StatusIcon className="h-3.5 w-3.5" />
-													{
-														displayStatus
-													}
-												</span>
+								const firstPhoto = listing.photos?.[0]
 
-												<button
-													type="button"
-													className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:text-slate-700"
-													aria-label="More options"
-												>
-													<MoreVertical className="h-4 w-4" />
-												</button>
-											</div>
+								const typeLabel = getPropertyTypeLabel(
+									listing.propertyType,
+								)
 
-											<div className="p-5">
-												<h3 className="text-base font-bold text-slate-950">
-													{getPropertyTypeLabel(
-														listing.propertyType,
-													)}
-												</h3>
+								return (
+									<article
+										key={listing.id}
+										className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+									>
+										{/* Listing image */}
+										<div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500">
+											{firstPhoto ? (
+												<img
+													src={firstPhoto}
+													alt={`${typeLabel}${
+														listing.roomIdentifier
+															? ` ${listing.roomIdentifier}`
+															: ''
+													} in ${listing.area}`}
+													className="h-full w-full object-cover"
+												/>
+											) : (
+												<div className="flex h-full w-full flex-col items-center justify-center text-white/80">
+													<ImageIcon className="h-10 w-10" />
 
-												<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-													<MapPin className="h-3.5 w-3.5" />
-													{
-														listing.area
-													}
-												</p>
-
-												<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
-													M
-													{listing.price.toLocaleString()}{' '}
-													/ month
-												</p>
-
-												<div className="mt-4 flex gap-2">
-													<Link
-														href={`/landlord/accommodationdetails?id=${listing.id}`}														className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
-													>
-														<Eye className="h-3.5 w-3.5" />
-														View Details
-													</Link>
-
-													<Link
-														href={`/landlord/accommodationlisting/edit?id=${listing.id}`}
-														className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
-													>
-														<Pencil className="h-3.5 w-3.5" />
-														Edit
-													</Link>
-
-													<DeleteAccommodation
-														accommodationId={listing.id}
-														onDeleted={() => {
-															setListings(currentListings =>
-																currentListings.filter(item => item.id !== listing.id)
-															)
-														}}
-													/>
+													<span className="mt-2 text-xs font-semibold">
+														No photo available
+													</span>
 												</div>
+											)}
+
+											{/* Dark overlay for readability */}
+											<div className="absolute inset-0 bg-black/10" />
+
+											{/* Status */}
+											<span
+												className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${style.tint}`}
+											>
+												<StatusIcon className="h-3.5 w-3.5" />
+												{displayStatus}
+											</span>
+
+											<button
+												type="button"
+												className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:text-slate-700"
+												aria-label="More options"
+											>
+												<MoreVertical className="h-4 w-4" />
+											</button>
+
+											{/* Photo count */}
+											{listing.photos?.length > 0 && (
+												<div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+													{listing.photos.length} photo
+													{listing.photos.length !== 1
+														? 's'
+														: ''}
+												</div>
+											)}
+										</div>
+
+										<div className="p-5">
+											<h3 className="text-base font-bold text-slate-950">
+												{typeLabel}
+											</h3>
+
+											{listing.roomIdentifier && (
+												<p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-blue-600">
+													Room: {listing.roomIdentifier}
+												</p>
+											)}
+
+											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+												<MapPin className="h-3.5 w-3.5" />
+												{listing.area}
+											</p>
+
+											<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
+												M{listing.price.toLocaleString()}{' '}
+												/ month
+											</p>
+
+											<div className="mt-4 flex gap-2">
+												<Link
+													href={`/landlord/accommodationdetails?id=${listing.id}`}
+													className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+												>
+													<Eye className="h-3.5 w-3.5" />
+													View Details
+												</Link>
+
+												<Link
+													href={`/landlord/accommodationlisting/edit?id=${listing.id}`}
+													className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
+												>
+													<Pencil className="h-3.5 w-3.5" />
+													Edit
+												</Link>
+
+												<DeleteAccommodation
+													accommodationId={listing.id}
+													onDeleted={() => {
+														setListings(
+															(currentListings) =>
+																currentListings.filter(
+																	(item) =>
+																		item.id !==
+																		listing.id,
+																),
+														)
+													}}
+												/>
 											</div>
-										</article>
-									)
-								},
-							)}
+										</div>
+									</article>
+								)
+							})}
 						</div>
 
-						{filteredListings.length ===
-							0 && (
+						{filteredListings.length === 0 && (
 							<div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
 								<p className="text-sm font-semibold text-slate-600">
-									No listings match your
-									filters.
+									No listings match your filters.
 								</p>
 
 								<p className="mt-1 text-sm text-slate-400">
-									Try a different status
-									or search term.
+									Try a different status or search term.
 								</p>
 							</div>
 						)}
 
 						<div className="mt-8 flex items-center justify-between">
 							<p className="text-sm text-slate-500">
-								Showing 1–
-								{
-									filteredListings.length
-								}{' '}
-								of {listings.length}
+								Showing 1–{filteredListings.length} of{' '}
+								{listings.length}
 							</p>
 
 							<div className="flex items-center gap-2">
