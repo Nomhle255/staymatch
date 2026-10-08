@@ -163,37 +163,55 @@ export default function StudentDashboard() {
 	const [studentLoading, setStudentLoading] = useState(true)
 
 	useEffect(() => {
+		let mounted = true
+
 		const fetchStudentProfile = async () => {
 			try {
 				setStudentLoading(true)
 
-				const response = await fetch('/api/student/profile')
+				const response = await fetch('/api/student/profile', {
+					method: 'GET',
+					credentials: 'include',
+					cache: 'no-store',
+				})
+
 				const data = await response.json()
 
 				if (!response.ok) {
 					throw new Error(
-						data.error || 'Failed to load student profile.'
+						data.error || 'Failed to load student profile.',
 					)
 				}
 
-				setStudentName(data.user.name)
+				if (!mounted) return
+
+				// The API returns the logged-in student's database record.
+				setStudentName(data.user?.name || '')
 			} catch (error) {
 				console.error('Failed to fetch student profile:', error)
+
+				if (mounted) {
+					setStudentName('')
+				}
 			} finally {
-				setStudentLoading(false)
+				if (mounted) {
+					setStudentLoading(false)
+				}
 			}
 		}
 
 		fetchStudentProfile()
+
+		return () => {
+			mounted = false
+		}
 	}, [])
 
-	const studentInitial = studentName
-		? studentName.charAt(0).toUpperCase()
-		: 'S'
+	const displayName = studentName || 'Student'
 
-	const firstName = studentName
-		? studentName.split(' ')[0]
-		: 'Student'
+	const studentInitial = displayName.charAt(0).toUpperCase()
+
+	const firstName = displayName.trim().split(/\s+/)[0] || 'Student'
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -223,14 +241,14 @@ export default function StudentDashboard() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								{studentInitial}
+								{studentLoading ? '...' : studentInitial}
 							</div>
 
-							<div>
-								<p className="text-sm font-bold text-slate-900">
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
 									{studentLoading
 										? 'Loading...'
-										: studentName || 'Student'}
+										: displayName}
 								</p>
 
 								<p className="text-xs text-slate-500">
@@ -242,6 +260,7 @@ export default function StudentDashboard() {
 
 					<button
 						type="button"
+						onClick={() => router.push('/login')}
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
@@ -254,7 +273,8 @@ export default function StudentDashboard() {
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
-							Welcome back, {studentLoading ? '...' : firstName}
+							Welcome back,{' '}
+							{studentLoading ? '...' : firstName}
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
@@ -296,7 +316,7 @@ export default function StudentDashboard() {
 									type="button"
 									onClick={() =>
 										router.push(
-											'/student-browse-listings'
+											'/student/browseListings',
 										)
 									}
 									className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
