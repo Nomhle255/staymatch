@@ -14,6 +14,7 @@ import {
 	DoorClosed,
 	X,
 	Image as ImageIcon,
+	Eye,
 } from 'lucide-react'
 import AdminShell from '@/components/pages/AdminShell'
 
@@ -185,8 +186,9 @@ function AdminAccommodations() {
 	})
 
 	const selectedLandlordName = landlordFilter
-		? (accommodations.find((item) => item.landlordId === landlordFilter)
-				?.landlordName ?? 'Selected landlord')
+		? (accommodations.find(
+				(item) => item.landlordId === landlordFilter,
+			)?.landlordName ?? 'Selected landlord')
 		: null
 
 	const liveCount = accommodations.filter(
@@ -250,7 +252,9 @@ function AdminAccommodations() {
 								<input
 									type="text"
 									value={query}
-									onChange={(event) => setQuery(event.target.value)}
+									onChange={(event) =>
+										setQuery(event.target.value)
+									}
 									placeholder="Search by room, area, type or landlord"
 									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 								/>
@@ -265,7 +269,10 @@ function AdminAccommodations() {
 									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
 								>
 									{statusOptions.map((option) => (
-										<option key={option.value} value={option.value}>
+										<option
+											key={option.value}
+											value={option.value}
+										>
 											{option.label}
 										</option>
 									))}
@@ -307,7 +314,8 @@ function AdminAccommodations() {
 						<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 							{filteredAccommodations.map((item) => {
 								const style =
-									statusStyles[item.status] ?? statusStyles.INACTIVE
+									statusStyles[item.status] ??
+									statusStyles.INACTIVE
 
 								const StatusIcon = style.icon
 
@@ -346,14 +354,18 @@ function AdminAccommodations() {
 											{item.photoCount > 0 && (
 												<span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
 													{item.photoCount} photo
-													{item.photoCount !== 1 ? 's' : ''}
+													{item.photoCount !== 1
+														? 's'
+														: ''}
 												</span>
 											)}
 										</div>
 
 										<div className="p-5">
 											<h3 className="text-base font-bold text-slate-950">
-												{getPropertyTypeLabel(item.propertyType)}
+												{getPropertyTypeLabel(
+													item.propertyType,
+												)}
 											</h3>
 
 											{item.roomIdentifier && (
@@ -385,18 +397,35 @@ function AdminAccommodations() {
 												</p>
 
 												<p className="mt-0.5 text-slate-500">
-													{item.landlordPhone || 'No phone added'}
+													{item.landlordPhone ||
+														'No phone added'}
 												</p>
 											</div>
 
 											<div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-												<span>Added {formatDate(item.createdAt)}</span>
+												<span>
+													Added{' '}
+													{formatDate(item.createdAt)}
+												</span>
 
 												<span>
-													{item.applicationCount} application
-													{item.applicationCount !== 1 ? 's' : ''}
+													{item.applicationCount}{' '}
+													application
+													{item.applicationCount !==
+													1
+														? 's'
+														: ''}
 												</span>
 											</div>
+
+											{/* View details button */}
+											<Link
+												href={`/admin/accommodations/${item.id}`}
+												className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+											>
+												<Eye className="h-4 w-4" />
+												View accommodation details
+											</Link>
 										</div>
 									</article>
 								)
