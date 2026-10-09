@@ -70,6 +70,8 @@ type Accommodation = {
 	roomIdentifier: string | null
 }
 
+type AvailabilityStatus = 'AVAILABLE' | 'OCCUPIED'
+
 const statusStyles: Record<
 	string,
 	{
@@ -103,16 +105,12 @@ function getPropertyTypeLabel(propertyType: string) {
 	switch (propertyType) {
 		case 'SINGLE_ROOM':
 			return 'Single Room'
-
 		case 'DOUBLE':
 			return 'Double'
-
 		case 'COMMUNE':
 			return 'Commune'
-
 		case 'BACHELOR':
 			return 'Bachelor'
-
 		default:
 			return propertyType
 	}
@@ -122,19 +120,14 @@ function getDisplayStatus(status: string) {
 	switch (status) {
 		case 'VERIFIED':
 			return 'Verified'
-
 		case 'PENDING_REVIEW':
 			return 'Pending review'
-
 		case 'INACTIVE':
 			return 'Inactive'
-
 		case 'OCCUPIED':
 			return 'Occupied'
-
 		case 'AVAILABLE':
 			return 'Available'
-
 		default:
 			return status
 	}
@@ -177,12 +170,15 @@ function SidebarShell({ children }: { children: ReactNode }) {
 function AccommodationListings() {
 	const [activeFilter, setActiveFilter] = useState('All')
 	const [query, setQuery] = useState('')
-	const [propertyTypeFilter, setPropertyTypeFilter] = useState('All Types')
+	const [propertyTypeFilter, setPropertyTypeFilter] =
+		useState('All Types')
 
 	const [listings, setListings] = useState<Accommodation[]>([])
-
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(
+		null,
+	)
 
 	useEffect(() => {
 		const fetchAccommodations = async () => {
@@ -191,7 +187,6 @@ function AccommodationListings() {
 				setError('')
 
 				const response = await fetch('/api/accommodationlistings')
-
 				const data = await response.json()
 
 				if (!response.ok) {
@@ -204,13 +199,9 @@ function AccommodationListings() {
 					(data.accommodations || []).map(
 						(accommodation: Accommodation) => ({
 							...accommodation,
-
-							// Make sure photos is always an array
 							photos: Array.isArray(accommodation.photos)
 								? accommodation.photos
 								: [],
-
-							// Treat blank room values as "no room"
 							roomIdentifier:
 								typeof accommodation.roomIdentifier ===
 									'string' &&
@@ -236,6 +227,54 @@ function AccommodationListings() {
 		fetchAccommodations()
 	}, [])
 
+	const handleAvailabilityChange = async (
+		listingId: string,
+		newStatus: AvailabilityStatus,
+	) => {
+		try {
+			setUpdatingStatusId(listingId)
+			setError('')
+
+		const response = await fetch(
+			`/api/accommodationlistings/${listingId}`,
+			{
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					status: newStatus,
+				}),
+			},
+		)
+			const data = await response.json()
+
+			if (!response.ok) {
+				throw new Error(
+					data.error || 'Failed to update room availability.',
+				)
+			}
+
+			setListings((currentListings) =>
+				currentListings.map((listing) =>
+					listing.id === listingId
+						? { ...listing, status: newStatus }
+						: listing,
+				),
+			)
+		} catch (error) {
+			console.error('Failed to update availability:', error)
+
+			setError(
+				error instanceof Error
+					? error.message
+					: 'Failed to update room availability.',
+			)
+		} finally {
+			setUpdatingStatusId(null)
+		}
+	}
+
 	const filteredListings = listings.filter((listing) => {
 		const displayStatus = getDisplayStatus(listing.status)
 
@@ -254,7 +293,9 @@ function AccommodationListings() {
 			${listing.description}
 		`.toLowerCase()
 
-		const matchesQuery = searchText.includes(query.toLowerCase().trim())
+		const matchesQuery = searchText.includes(
+			query.toLowerCase().trim(),
+		)
 
 		return matchesFilter && matchesPropertyType && matchesQuery
 	})
@@ -291,8 +332,9 @@ function AccommodationListings() {
 								<p className="text-sm font-bold text-slate-900">
 									Khaya Cathala
 								</p>
-
-								<p className="text-xs text-slate-500">Landlord</p>
+								<p className="text-xs text-slate-500">
+									Landlord
+								</p>
 							</div>
 						</div>
 					</div>
@@ -422,19 +464,30 @@ function AccommodationListings() {
 								}
 
 								const StatusIcon = style.icon
-
 								const firstPhoto = listing.photos?.[0]
 
 								const typeLabel = getPropertyTypeLabel(
 									listing.propertyType,
 								)
 
+								const canUpdateAvailability = [
+									'AVAILABLE',
+									'OCCUPIED',
+									'Available',
+									'Occupied',
+								].includes(listing.status)
+
+								const availabilityValue =
+									listing.status === 'OCCUPIED' ||
+									listing.status === 'Occupied'
+										? 'OCCUPIED'
+										: 'AVAILABLE'
+
 								return (
 									<article
 										key={listing.id}
 										className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
 									>
-										{/* Listing image */}
 										<div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500">
 											{firstPhoto ? (
 												<img
@@ -449,17 +502,14 @@ function AccommodationListings() {
 											) : (
 												<div className="flex h-full w-full flex-col items-center justify-center text-white/80">
 													<ImageIcon className="h-10 w-10" />
-
 													<span className="mt-2 text-xs font-semibold">
 														No photo available
 													</span>
 												</div>
 											)}
 
-											{/* Dark overlay for readability */}
 											<div className="absolute inset-0 bg-black/10" />
 
-											{/* Status */}
 											<span
 												className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${style.tint}`}
 											>
@@ -475,7 +525,6 @@ function AccommodationListings() {
 												<MoreVertical className="h-4 w-4" />
 											</button>
 
-											{/* Photo count */}
 											{listing.photos?.length > 0 && (
 												<div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
 													{listing.photos.length} photo
@@ -538,6 +587,56 @@ function AccommodationListings() {
 													}}
 												/>
 											</div>
+
+											<div className="mt-4 border-t border-slate-100 pt-4">
+												<label
+													htmlFor={`availability-${listing.id}`}
+													className="mb-2 block text-xs font-bold text-slate-600"
+												>
+													Room availability
+												</label>
+
+												<select
+													id={`availability-${listing.id}`}
+													value={availabilityValue}
+													disabled={
+														updatingStatusId ===
+															listing.id ||
+														!canUpdateAvailability
+													}
+													onChange={(event) => {
+														const newStatus =
+															event.target.value
+
+														if (
+															newStatus ===
+																'AVAILABLE' ||
+															newStatus ===
+																'OCCUPIED'
+														) {
+															handleAvailabilityChange(
+																listing.id,
+																newStatus,
+															)
+														}
+													}}
+													className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+												>
+													<option value="AVAILABLE">
+														Available
+													</option>
+													<option value="OCCUPIED">
+														Occupied / Rented
+													</option>
+												</select>
+
+												{updatingStatusId ===
+													listing.id && (
+													<p className="mt-2 text-xs font-medium text-blue-600">
+														Updating availability...
+													</p>
+												)}
+											</div>
 										</div>
 									</article>
 								)
@@ -595,3 +694,4 @@ function AccommodationListings() {
 }
 
 export default AccommodationListings
+
