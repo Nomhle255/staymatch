@@ -7,21 +7,20 @@ import {
 	LayoutDashboard,
 	Home,
 	PlusCircle,
-	Users,
 	LogOut,
 	MapPin,
-	MoreVertical,
-	CheckCircle2,
-	XCircle,
+	Image as ImageIcon,
 } from 'lucide-react'
 
 type Accommodation = {
 	id: string
+	roomIdentifier: string
 	description: string
 	area: string
 	price: number
 	propertyType: string
 	amenities: string[]
+	photos: string[]
 	availableFrom: string | null
 	status: string
 	latitude: number
@@ -48,40 +47,6 @@ const navItems = [
 		icon: PlusCircle,
 		active: false,
 		href: '/landlord/addaccommodation',
-	},
-	{
-		label: 'Applications',
-		icon: Users,
-		active: false,
-		href: '/landlord/applications',
-	},
-]
-
-const stats = [
-	{
-		label: 'Active Listings',
-		value: '8',
-		icon: Home,
-		tint: 'bg-blue-50 text-blue-600',
-	},
-	{
-		label: 'Pending Applications',
-		value: '5',
-		icon: Users,
-		tint: 'bg-amber-50 text-amber-600',
-	},
-]
-
-const applications = [
-	{
-		name: 'Meme Cathala',
-		listing: 'Two room',
-		date: 'Applied Sep 5',
-	},
-	{
-		name: 'Nonko Cathala',
-		listing: 'Single room',
-		date: 'Applied Sep 5',
 	},
 ]
 
@@ -167,35 +132,87 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function LandlordDashboard() {
+	// Hooks must live inside the component, not at the top of the file
+	const [landlordName, setLandlordName] = useState('')
+	const [landlordLoading, setLandlordLoading] = useState(true)
+
 	const [listings, setListings] = useState<Accommodation[]>([])
 	const [loadingListings, setLoadingListings] = useState(true)
 	const [listingsError, setListingsError] = useState('')
+	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
 
+	// Logged-in landlord's profile
+	useEffect(() => {
+		let mounted = true
+
+		const fetchLandlordProfile = async () => {
+			try {
+				setLandlordLoading(true)
+
+				const response = await fetch('/api/profile')
+
+				// An HTML error page resolves to null instead of a JSON syntax error
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) {
+					throw new Error(
+						data?.error ||
+							`Failed to load landlord profile (${response.status}).`,
+					)
+				}
+
+				if (!mounted) return
+
+				setLandlordName(data.user?.name || '')
+			} catch (error) {
+				// The name only shows in the sidebar, so don't raise an error overlay
+				console.warn('Failed to fetch landlord profile:', error)
+
+				if (mounted) setLandlordName('')
+			} finally {
+				if (mounted) setLandlordLoading(false)
+			}
+		}
+
+		fetchLandlordProfile()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	// Landlord's listings
 	useEffect(() => {
 		const fetchListings = async () => {
 			try {
 				setLoadingListings(true)
 				setListingsError('')
 
-				const response = await fetch(
-					'/api/accommodationlistings',
-				)
+				const response = await fetch('/api/accommodationlistings')
 
-				const data = await response.json()
+				const data = await response.json().catch(() => null)
 
-				if (!response.ok) {
+				if (!response.ok || !data) {
 					throw new Error(
-						data.error ||
-							'Failed to load your accommodations.',
+						data?.error || 'Failed to load your accommodations.',
 					)
 				}
 
-				setListings(data.accommodations || [])
-			} catch (error) {
-				console.error(
-					'Failed to fetch dashboard listings:',
-					error,
+				setListings(
+					(data.accommodations || []).map(
+						(accommodation: Accommodation) => ({
+							...accommodation,
+							roomIdentifier: accommodation.roomIdentifier || '',
+
+							// Make sure photos is always an array
+							photos: Array.isArray(accommodation.photos)
+								? accommodation.photos
+								: [],
+						}),
+					),
 				)
+			} catch (error) {
+				console.error('Failed to fetch dashboard listings:', error)
 
 				setListingsError(
 					error instanceof Error
@@ -209,6 +226,69 @@ function LandlordDashboard() {
 
 		fetchListings()
 	}, [])
+
+	// NOTE: 'AVAILABLE' and 'OCCUPIED' are not in your AccommodationStatus enum
+	// (VERIFIED, PENDING_REVIEW, INACTIVE). Add them to schema.prisma and migrate
+	// before wiring this to a button, or the PATCH will fail.
+	const updateListingStatus = async (
+		listingId: string,
+		status: 'AVAILABLE' | 'OCCUPIED',
+	) => {
+		try {
+			setUpdatingStatusId(listingId)
+			setListingsError('')
+
+			const response = await fetch(
+				`/api/accommodationlistings/${listingId}`,
+				{
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ status }),
+				},
+			)
+
+			const data = await response.json().catch(() => null)
+
+			if (!response.ok || !data) {
+				throw new Error(data?.error || 'Failed to update listing status.')
+			}
+
+			setListings((currentListings) =>
+				currentListings.map((listing) =>
+					listing.id === listingId ? { ...listing, status } : listing,
+				),
+			)
+		} catch (error) {
+			setListingsError(
+				error instanceof Error
+					? error.message
+					: 'Failed to update listing status.',
+			)
+		} finally {
+			setUpdatingStatusId(null)
+		}
+	}
+
+	const displayName = landlordName || 'Landlord'
+	const landlordInitial = displayName.charAt(0).toUpperCase()
+	const firstName = displayName.trim().split(/\s+/)[0] || 'Landlord'
+
+	const stats = [
+		{
+			label: 'Your Listings',
+			value: String(listings.length),
+			icon: Home,
+			tint: 'bg-blue-50 text-blue-600',
+		},
+		{
+			label: 'Occupied Listings',
+			value: String(
+				listings.filter((listing) => listing.status === 'OCCUPIED').length,
+			),
+			icon: Home,
+			tint: 'bg-amber-50 text-amber-600',
+		},
+	]
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -237,17 +317,15 @@ function LandlordDashboard() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								K
+								{landlordLoading ? '...' : landlordInitial}
 							</div>
 
-							<div>
-								<p className="text-sm font-bold text-slate-900">
-									Khaya Cathala
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{landlordLoading ? 'Loading...' : displayName}
 								</p>
 
-								<p className="text-xs text-slate-500">
-									Landlord
-								</p>
+								<p className="text-xs text-slate-500">Landlord</p>
 							</div>
 						</div>
 					</div>
@@ -268,11 +346,11 @@ function LandlordDashboard() {
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
-							Welcome back, Khaya
+							Welcome back, {landlordLoading ? '...' : firstName}
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Here's how your listings are performing.
+							Here&apos;s how your listings are performing.
 						</p>
 					</div>
 
@@ -294,9 +372,8 @@ function LandlordDashboard() {
 					))}
 				</div>
 
-				{/* Listings + Applications */}
+				{/* Listings */}
 				<div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-					{/* Listings */}
 					<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
 						<div className="flex items-center justify-between">
 							<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
@@ -342,8 +419,8 @@ function LandlordDashboard() {
 										</p>
 
 										<p className="mt-1 text-xs text-slate-500">
-											Add your first accommodation to
-											start receiving applications.
+											Add your first accommodation to start
+											receiving applications.
 										</p>
 
 										<Link
@@ -356,7 +433,7 @@ function LandlordDashboard() {
 									</div>
 								)}
 
-							{/* Database Listings */}
+							{/* Database listings */}
 							{!loadingListings &&
 								!listingsError &&
 								listings.slice(0, 3).map((listing) => (
@@ -364,11 +441,28 @@ function LandlordDashboard() {
 										key={listing.id}
 										className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 p-4 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center"
 									>
-										{/* Image placeholder */}
-										<div className="h-24 w-full shrink-0 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:w-32">
-											<div className="flex h-full items-center justify-center">
-												<Home className="h-8 w-8 text-white/80" />
-											</div>
+										{/* Photo, or a placeholder when none was uploaded */}
+										<div className="relative h-24 w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:w-32">
+											{listing.photos[0] ? (
+												// eslint-disable-next-line @next/next/no-img-element
+												<img
+													src={listing.photos[0]}
+													alt={`${getPropertyTypeLabel(
+														listing.propertyType,
+													)} in ${listing.area}`}
+													className="h-full w-full object-cover"
+												/>
+											) : (
+												<div className="flex h-full items-center justify-center">
+													<ImageIcon className="h-8 w-8 text-white/80" />
+												</div>
+											)}
+
+											{listing.photos.length > 1 && (
+												<span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
+													{listing.photos.length} photos
+												</span>
+											)}
 										</div>
 
 										<div className="flex-1">
@@ -379,15 +473,22 @@ function LandlordDashboard() {
 													)}
 												</h3>
 
-												{listing.status ===
-													'VERIFIED' && (
+												{(listing.status === 'AVAILABLE' ||
+													listing.status === 'VERIFIED') && (
 													<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
-														Verified
+														{listing.status === 'VERIFIED'
+															? 'Verified'
+															: 'Available'}
 													</span>
 												)}
 
-												{listing.status ===
-													'PENDING_REVIEW' && (
+												{listing.status === 'OCCUPIED' && (
+													<span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600">
+														Occupied
+													</span>
+												)}
+
+												{listing.status === 'PENDING_REVIEW' && (
 													<span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
 														Pending review
 													</span>
@@ -400,6 +501,12 @@ function LandlordDashboard() {
 												)}
 											</div>
 
+											{listing.roomIdentifier && (
+												<p className="mt-1 text-sm font-semibold text-slate-700">
+													Room: {listing.roomIdentifier}
+												</p>
+											)}
+
 											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
 												<MapPin className="h-3.5 w-3.5" />
 												{listing.area}
@@ -407,77 +514,15 @@ function LandlordDashboard() {
 
 											<div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
 												<span className="font-bold text-slate-900">
-													M
-													{listing.price.toLocaleString()}{' '}
-													/ month
-												</span>
-
-												<span className="flex items-center gap-1 text-slate-500">
-													<Users className="h-3.5 w-3.5" />
-													0 applicants
+													M{listing.price.toLocaleString()} /
+													month
 												</span>
 											</div>
 										</div>
-
-										<button
-											type="button"
-											className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-											aria-label="More options"
-										>
-											<MoreVertical className="h-4 w-4" />
-										</button>
 									</div>
 								))}
 						</div>
 					</section>
-
-					{/* Applications */}
-					<div className="space-y-6">
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
-								New applications
-							</h2>
-
-							<div className="mt-4 space-y-3">
-								{applications.map((application) => (
-									<div
-										key={application.name}
-										className="rounded-xl border border-slate-200/70 p-4"
-									>
-										<p className="text-sm font-bold text-slate-900">
-											{application.name}
-										</p>
-
-										<p className="mt-0.5 text-xs font-medium text-blue-600">
-											{application.listing}
-										</p>
-
-										<p className="mt-1 text-xs text-slate-500">
-											{application.date}
-										</p>
-
-										<div className="mt-3 flex gap-2">
-											<button
-												type="button"
-												className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-100"
-											>
-												<CheckCircle2 className="h-3.5 w-3.5" />
-												Approve
-											</button>
-
-											<button
-												type="button"
-												className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
-											>
-												<XCircle className="h-3.5 w-3.5" />
-												Decline
-											</button>
-										</div>
-									</div>
-								))}
-							</div>
-						</section>
-					</div>
 				</div>
 			</main>
 		</div>
@@ -485,4 +530,3 @@ function LandlordDashboard() {
 }
 
 export default LandlordDashboard
-

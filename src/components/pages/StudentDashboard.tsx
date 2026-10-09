@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import {
 	LayoutDashboard,
 	Search,
-	FileText,
 	LogOut,
 	MapPin,
 	BadgeCheck,
@@ -153,7 +152,6 @@ export default function StudentDashboard() {
 	const [pushState, setPushState] = useState<PushState>('loading')
 	const [pushBusy, setPushBusy] = useState(false)
 	const [pushError, setPushError] = useState('')
-	const [applicationCount, setApplicationCount] = useState<number | null>(null)
 
 	// Logged-in student's profile
 	useEffect(() => {
@@ -523,7 +521,6 @@ export default function StudentDashboard() {
 						</button>
 					</div>
 				</div>
-
 				<section className="mt-6 rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm">
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						<div className="flex items-center gap-3">
