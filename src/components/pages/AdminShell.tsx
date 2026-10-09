@@ -9,6 +9,7 @@ import {
 	Building2,
 	LogOut,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 const navItems = [
 	{
@@ -60,13 +61,14 @@ function NavButton({
 		<button
 			type="button"
 			onClick={() => router.push(href)}
+			aria-current={active ? 'page' : undefined}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
 				active
 					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
 					: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
 			}`}
 		>
-			<Icon className="h-4 w-4" />
+			<Icon className="h-4 w-4 shrink-0" />
 			{label}
 		</button>
 	)
@@ -100,11 +102,41 @@ export default function AdminShell({
 	adminName = 'Administrator',
 }: AdminShellProps) {
 	const router = useRouter()
+	const [fetchedName, setFetchedName] = useState('')
 
-	const adminInitial = adminName.charAt(0).toUpperCase()
+	useEffect(() => {
+		let mounted = true
+
+		async function loadProfile() {
+			try {
+				const response = await fetch('/api/profile')
+				const data = await response.json().catch(() => null)
+
+				if (response.ok && mounted) {
+					setFetchedName(data?.user?.name?.trim() || '')
+				}
+			} catch (error) {
+				console.warn(
+					'Failed to fetch admin profile:',
+					error,
+				)
+			}
+		}
+
+		loadProfile()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	const displayName = fetchedName || adminName
+	const adminInitial =
+		displayName.trim().charAt(0).toUpperCase() || 'A'
 
 	function handleLogout() {
 		router.push('/login')
+		router.refresh()
 	}
 
 	return (
@@ -141,13 +173,13 @@ export default function AdminShell({
 				<div className="space-y-4">
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
-							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+							<div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
 								{adminInitial}
 							</div>
 
 							<div className="min-w-0">
 								<p className="truncate text-sm font-bold text-slate-900">
-									{adminName}
+									{displayName}
 								</p>
 
 								<p className="text-xs text-slate-500">
