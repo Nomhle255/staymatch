@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import {
 	LayoutDashboard,
 	Search,
-	FileText,
 	LogOut,
 	MapPin,
 	BadgeCheck,
@@ -27,12 +26,6 @@ const navItems = [
 		icon: Search,
 		active: false,
 		href: '/students/browseListings',
-	},
-	{
-		label: 'Applications',
-		icon: FileText,
-		active: false,
-		href: '/students/applications',
 	},
 ]
 
@@ -159,7 +152,6 @@ export default function StudentDashboard() {
 	const [pushState, setPushState] = useState<PushState>('loading')
 	const [pushBusy, setPushBusy] = useState(false)
 	const [pushError, setPushError] = useState('')
-	const [applicationCount, setApplicationCount] = useState<number | null>(null)
 
 	// Logged-in student's profile
 	useEffect(() => {
@@ -287,33 +279,6 @@ export default function StudentDashboard() {
 			mounted = false
 		}
 	}, [])
-
-	// Application count for the stat card
-	useEffect(() => {
-		let mounted = true
-
-		const fetchApplicationCount = async () => {
-			try {
-				const response = await fetch('/api/students/applications')
-				const data = await response.json().catch(() => null)
-
-				if (!response.ok || !data) return
-
-				const list = Array.isArray(data) ? data : data.applications || []
-
-				if (mounted) setApplicationCount(list.length)
-			} catch {
-				// Leave the card showing a dash if the endpoint isn't available
-			}
-		}
-
-		fetchApplicationCount()
-
-		return () => {
-			mounted = false
-		}
-	}, [])
-
 	// Work out whether this device already has push alerts turned on
 	useEffect(() => {
 		let mounted = true
@@ -485,15 +450,6 @@ export default function StudentDashboard() {
 
 	const firstName = displayName.trim().split(/\s+/)[0] || 'Student'
 
-	const stats = [
-		{
-			label: 'Applications',
-			value: applicationCount === null ? '–' : String(applicationCount),
-			icon: FileText,
-			tint: 'bg-blue-50 text-blue-600',
-		},
-	]
-
 	return (
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
@@ -565,13 +521,6 @@ export default function StudentDashboard() {
 						</button>
 					</div>
 				</div>
-
-				<div className="mt-6 grid gap-4 sm:grid-cols-2">
-					{stats.map((stat) => (
-						<StatCard key={stat.label} {...stat} />
-					))}
-				</div>
-
 				<section className="mt-6 rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm">
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						<div className="flex items-center gap-3">
