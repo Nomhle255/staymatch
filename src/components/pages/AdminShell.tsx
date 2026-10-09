@@ -36,6 +36,12 @@ const navItems = [
 		href: '/admin/accommodations',
 		key: 'accommodations',
 	},
+	{
+		label: 'Profile',
+		icon: Users,
+		href: '/profile',
+		key: 'profile',
+	}
 ] as const
 
 type AdminSection =
@@ -43,6 +49,7 @@ type AdminSection =
 	| 'universities'
 	| 'landlords'
 	| 'accommodations'
+	| 'profile'
 
 function NavButton({
 	label,

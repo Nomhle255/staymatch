@@ -10,6 +10,7 @@ import {
 	MapPin,
 	BadgeCheck,
 	Bell,
+	User,
 	ChevronRight,
 	Image as ImageIcon,
 } from 'lucide-react'
@@ -27,6 +28,12 @@ const navItems = [
 		active: false,
 		href: '/students/browseListings',
 	},
+	{
+		label: 'Profile',
+		icon: User,
+		active: false,
+		href: '/profile',
+	}
 ]
 
 const MAX_RECOMMENDED = 3
