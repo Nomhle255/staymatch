@@ -11,8 +11,6 @@ import {
 	MapPin,
 	BadgeCheck,
 	Bell,
-	BedDouble,
-	Pencil,
 	ChevronRight,
 	Image as ImageIcon,
 } from 'lucide-react'
@@ -22,7 +20,7 @@ const navItems = [
 		label: 'Dashboard',
 		icon: LayoutDashboard,
 		active: true,
-		href: '/student-dashboard',
+		href: '/students/dashboard',
 	},
 	{
 		label: 'Browse Listings',
@@ -34,18 +32,11 @@ const navItems = [
 		label: 'Applications',
 		icon: FileText,
 		active: false,
-		href: '/applications',
+		href: '/students/applications',
 	},
 ]
 
-const stats = [
-	{
-		label: 'Applications',
-		value: '3',
-		icon: FileText,
-		tint: 'bg-blue-50 text-blue-600',
-	},
-]
+const MAX_RECOMMENDED = 3
 
 type Accommodation = {
 	id: string
@@ -79,6 +70,15 @@ function decodeVapidKey(base64Key: string) {
 	const base64 = (base64Key + padding).replace(/-/g, '+').replace(/_/g, '/')
 	const rawData = window.atob(base64)
 	return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)))
+}
+
+function isPushSupported() {
+	return (
+		typeof window !== 'undefined' &&
+		'serviceWorker' in navigator &&
+		'PushManager' in window &&
+		'Notification' in window
+	)
 }
 
 function NavButton({
@@ -159,7 +159,9 @@ export default function StudentDashboard() {
 	const [pushState, setPushState] = useState<PushState>('loading')
 	const [pushBusy, setPushBusy] = useState(false)
 	const [pushError, setPushError] = useState('')
+	const [applicationCount, setApplicationCount] = useState<number | null>(null)
 
+	// Logged-in student's profile
 	useEffect(() => {
 		let mounted = true
 
@@ -168,28 +170,27 @@ export default function StudentDashboard() {
 				setStudentLoading(true)
 
 				const response = await fetch('/api/students/profile')
-				const data = await response.json()
 
-				if (!response.ok) {
+				// An HTML error page resolves to null instead of a JSON syntax error
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) {
 					throw new Error(
-						data.error || 'Failed to load student profile.',
+						data?.error ||
+							`Failed to load student profile (${response.status}).`,
 					)
 				}
 
 				if (!mounted) return
 
-				// The API returns the logged-in student's database record.
 				setStudentName(data.user?.name || '')
 			} catch (error) {
-				console.error('Failed to fetch student profile:', error)
+				// The name only shows in the sidebar, so don't raise an error overlay
+				console.warn('Failed to fetch student profile:', error)
 
-				if (mounted) {
-					setStudentName('')
-				}
+				if (mounted) setStudentName('')
 			} finally {
-				if (mounted) {
-					setStudentLoading(false)
-				}
+				if (mounted) setStudentLoading(false)
 			}
 		}
 
@@ -200,11 +201,298 @@ export default function StudentDashboard() {
 		}
 	}, [])
 
+	// "Recommended for you": verified listings first, newest endpoint order after
+	useEffect(() => {
+		let mounted = true
+
+		const fetchMatches = async () => {
+			try {
+				setMatchesLoading(true)
+
+				const response = await fetch('/api/studentbrowselistings')
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) {
+					throw new Error(data?.error || 'Failed to load listings.')
+				}
+
+				const raw = Array.isArray(data)
+					? data
+					: data.accommodations || data.listings || []
+
+				const formatted: Accommodation[] = raw.map((item: any) => ({
+					id: item.id,
+					description: item.description || '',
+					area: item.area,
+					price: Number(item.price),
+					propertyType: item.propertyType || '',
+					photos: Array.isArray(item.photos) ? item.photos : [],
+					status: item.status,
+					amenities: Array.isArray(item.amenities) ? item.amenities : [],
+				}))
+
+				formatted.sort(
+					(a, b) =>
+						Number(b.status === 'VERIFIED') -
+						Number(a.status === 'VERIFIED'),
+				)
+
+				if (mounted) setMatches(formatted.slice(0, MAX_RECOMMENDED))
+			} catch (error) {
+				console.warn('Failed to fetch recommended listings:', error)
+
+				if (mounted) setMatches([])
+			} finally {
+				if (mounted) setMatchesLoading(false)
+			}
+		}
+
+		fetchMatches()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	// Notifications created when a new listing matches saved preferences
+	useEffect(() => {
+		let mounted = true
+
+		const fetchNotifications = async () => {
+			try {
+				setNotificationsLoading(true)
+
+				const response = await fetch('/api/students/notifications')
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) {
+					throw new Error(data?.error || 'Failed to load notifications.')
+				}
+
+				const list = Array.isArray(data) ? data : data.notifications || []
+
+				if (mounted) setNotifications(list)
+			} catch (error) {
+				console.warn('Failed to fetch notifications:', error)
+
+				if (mounted) setNotifications([])
+			} finally {
+				if (mounted) setNotificationsLoading(false)
+			}
+		}
+
+		fetchNotifications()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	// Application count for the stat card
+	useEffect(() => {
+		let mounted = true
+
+		const fetchApplicationCount = async () => {
+			try {
+				const response = await fetch('/api/students/applications')
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) return
+
+				const list = Array.isArray(data) ? data : data.applications || []
+
+				if (mounted) setApplicationCount(list.length)
+			} catch {
+				// Leave the card showing a dash if the endpoint isn't available
+			}
+		}
+
+		fetchApplicationCount()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	// Work out whether this device already has push alerts turned on
+	useEffect(() => {
+		let mounted = true
+
+		const checkPushState = async () => {
+			if (!isPushSupported()) {
+				if (mounted) setPushState('unsupported')
+				return
+			}
+
+			if (Notification.permission === 'denied') {
+				if (mounted) setPushState('blocked')
+				return
+			}
+
+			try {
+				const registration = await navigator.serviceWorker.getRegistration()
+				const subscription = await registration?.pushManager.getSubscription()
+
+				if (mounted) {
+					setPushState(
+						subscription && Notification.permission === 'granted'
+							? 'enabled'
+							: 'disabled',
+					)
+				}
+			} catch {
+				if (mounted) setPushState('disabled')
+			}
+		}
+
+		checkPushState()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	const handleLogout = async () => {
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' })
+		} catch (error) {
+			console.warn('Logout request failed:', error)
+		}
+
+		router.push('/')
+	}
+
+	const markNotificationsRead = async () => {
+		if (notifications.every((notification) => notification.read)) return
+
+		// Update the screen right away, then tell the server
+		const previous = notifications
+		setNotifications((current) =>
+			current.map((notification) => ({ ...notification, read: true })),
+		)
+
+		try {
+			const response = await fetch('/api/students/notifications', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ all: true }),
+			})
+
+			if (!response.ok) throw new Error('Request failed')
+		} catch (error) {
+			console.warn('Failed to mark notifications as read:', error)
+			setNotifications(previous)
+		}
+	}
+
+	const enableBrowserNotifications = async () => {
+		setPushError('')
+
+		if (!isPushSupported()) {
+			setPushState('unsupported')
+			return
+		}
+
+		const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+		if (!publicKey) {
+			setPushError('Device alerts are not configured yet.')
+			return
+		}
+
+		try {
+			setPushBusy(true)
+
+			const permission = await Notification.requestPermission()
+
+			if (permission !== 'granted') {
+				setPushState(permission === 'denied' ? 'blocked' : 'disabled')
+				return
+			}
+
+			const registration = await navigator.serviceWorker.register('/sw.js')
+			await navigator.serviceWorker.ready
+
+			const subscription =
+				(await registration.pushManager.getSubscription()) ??
+				(await registration.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: decodeVapidKey(publicKey) as BufferSource,
+				}))
+
+			const response = await fetch('/api/students/push-subscription', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(subscription.toJSON()),
+			})
+
+			if (!response.ok) {
+				throw new Error('Could not save this device for alerts.')
+			}
+
+			setPushState('enabled')
+		} catch (error) {
+			console.warn('Failed to enable device alerts:', error)
+
+			setPushError(
+				error instanceof Error
+					? error.message
+					: 'Could not enable device alerts.',
+			)
+		} finally {
+			setPushBusy(false)
+		}
+	}
+
+	const disableBrowserNotifications = async () => {
+		setPushError('')
+
+		try {
+			setPushBusy(true)
+
+			const registration = await navigator.serviceWorker.getRegistration()
+			const subscription = await registration?.pushManager.getSubscription()
+
+			if (subscription) {
+				const endpoint = subscription.endpoint
+
+				await subscription.unsubscribe()
+
+				await fetch('/api/students/push-subscription', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ endpoint }),
+				}).catch(() => null)
+			}
+
+			setPushState('disabled')
+		} catch (error) {
+			console.warn('Failed to disable device alerts:', error)
+
+			setPushError(
+				error instanceof Error
+					? error.message
+					: 'Could not disable device alerts.',
+			)
+		} finally {
+			setPushBusy(false)
+		}
+	}
+
 	const displayName = studentName || 'Student'
 
 	const studentInitial = displayName.charAt(0).toUpperCase()
 
 	const firstName = displayName.trim().split(/\s+/)[0] || 'Student'
+
+	const stats = [
+		{
+			label: 'Applications',
+			value: applicationCount === null ? '–' : String(applicationCount),
+			icon: FileText,
+			tint: 'bg-blue-50 text-blue-600',
+		},
+	]
 
 	return (
 		<div className="flex min-h-screen bg-slate-50">
@@ -222,10 +510,7 @@ export default function StudentDashboard() {
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
-							<NavButton
-								key={item.label}
-								{...item}
-							/>
+							<NavButton key={item.label} {...item} />
 						))}
 					</nav>
 				</div>
@@ -239,14 +524,10 @@ export default function StudentDashboard() {
 
 							<div className="min-w-0">
 								<p className="truncate text-sm font-bold text-slate-900">
-									{studentLoading
-										? 'Loading...'
-										: displayName}
+									{studentLoading ? 'Loading...' : displayName}
 								</p>
 
-								<p className="text-xs text-slate-500">
-									Student
-								</p>
+								<p className="text-xs text-slate-500">Student</p>
 							</div>
 						</div>
 					</div>
@@ -266,21 +547,18 @@ export default function StudentDashboard() {
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
-							Welcome back,{' '}
-							{studentLoading ? '...' : firstName}
+							Welcome back, {studentLoading ? '...' : firstName}
 						</h1>
 
 						<p className="mt-1 text-sm text-slate-500">
-							Here's what's new with your housing search.
+							Here&apos;s what&apos;s new with your housing search.
 						</p>
 					</div>
 
 					<div className="flex items-center gap-3">
 						<button
 							type="button"
-							onClick={() =>
-								router.push('/students/browseListings')
-							}
+							onClick={() => router.push('/students/browseListings')}
 							className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
 						>
 							Browse Listings
@@ -290,10 +568,7 @@ export default function StudentDashboard() {
 
 				<div className="mt-6 grid gap-4 sm:grid-cols-2">
 					{stats.map((stat) => (
-						<StatCard
-							key={stat.label}
-							{...stat}
-						/>
+						<StatCard key={stat.label} {...stat} />
 					))}
 				</div>
 
@@ -308,7 +583,8 @@ export default function StudentDashboard() {
 									New accommodation matches
 								</h2>
 								<p className="text-sm text-slate-500">
-									Notifications are created when landlords add a listing that fits your saved preferences.
+									Notifications are created when landlords add a
+									listing that fits your saved preferences.
 								</p>
 							</div>
 						</div>
@@ -317,10 +593,15 @@ export default function StudentDashboard() {
 							<button
 								type="button"
 								onClick={markNotificationsRead}
-								className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+								disabled={
+									notifications.length === 0 ||
+									notifications.every((n) => n.read)
+								}
+								className="text-sm font-semibold text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300"
 							>
 								Mark all as read
 							</button>
+
 							{pushState === 'enabled' ? (
 								<button
 									type="button"
@@ -330,7 +611,8 @@ export default function StudentDashboard() {
 								>
 									{pushBusy ? 'Updating...' : 'Disable device alerts'}
 								</button>
-							) : pushState === 'unsupported' || pushState === 'blocked' ? null : (
+							) : pushState === 'unsupported' ||
+							  pushState === 'blocked' ? null : (
 								<button
 									type="button"
 									onClick={enableBrowserNotifications}
@@ -342,17 +624,26 @@ export default function StudentDashboard() {
 							)}
 						</div>
 					</div>
-						{pushError && <p className="mt-3 text-sm font-medium text-red-600">{pushError}</p>}
-						{pushState === 'unsupported' && !pushError && (
-							<p className="mt-3 text-sm text-amber-700">
-								This browser or connection does not support push notifications. Use HTTPS or localhost in a supported browser.
-							</p>
-						)}
-						{pushState === 'blocked' && !pushError && (
-							<p className="mt-3 text-sm text-amber-700">
-								Notifications are blocked in this browser. Allow notifications for StayMatch in the browser site settings, then reload.
-							</p>
-						)}
+
+					{pushError && (
+						<p className="mt-3 text-sm font-medium text-red-600">
+							{pushError}
+						</p>
+					)}
+					{pushState === 'unsupported' && !pushError && (
+						<p className="mt-3 text-sm text-amber-700">
+							This browser or connection does not support push
+							notifications. Use HTTPS or localhost in a supported
+							browser.
+						</p>
+					)}
+					{pushState === 'blocked' && !pushError && (
+						<p className="mt-3 text-sm text-amber-700">
+							Notifications are blocked in this browser. Allow
+							notifications for StayMatch in the browser site settings,
+							then reload.
+						</p>
+					)}
 
 					<div className="mt-5 space-y-3">
 						{notificationsLoading ? (
@@ -361,7 +652,8 @@ export default function StudentDashboard() {
 							</p>
 						) : notifications.length === 0 ? (
 							<p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">
-								No matching accommodation alerts yet. We will notify you when one is added.
+								No matching accommodation alerts yet. We will notify
+								you when one is added.
 							</p>
 						) : (
 							notifications.slice(0, 5).map((notification) => (
@@ -381,15 +673,21 @@ export default function StudentDashboard() {
 								>
 									<div className="flex items-start justify-between gap-3">
 										<div>
-											<p className="font-bold text-slate-950">{notification.title}</p>
-											<p className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</p>
+											<p className="font-bold text-slate-950">
+												{notification.title}
+											</p>
+											<p className="mt-1 text-sm leading-6 text-slate-600">
+												{notification.message}
+											</p>
 										</div>
 										{!notification.read && (
 											<span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" />
 										)}
 									</div>
 									<p className="mt-2 text-xs text-slate-400">
-										{new Date(notification.createdAt).toLocaleDateString()}
+										{new Date(
+											notification.createdAt,
+										).toLocaleDateString()}
 									</p>
 								</button>
 							))
@@ -408,9 +706,7 @@ export default function StudentDashboard() {
 								<button
 									type="button"
 									onClick={() =>
-										router.push(
-											'/students/browseListings'
-										)
+										router.push('/students/browseListings')
 									}
 									className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
 								>
@@ -436,6 +732,7 @@ export default function StudentDashboard() {
 										>
 											<div className="relative h-24 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:w-32">
 												{listing.photos?.[0] ? (
+													// eslint-disable-next-line @next/next/no-img-element
 													<img
 														src={listing.photos[0]}
 														alt={
@@ -450,15 +747,9 @@ export default function StudentDashboard() {
 													</div>
 												)}
 
-												{listing.photos?.length >
-													1 && (
+												{listing.photos?.length > 1 && (
 													<span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
-														{
-															listing
-																.photos
-																.length
-														}{' '}
-														photos
+														{listing.photos.length} photos
 													</span>
 												)}
 											</div>
@@ -467,20 +758,14 @@ export default function StudentDashboard() {
 												<div className="flex flex-wrap items-center gap-2">
 													<h3 className="text-base font-bold text-slate-950">
 														{listing.propertyType
-															.replace(
-																/_/g,
-																' '
-															)
+															.replace(/_/g, ' ')
 															.toLowerCase()
-															.replace(
-																/\b\w/g,
-																(char) =>
-																	char.toUpperCase()
+															.replace(/\b\w/g, (char) =>
+																char.toUpperCase(),
 															)}
 													</h3>
 
-													{listing.status ===
-														'VERIFIED' && (
+													{listing.status === 'VERIFIED' && (
 														<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-600">
 															<BadgeCheck className="h-3 w-3" />
 															Verified
@@ -495,8 +780,8 @@ export default function StudentDashboard() {
 
 												<div className="mt-2">
 													<span className="text-sm font-bold text-slate-900">
-														M{listing.price}{' '}
-														/ month
+														M{listing.price.toLocaleString()} /
+														month
 													</span>
 												</div>
 											</div>
@@ -505,7 +790,7 @@ export default function StudentDashboard() {
 												type="button"
 												onClick={() =>
 													router.push(
-														`/students/accommodationdetails?id=${listing.id}`
+														`/students/accommodationdetails?id=${listing.id}`,
 													)
 												}
 												className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
