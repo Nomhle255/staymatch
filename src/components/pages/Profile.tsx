@@ -414,10 +414,6 @@ function Profile() {
 									<Row icon={ShieldCheck} label="Account type">
 										{roleLabels[profile.role]}
 									</Row>
-
-									<Row icon={CalendarDays} label="Member since">
-										{formatDate(profile.createdAt)}
-									</Row>
 								</div>
 							) : (
 								/* EDIT MODE */
