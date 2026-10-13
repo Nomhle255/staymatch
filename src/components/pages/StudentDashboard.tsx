@@ -9,11 +9,11 @@ import {
 	LogOut,
 	MapPin,
 	BadgeCheck,
-	Bell,
 	User,
 	ChevronRight,
 	Image as ImageIcon,
 } from 'lucide-react'
+import NotificationsPanel from './NotificationsPanel'
 
 const navItems = [
 	{
@@ -33,7 +33,7 @@ const navItems = [
 		icon: User,
 		active: false,
 		href: '/profile',
-	}
+	},
 ]
 
 const MAX_RECOMMENDED = 3
@@ -47,38 +47,6 @@ type Accommodation = {
 	photos: string[]
 	status: string
 	amenities: string[]
-}
-
-type StudentNotification = {
-	id: string
-	title: string
-	message: string
-	read: boolean
-	createdAt: string
-	accommodation: {
-		id: string
-		area: string
-		propertyType: string
-		price: number
-	}
-}
-
-type PushState = 'loading' | 'unsupported' | 'disabled' | 'enabled' | 'blocked'
-
-function decodeVapidKey(base64Key: string) {
-	const padding = '='.repeat((4 - (base64Key.length % 4)) % 4)
-	const base64 = (base64Key + padding).replace(/-/g, '+').replace(/_/g, '/')
-	const rawData = window.atob(base64)
-	return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)))
-}
-
-function isPushSupported() {
-	return (
-		typeof window !== 'undefined' &&
-		'serviceWorker' in navigator &&
-		'PushManager' in window &&
-		'Notification' in window
-	)
 }
 
 function NavButton({
@@ -110,34 +78,6 @@ function NavButton({
 	)
 }
 
-function StatCard({
-	label,
-	value,
-	icon: Icon,
-	tint,
-}: {
-	label: string
-	value: string
-	icon: ComponentType<{ className?: string }>
-	tint: string
-}) {
-	return (
-		<div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
-			<div
-				className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${tint}`}
-			>
-				<Icon className="h-5 w-5" />
-			</div>
-
-			<p className="mt-4 text-2xl font-black tracking-[-0.03em] text-slate-950">
-				{value}
-			</p>
-
-			<p className="mt-1 text-sm text-slate-500">{label}</p>
-		</div>
-	)
-}
-
 function SidebarShell({ children }: { children: ReactNode }) {
 	return (
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
@@ -154,11 +94,6 @@ export default function StudentDashboard() {
 
 	const [matches, setMatches] = useState<Accommodation[]>([])
 	const [matchesLoading, setMatchesLoading] = useState(true)
-	const [notifications, setNotifications] = useState<StudentNotification[]>([])
-	const [notificationsLoading, setNotificationsLoading] = useState(true)
-	const [pushState, setPushState] = useState<PushState>('loading')
-	const [pushBusy, setPushBusy] = useState(false)
-	const [pushError, setPushError] = useState('')
 
 	// Logged-in student's profile
 	useEffect(() => {
@@ -200,7 +135,7 @@ export default function StudentDashboard() {
 		}
 	}, [])
 
-	// "Recommended for you": verified listings first, newest endpoint order after
+	// "Recommended for you": verified listings first
 	useEffect(() => {
 		let mounted = true
 
@@ -253,77 +188,6 @@ export default function StudentDashboard() {
 		}
 	}, [])
 
-	// Notifications created when a new listing matches saved preferences
-	useEffect(() => {
-		let mounted = true
-
-		const fetchNotifications = async () => {
-			try {
-				setNotificationsLoading(true)
-
-				const response = await fetch('/api/students/notifications')
-				const data = await response.json().catch(() => null)
-
-				if (!response.ok || !data) {
-					throw new Error(data?.error || 'Failed to load notifications.')
-				}
-
-				const list = Array.isArray(data) ? data : data.notifications || []
-
-				if (mounted) setNotifications(list)
-			} catch (error) {
-				console.warn('Failed to fetch notifications:', error)
-
-				if (mounted) setNotifications([])
-			} finally {
-				if (mounted) setNotificationsLoading(false)
-			}
-		}
-
-		fetchNotifications()
-
-		return () => {
-			mounted = false
-		}
-	}, [])
-	// Work out whether this device already has push alerts turned on
-	useEffect(() => {
-		let mounted = true
-
-		const checkPushState = async () => {
-			if (!isPushSupported()) {
-				if (mounted) setPushState('unsupported')
-				return
-			}
-
-			if (Notification.permission === 'denied') {
-				if (mounted) setPushState('blocked')
-				return
-			}
-
-			try {
-				const registration = await navigator.serviceWorker.getRegistration()
-				const subscription = await registration?.pushManager.getSubscription()
-
-				if (mounted) {
-					setPushState(
-						subscription && Notification.permission === 'granted'
-							? 'enabled'
-							: 'disabled',
-					)
-				}
-			} catch {
-				if (mounted) setPushState('disabled')
-			}
-		}
-
-		checkPushState()
-
-		return () => {
-			mounted = false
-		}
-	}, [])
-
 	const handleLogout = async () => {
 		try {
 			await fetch('/api/auth/logout', { method: 'POST' })
@@ -332,123 +196,6 @@ export default function StudentDashboard() {
 		}
 
 		router.push('/')
-	}
-
-	const markNotificationsRead = async () => {
-		if (notifications.every((notification) => notification.read)) return
-
-		// Update the screen right away, then tell the server
-		const previous = notifications
-		setNotifications((current) =>
-			current.map((notification) => ({ ...notification, read: true })),
-		)
-
-		try {
-			const response = await fetch('/api/students/notifications', {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ all: true }),
-			})
-
-			if (!response.ok) throw new Error('Request failed')
-		} catch (error) {
-			console.warn('Failed to mark notifications as read:', error)
-			setNotifications(previous)
-		}
-	}
-
-	const enableBrowserNotifications = async () => {
-		setPushError('')
-
-		if (!isPushSupported()) {
-			setPushState('unsupported')
-			return
-		}
-
-		const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-		if (!publicKey) {
-			setPushError('Device alerts are not configured yet.')
-			return
-		}
-
-		try {
-			setPushBusy(true)
-
-			const permission = await Notification.requestPermission()
-
-			if (permission !== 'granted') {
-				setPushState(permission === 'denied' ? 'blocked' : 'disabled')
-				return
-			}
-
-			const registration = await navigator.serviceWorker.register('/sw.js')
-			await navigator.serviceWorker.ready
-
-			const subscription =
-				(await registration.pushManager.getSubscription()) ??
-				(await registration.pushManager.subscribe({
-					userVisibleOnly: true,
-					applicationServerKey: decodeVapidKey(publicKey) as BufferSource,
-				}))
-
-			const response = await fetch('/api/students/push-subscription', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(subscription.toJSON()),
-			})
-
-			if (!response.ok) {
-				throw new Error('Could not save this device for alerts.')
-			}
-
-			setPushState('enabled')
-		} catch (error) {
-			console.warn('Failed to enable device alerts:', error)
-
-			setPushError(
-				error instanceof Error
-					? error.message
-					: 'Could not enable device alerts.',
-			)
-		} finally {
-			setPushBusy(false)
-		}
-	}
-
-	const disableBrowserNotifications = async () => {
-		setPushError('')
-
-		try {
-			setPushBusy(true)
-
-			const registration = await navigator.serviceWorker.getRegistration()
-			const subscription = await registration?.pushManager.getSubscription()
-
-			if (subscription) {
-				const endpoint = subscription.endpoint
-
-				await subscription.unsubscribe()
-
-				await fetch('/api/students/push-subscription', {
-					method: 'DELETE',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ endpoint }),
-				}).catch(() => null)
-			}
-
-			setPushState('disabled')
-		} catch (error) {
-			console.warn('Failed to disable device alerts:', error)
-
-			setPushError(
-				error instanceof Error
-					? error.message
-					: 'Could not disable device alerts.',
-			)
-		} finally {
-			setPushBusy(false)
-		}
 	}
 
 	const displayName = studentName || 'Student'
@@ -528,128 +275,8 @@ export default function StudentDashboard() {
 						</button>
 					</div>
 				</div>
-				<section className="mt-6 rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm">
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<div className="flex items-center gap-3">
-							<div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
-								<Bell className="h-5 w-5" />
-							</div>
-							<div>
-								<h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
-									New accommodation matches
-								</h2>
-								<p className="text-sm text-slate-500">
-									Notifications are created when landlords add a
-									listing that fits your saved preferences.
-								</p>
-							</div>
-						</div>
 
-						<div className="flex flex-wrap items-center gap-3">
-							<button
-								type="button"
-								onClick={markNotificationsRead}
-								disabled={
-									notifications.length === 0 ||
-									notifications.every((n) => n.read)
-								}
-								className="text-sm font-semibold text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300"
-							>
-								Mark all as read
-							</button>
-
-							{pushState === 'enabled' ? (
-								<button
-									type="button"
-									onClick={disableBrowserNotifications}
-									disabled={pushBusy}
-									className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
-								>
-									{pushBusy ? 'Updating...' : 'Disable device alerts'}
-								</button>
-							) : pushState === 'unsupported' ||
-							  pushState === 'blocked' ? null : (
-								<button
-									type="button"
-									onClick={enableBrowserNotifications}
-									disabled={pushBusy || pushState === 'loading'}
-									className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
-								>
-									{pushBusy ? 'Enabling...' : 'Enable device alerts'}
-								</button>
-							)}
-						</div>
-					</div>
-
-					{pushError && (
-						<p className="mt-3 text-sm font-medium text-red-600">
-							{pushError}
-						</p>
-					)}
-					{pushState === 'unsupported' && !pushError && (
-						<p className="mt-3 text-sm text-amber-700">
-							This browser or connection does not support push
-							notifications. Use HTTPS or localhost in a supported
-							browser.
-						</p>
-					)}
-					{pushState === 'blocked' && !pushError && (
-						<p className="mt-3 text-sm text-amber-700">
-							Notifications are blocked in this browser. Allow
-							notifications for StayMatch in the browser site settings,
-							then reload.
-						</p>
-					)}
-
-					<div className="mt-5 space-y-3">
-						{notificationsLoading ? (
-							<p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">
-								Loading notifications...
-							</p>
-						) : notifications.length === 0 ? (
-							<p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">
-								No matching accommodation alerts yet. We will notify
-								you when one is added.
-							</p>
-						) : (
-							notifications.slice(0, 5).map((notification) => (
-								<button
-									key={notification.id}
-									type="button"
-									onClick={() =>
-										router.push(
-											`/students/accommodationdetails?id=${notification.accommodation.id}`,
-										)
-									}
-									className={`w-full rounded-2xl border p-4 text-left transition hover:border-blue-300 hover:shadow-md ${
-										notification.read
-											? 'border-slate-200/70 bg-white/70'
-											: 'border-blue-200 bg-white'
-									}`}
-								>
-									<div className="flex items-start justify-between gap-3">
-										<div>
-											<p className="font-bold text-slate-950">
-												{notification.title}
-											</p>
-											<p className="mt-1 text-sm leading-6 text-slate-600">
-												{notification.message}
-											</p>
-										</div>
-										{!notification.read && (
-											<span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" />
-										)}
-									</div>
-									<p className="mt-2 text-xs text-slate-400">
-										{new Date(
-											notification.createdAt,
-										).toLocaleDateString()}
-									</p>
-								</button>
-							))
-						)}
-					</div>
-				</section>
+				<NotificationsPanel />
 
 				<div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
 					<div className="space-y-6">

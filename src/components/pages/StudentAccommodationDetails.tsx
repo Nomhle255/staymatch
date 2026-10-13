@@ -575,7 +575,7 @@ function StudentAccommodationDetails() {
 										<div className="flex items-center justify-between gap-3">
 											<dt className="flex items-center gap-2 text-slate-500">
 												<DoorClosed className="h-4 w-4" />
-												Room Number / Name
+												Room Number
 											</dt>
 											<dd className="font-semibold text-slate-800">
 												{listing.roomIdentifier}
@@ -603,36 +603,6 @@ function StudentAccommodationDetails() {
 										</dt>
 										<dd className="font-semibold text-slate-800">
 											{listing.area}
-										</dd>
-									</div>
-
-									<div className="flex items-center justify-between gap-3">
-										<dt className="flex items-center gap-2 text-slate-500">
-											<CalendarDays className="h-4 w-4" />
-											Availability
-										</dt>
-										<dd className="font-semibold text-slate-800">
-											{formatAvailability(
-												listing.availableFrom,
-											)}
-										</dd>
-									</div>
-
-									<div className="flex items-center justify-between gap-3">
-										<dt className="flex items-center gap-2 text-slate-500">
-											<BadgeCheck className="h-4 w-4" />
-											Verification
-										</dt>
-										<dd
-											className={`font-semibold ${
-												listing.verified
-													? 'text-emerald-600'
-													: 'text-slate-800'
-											}`}
-										>
-											{listing.verified
-												? 'Verified'
-												: 'Not verified yet'}
 										</dd>
 									</div>
 								</dl>

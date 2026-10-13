@@ -60,11 +60,6 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 					icon: PlusCircle,
 					href: '/landlord/addaccommodation',
 				},
-				{
-					label: 'Applications',
-					icon: Users,
-					href: '/landlord/applications',
-				},
 				profileNavItem,
 			]
 
@@ -90,11 +85,6 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 					label: 'Browse Listings',
 					icon: Search,
 					href: '/students/browseListings',
-				},
-				{
-					label: 'Applications',
-					icon: FileText,
-					href: '/students/applications',
 				},
 				profileNavItem,
 			]
@@ -418,10 +408,6 @@ function Profile() {
 
 									<Row icon={ShieldCheck} label="Account type">
 										{roleLabels[profile.role]}
-									</Row>
-
-									<Row icon={CalendarDays} label="Member since">
-										{formatDate(profile.createdAt)}
 									</Row>
 								</div>
 							) : (

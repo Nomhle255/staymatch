@@ -61,10 +61,27 @@ export async function PATCH(request: NextRequest) {
 			)
 		}
 
-		await prisma.notification.updateMany({
-			where: { studentId, read: false },
-			data: { read: true },
-		})
+		const body = await request.json().catch(() => ({}))
+
+		const where: {
+			studentId: string
+			read: boolean
+			id?: string
+			accommodationId?: string
+		} = { studentId, read: false }
+
+		if (typeof body.id === 'string') {
+			where.id = body.id
+		} else if (typeof body.accommodationId === 'string') {
+			where.accommodationId = body.accommodationId
+		} else if (body.all !== true) {
+			return NextResponse.json(
+				{ error: 'Specify id, accommodationId, or all.' },
+				{ status: 400 },
+			)
+		}
+
+		await prisma.notification.updateMany({ where, data: { read: true } })
 
 		return NextResponse.json({ message: 'Notifications marked as read.' })
 	} catch (error) {
