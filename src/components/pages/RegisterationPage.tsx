@@ -632,33 +632,6 @@ function RegisterUser() {
 						</div>
 					</Field>
 
-					{/* Terms */}
-					<label className="flex items-start gap-3 text-sm text-slate-500">
-						<input
-							type="checkbox"
-							checked={agreed}
-							onChange={(event) =>
-								setAgreed(
-									event.target.checked,
-								)
-							}
-							disabled={isSubmitting}
-							className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-						/>
-
-						<span>
-							I agree to the{' '}
-							<span className="font-semibold text-blue-600">
-								Terms of Service
-							</span>{' '}
-							and{' '}
-							<span className="font-semibold text-blue-600">
-								Privacy Policy
-							</span>
-							.
-						</span>
-					</label>
-
 					{/* Complete Google Registration */}
 					{pendingGoogleToken ? (
 						<button
