@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
 	LayoutDashboard,
 	Search,
-	FileText,
+	Users,
 	LogOut,
 	MapPin,
 	BadgeCheck,
@@ -37,10 +37,10 @@ const navItems = [
 		href: '/students/browseListings',
 	},
 	{
-		label: 'Applications',
-		icon: FileText,
+		label: 'Profile',
+		icon: Users,
 		active: false,
-		href: '/students/applications',
+		href: '/profile',
 	},
 ]
 

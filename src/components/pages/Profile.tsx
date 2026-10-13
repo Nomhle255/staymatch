@@ -86,11 +86,6 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 					icon: Search,
 					href: '/students/browseListings',
 				},
-				{
-					label: 'Applications',
-					icon: FileText,
-					href: '/students/applications',
-				},
 				profileNavItem,
 			]
 	}
