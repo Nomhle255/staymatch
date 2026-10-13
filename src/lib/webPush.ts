@@ -10,12 +10,20 @@ function configureWebPush() {
 	const privateKey = process.env.VAPID_PRIVATE_KEY
 
 	if (!subject || !publicKey || !privateKey) {
+		console.error(
+			'Browser push is disabled: WEB_PUSH_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY, and VAPID_PRIVATE_KEY are required.',
+		)
 		return false
 	}
 
-	webpush.setVapidDetails(subject, publicKey, privateKey)
-	configured = true
-	return true
+	try {
+		webpush.setVapidDetails(subject, publicKey, privateKey)
+		configured = true
+		return true
+	} catch (error) {
+		console.error('Invalid VAPID configuration:', error)
+		return false
+	}
 }
 
 export type PushSubscriptionPayload = {
@@ -26,15 +34,20 @@ export type PushSubscriptionPayload = {
 	}
 }
 
+export type PushResult = {
+	sent: boolean
+	reason?: 'missing-vapid-config'
+	statusCode?: number
+	message?: string
+	code?: string
+}
+
 export async function sendBrowserPush(
 	subscription: PushSubscriptionPayload,
 	payload: { title: string; message: string; accommodationId: string },
-) {
+): Promise<PushResult> {
 	if (!configureWebPush()) {
-		console.error(
-			'Browser push is disabled: WEB_PUSH_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY, and VAPID_PRIVATE_KEY are required.',
-		)
-		return { sent: false, reason: 'missing-vapid-config' as const }
+		return { sent: false, reason: 'missing-vapid-config' }
 	}
 
 	try {
@@ -50,21 +63,26 @@ export async function sendBrowserPush(
 		await Promise.race([
 			delivery,
 			new Promise<never>((_, reject) =>
-				setTimeout(() => reject(new Error('Push provider request timed out.')), 8000),
+				setTimeout(
+					() => reject(new Error('Push provider request timed out.')),
+					8000,
+				),
 			),
 		])
 
-		return { sent: true as const }
+		return { sent: true }
 	} catch (error) {
 		const statusCode = (error as { statusCode?: number }).statusCode
 		const message = error instanceof Error ? error.message : String(error)
 		const code = (error as { code?: string }).code
+
 		console.error('Browser push delivery failed:', {
 			statusCode,
 			code,
 			message,
 			endpoint: subscription.endpoint,
 		})
+
 		return { sent: false, statusCode, message, code }
 	}
 }
