@@ -60,11 +60,6 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 					icon: PlusCircle,
 					href: '/landlord/addaccommodation',
 				},
-				{
-					label: 'Applications',
-					icon: Users,
-					href: '/landlord/applications',
-				},
 				profileNavItem,
 			]
 

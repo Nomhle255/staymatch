@@ -60,10 +60,10 @@ const navItems = [
 		href: '/landlord/addaccommodation',
 	},
 	{
-		label: 'Applications',
+		label: 'Profile',
 		icon: Users,
 		active: false,
-		href: '/landlord/applications',
+		href: '/profile',
 	},
 ]
 
