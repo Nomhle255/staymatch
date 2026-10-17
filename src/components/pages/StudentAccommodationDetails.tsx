@@ -68,6 +68,7 @@ type Accommodation = {
 	photos: string[]
 	landlordPhone: string | null
 	roomIdentifier: string
+	landlordName: string | null
 }
 
 type IconComponent = ComponentType<{ className?: string }>
@@ -278,6 +279,7 @@ function StudentAccommodationDetails() {
 					photos: normalizePhotos(match),
 					roomIdentifier: match.roomIdentifier?.trim() || '',
 					landlordPhone: match.landlord?.phone || null,
+					landlordName: match.landlord?.name || null,
 				})
 
 				setActivePhoto(0)
@@ -605,6 +607,9 @@ function StudentAccommodationDetails() {
 											{listing.area}
 										</dd>
 									</div>
+									<p className="mt-2 text-sm text-slate-500">
+										Listed by {listing.landlordName?.split(' ')[0] ?? 'the landlord'}
+									</p>
 								</dl>
 
 								<button

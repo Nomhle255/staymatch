@@ -6,7 +6,7 @@ import { createResetToken } from '@/lib/passwordReset'
 // Same answer whether or not the email exists, so nobody can use this
 // form to find out who has an account.
 const GENERIC_MESSAGE =
-	'If an account exists for that email, we’ve sent a link to reset your password.'
+	'We’ve sent a link to reset your password.'
 
 function escapeHtml(value: string) {
 	return value
@@ -49,7 +49,6 @@ async function sendResetEmail(to: string, name: string, link: string) {
 			<p>Hi ${escapeHtml(name)},</p>
 			<p>We received a request to reset your StayMatch password. Click the button below to choose a new one. The link expires in 1 hour.</p>
 			<p><a href="${link}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#ffffff;border-radius:10px;text-decoration:none;font-weight:bold;">Reset password</a></p>
-			<p>Or paste this link into your browser:<br>${escapeHtml(link)}</p>
 			<p>If you didn't ask for this, you can ignore this email and your password will stay the same.</p>
 		`,
 	})

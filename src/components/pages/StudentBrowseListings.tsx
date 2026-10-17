@@ -170,6 +170,7 @@ type Accommodation = {
 	latitude: number
 	longitude: number
 	landlordPhone: string | null
+	landlordName: string | null
 }
 
 type ListingWithDistance = Accommodation & {
@@ -566,8 +567,8 @@ function StudentBrowseListings() {
 						status: accommodation.status,
 						latitude: Number(accommodation.latitude),
 						longitude: Number(accommodation.longitude),
-						landlordPhone:
-							accommodation.landlord?.phone || null,
+						landlordPhone: accommodation.landlord?.phone || null,
+						landlordName: accommodation.landlord?.name || null,
 					}))
 
 				setListings(formattedListings)
@@ -1324,7 +1325,9 @@ function StudentBrowseListings() {
 													{selectedUniversity.name}
 												</p>
 											)}
-
+										<p className="mt-2 text-sm text-slate-500">
+											Landlord: {listing.landlordName?.split(' ')[0] ?? 'the landlord'}
+										</p>
 										<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
 											M{listing.price.toLocaleString()}
 											<span className="text-sm font-medium text-slate-400">

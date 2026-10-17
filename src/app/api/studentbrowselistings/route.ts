@@ -11,6 +11,7 @@ export async function GET() {
 				landlord: {
 					select: {
 						phone: true,
+						name: true,
 					},
 				},
 			},
