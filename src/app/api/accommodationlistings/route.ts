@@ -18,9 +18,6 @@ export async function GET(request: NextRequest) {
 		const accommodations = await prisma.accommodation.findMany({
 			where: { landlordId: payload.userId },
 			orderBy: { createdAt: 'desc' },
-			include: {
-				_count: { select: { applications: true } },
-			},
 		})
 
 		return NextResponse.json({ accommodations })
