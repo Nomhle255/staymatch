@@ -33,14 +33,11 @@ type AdminAccommodation = {
 	landlordPhone: string | null
 	photo: string | null
 	photoCount: number
-	applicationCount: number
 }
 
 const statusOptions = [
 	{ label: 'All statuses', value: 'ALL' },
 	{ label: 'Available', value: 'AVAILABLE' },
-	{ label: 'Verified', value: 'VERIFIED' },
-	{ label: 'Pending review', value: 'PENDING_REVIEW' },
 	{ label: 'Occupied', value: 'OCCUPIED' },
 	{ label: 'Inactive', value: 'INACTIVE' },
 ]
@@ -57,16 +54,6 @@ const statusStyles: Record<
 		label: 'Available',
 		tint: 'bg-emerald-50 text-emerald-600',
 		icon: BadgeCheck,
-	},
-	VERIFIED: {
-		label: 'Verified',
-		tint: 'bg-emerald-50 text-emerald-600',
-		icon: BadgeCheck,
-	},
-	PENDING_REVIEW: {
-		label: 'Pending review',
-		tint: 'bg-amber-50 text-amber-600',
-		icon: Clock,
 	},
 	OCCUPIED: {
 		label: 'Occupied',
@@ -192,11 +179,7 @@ function AdminAccommodations() {
 		: null
 
 	const liveCount = accommodations.filter(
-		(item) => item.status === 'AVAILABLE' || item.status === 'VERIFIED',
-	).length
-
-	const pendingCount = accommodations.filter(
-		(item) => item.status === 'PENDING_REVIEW',
+		(item) => item.status === 'AVAILABLE',
 	).length
 
 	const occupiedCount = accommodations.filter(
@@ -212,8 +195,7 @@ function AdminAccommodations() {
 			{!loading && !error && (
 				<div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
 					<StatCard label="Listings" value={accommodations.length} />
-					<StatCard label="Live" value={liveCount} />
-					<StatCard label="Pending review" value={pendingCount} />
+					<StatCard label="Available" value={liveCount} />
 					<StatCard label="Occupied" value={occupiedCount} />
 				</div>
 			)}
@@ -406,15 +388,6 @@ function AdminAccommodations() {
 												<span>
 													Added{' '}
 													{formatDate(item.createdAt)}
-												</span>
-
-												<span>
-													{item.applicationCount}{' '}
-													application
-													{item.applicationCount !==
-													1
-														? 's'
-														: ''}
 												</span>
 											</div>
 
