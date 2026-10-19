@@ -190,6 +190,48 @@ function AddAccommodation() {
 	const [message, setMessage] = useState('')
 	const [error, setError] = useState('')
 
+	// Logged-in landlord
+	const [landlordName, setLandlordName] = useState('')
+	const [profileLoading, setProfileLoading] = useState(true)
+
+	/*
+	 * Logged-in landlord's profile (shown in the sidebar).
+	 */
+	useEffect(() => {
+		let mounted = true
+
+		const fetchProfile = async () => {
+			try {
+				const response = await fetch('/api/profile')
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) {
+					throw new Error(
+						data?.error ||
+							`Failed to load profile (${response.status}).`,
+					)
+				}
+
+				if (mounted) {
+					setLandlordName(data.user?.name ?? data.name ?? '')
+				}
+			} catch (error) {
+				// The name only shows in the sidebar, so don't break the page
+				console.warn('Failed to fetch profile:', error)
+
+				if (mounted) setLandlordName('')
+			} finally {
+				if (mounted) setProfileLoading(false)
+			}
+		}
+
+		fetchProfile()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
+
 	/*
 	 * Initialise Leaflet map.
 	 */
@@ -449,6 +491,16 @@ function AddAccommodation() {
 		setPhotos((current) => current.filter((_, i) => i !== index))
 	}
 
+	const handleLogout = async () => {
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' })
+		} catch (error) {
+			console.warn('Logout request failed:', error)
+		}
+
+		router.push('/')
+	}
+
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
@@ -538,6 +590,9 @@ function AddAccommodation() {
 		}
 	}
 
+	const displayName = landlordName || 'Landlord'
+	const initial = displayName.charAt(0).toUpperCase()
+
 	return (
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
@@ -563,12 +618,12 @@ function AddAccommodation() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								K
+								{profileLoading ? '...' : initial}
 							</div>
 
-							<div>
-								<p className="text-sm font-bold text-slate-900">
-									Khaya Cathala
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{profileLoading ? 'Loading...' : displayName}
 								</p>
 
 								<p className="text-xs text-slate-500">Landlord</p>
@@ -576,13 +631,14 @@ function AddAccommodation() {
 						</div>
 					</div>
 
-					<Link
-						href="/"
+					<button
+						type="button"
+						onClick={handleLogout}
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
 						Log out
-					</Link>
+					</button>
 				</div>
 			</SidebarShell>
 
@@ -937,6 +993,7 @@ function AddAccommodation() {
 											key={`${photo.name}-${index}`}
 											className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200"
 										>
+											{/* eslint-disable-next-line @next/next/no-img-element */}
 											<img
 												src={photo.dataUrl}
 												alt={photo.name}
@@ -959,15 +1016,6 @@ function AddAccommodation() {
 
 						{/* PUBLISH */}
 						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<h2 className="text-lg font-extrabold text-slate-950">
-								Publish
-							</h2>
-
-							<p className="mt-1 text-sm leading-6 text-slate-500">
-								New listings are reviewed before appearing as
-								"Verified" to students.
-							</p>
-
 							<div className="mt-5">
 								<button
 									type="submit"

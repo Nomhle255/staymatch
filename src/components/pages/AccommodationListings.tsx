@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode, ComponentType } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import DeleteAccommodation from '@/components/pages/DeleteAccommodation'
 import {
 	LayoutDashboard,
@@ -168,6 +169,8 @@ function SidebarShell({ children }: { children: ReactNode }) {
 }
 
 function AccommodationListings() {
+	const router = useRouter()
+
 	const [activeFilter, setActiveFilter] = useState('All')
 	const [query, setQuery] = useState('')
 	const [propertyTypeFilter, setPropertyTypeFilter] =
@@ -179,6 +182,44 @@ function AccommodationListings() {
 	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(
 		null,
 	)
+
+	const [landlordName, setLandlordName] = useState('')
+	const [profileLoading, setProfileLoading] = useState(true)
+
+	// Logged-in landlord's profile
+	useEffect(() => {
+		let mounted = true
+
+		const fetchProfile = async () => {
+			try {
+				const response = await fetch('/api/profile')
+				const data = await response.json().catch(() => null)
+
+				if (!response.ok || !data) {
+					throw new Error(
+						data?.error ||
+							`Failed to load profile (${response.status}).`,
+					)
+				}
+
+				if (mounted) {
+					setLandlordName(data.user?.name ?? data.name ?? '')
+				}
+			} catch (error) {
+				console.warn('Failed to fetch profile:', error)
+
+				if (mounted) setLandlordName('')
+			} finally {
+				if (mounted) setProfileLoading(false)
+			}
+		}
+
+		fetchProfile()
+
+		return () => {
+			mounted = false
+		}
+	}, [])
 
 	useEffect(() => {
 		const fetchAccommodations = async () => {
@@ -227,6 +268,16 @@ function AccommodationListings() {
 		fetchAccommodations()
 	}, [])
 
+	const handleLogout = async () => {
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' })
+		} catch (error) {
+			console.warn('Logout request failed:', error)
+		}
+
+		router.push('/')
+	}
+
 	const handleAvailabilityChange = async (
 		listingId: string,
 		newStatus: AvailabilityStatus,
@@ -235,18 +286,18 @@ function AccommodationListings() {
 			setUpdatingStatusId(listingId)
 			setError('')
 
-		const response = await fetch(
-			`/api/accommodationlistings/${listingId}`,
-			{
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
+			const response = await fetch(
+				`/api/accommodationlistings/${listingId}`,
+				{
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						status: newStatus,
+					}),
 				},
-				body: JSON.stringify({
-					status: newStatus,
-				}),
-			},
-		)
+			)
 			const data = await response.json()
 
 			if (!response.ok) {
@@ -300,6 +351,9 @@ function AccommodationListings() {
 		return matchesFilter && matchesPropertyType && matchesQuery
 	})
 
+	const displayName = landlordName || 'Landlord'
+	const initial = displayName.charAt(0).toUpperCase()
+
 	return (
 		<div className="flex min-h-screen bg-slate-50">
 			<SidebarShell>
@@ -325,12 +379,12 @@ function AccommodationListings() {
 					<div className="rounded-2xl bg-slate-50 p-4">
 						<div className="flex items-center gap-3">
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								K
+								{profileLoading ? '...' : initial}
 							</div>
 
-							<div>
-								<p className="text-sm font-bold text-slate-900">
-									Khaya Cathala
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{profileLoading ? 'Loading...' : displayName}
 								</p>
 								<p className="text-xs text-slate-500">
 									Landlord
@@ -339,13 +393,14 @@ function AccommodationListings() {
 						</div>
 					</div>
 
-					<Link
-						href="/"
+					<button
+						type="button"
+						onClick={handleLogout}
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
 						Log out
-					</Link>
+					</button>
 				</div>
 			</SidebarShell>
 
@@ -442,7 +497,9 @@ function AccommodationListings() {
 					</div>
 				)}
 
-				{!loading && !error && (
+				{/* Keep the list visible if a later action (e.g. changing
+				    availability) fails, so one error doesn't hide everything */}
+				{!loading && (!error || listings.length > 0) && (
 					<>
 						<p className="mt-5 text-sm text-slate-500">
 							<span className="font-bold text-slate-950">
@@ -490,6 +547,7 @@ function AccommodationListings() {
 									>
 										<div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500">
 											{firstPhoto ? (
+												// eslint-disable-next-line @next/next/no-img-element
 												<img
 													src={firstPhoto}
 													alt={`${typeLabel}${
@@ -694,4 +752,3 @@ function AccommodationListings() {
 }
 
 export default AccommodationListings
-
