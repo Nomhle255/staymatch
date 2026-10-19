@@ -78,7 +78,7 @@ export async function PATCH(request: NextRequest) {
 			)
 		}
 
-		let body: { name?: unknown; phone?: unknown }
+		let body: { name?: unknown; phone?: unknown; email?: unknown } 
 
 		try {
 			body = await request.json()
@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest) {
 			)
 		}
 
-		const { name, phone } = body
+		const { name, phone, email } = body
 
 		if (typeof name !== 'string') {
 			return NextResponse.json(
@@ -142,6 +142,7 @@ export async function PATCH(request: NextRequest) {
 			data: {
 				name: cleanName,
 				phone: cleanPhone || null,
+				email: typeof email === 'string' ? email.trim() : undefined,
 			},
 			select: profileSelect,
 		})
