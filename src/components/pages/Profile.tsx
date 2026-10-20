@@ -156,6 +156,7 @@ function Profile() {
 	const [isEditing, setIsEditing] = useState(false)
 	const [name, setName] = useState('')
 	const [phone, setPhone] = useState('')
+	const [email, setEmail] = useState('')
 
 	const [saving, setSaving] = useState(false)
 	const [saveError, setSaveError] = useState('')
@@ -197,6 +198,7 @@ function Profile() {
 
 		setName(profile.name)
 		setPhone(profile.phone ?? '')
+		setEmail(profile.email)
 		setSaveError('')
 		setSuccessMessage('')
 		setIsEditing(true)
@@ -209,7 +211,7 @@ function Profile() {
 
 	const hasChanges =
 		profile !== null &&
-		(name.trim() !== profile.name || phone.trim() !== (profile.phone ?? ''))
+		(name.trim() !== profile.name || phone.trim() !== (profile.phone ?? '') || email.trim() !== profile.email)
 
 	const handleSave = async (event: React.FormEvent) => {
 		event.preventDefault()
@@ -223,7 +225,7 @@ function Profile() {
 			const response = await fetch('/api/profile', {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, phone }),
+				body: JSON.stringify({ name, phone, email }),
 			})
 
 			const data = await response.json().catch(() => null)
@@ -449,15 +451,13 @@ function Profile() {
 
 											<input
 												type="email"
-												value={profile.email}
-												disabled
-												className={`${inputClasses} cursor-not-allowed bg-slate-50 text-slate-500`}
+												value={email}
+												onChange={(event) => setEmail(event.target.value)}
+												placeholder="Enter your email address"
+												required
+												className={inputClasses}
 											/>
 										</div>
-
-										<p className="text-xs text-slate-400">
-											Your email can&apos;t be changed.
-										</p>
 									</label>
 
 									<label className="grid gap-2">

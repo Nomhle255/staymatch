@@ -129,16 +129,21 @@ function LoginPage() {
 					)
 
 				if (!response.ok || !data) {
-					setError(
-						data?.error ??
-							'Something went wrong.',
-					)
-
 					if (response.status === 401) {
+						setError('We couldn’t verify your Google sign-in. Please try again.')
 						setPendingToken(null)
+					} else if (response.status === 429) {
+						setError('Too many attempts. Please wait a moment and try again.')
+					} else if (response.status >= 500) {
+						setError('Sign-in is temporarily unavailable. Please try again later.')
+					} else {
+						setError('We couldn’t complete your sign-in. Please try again.')
 					}
 
-					setIsSubmitting(false)
+					console.error('Google login request failed:', {
+						status: response.status,
+						errorCode: data?.code,
+					})
 					return
 				}
 
@@ -150,10 +155,12 @@ function LoginPage() {
 
 				setPendingToken(null)
 				redirectByRole(data.user?.role)
-			} catch {
+			} catch (error) {
+				console.error('Unexpected Google login error:', error)
 				setError(
-					'Could not reach the server. Please try again.',
+					'We couldn’t sign you in right now. Please check your connection and try again.',
 				)
+			} finally {
 				setIsSubmitting(false)
 			}
 		},
@@ -163,7 +170,9 @@ function LoginPage() {
 	const { requestAccessToken } = useGoogleAuth({
 		onSuccess: submitGoogle,
 		onError: (message) => {
-			setError(message)
+			// Keep technical authentication errors out of the user interface.
+			console.error('Google authentication failed:', message)
+			setError('We couldn’t sign you in with Google. Please try again.')
 			setIsSubmitting(false)
 		},
 	})
@@ -203,6 +212,7 @@ function LoginPage() {
 	) => {
 		event.preventDefault()
 		setError('')
+		setSuccessMessage('')
 		setIsSubmitting(true)
 
 		try {
@@ -211,52 +221,61 @@ function LoginPage() {
 				{
 					method: 'POST',
 					headers: {
-						'Content-Type':
-							'application/json',
+						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({
-						email,
-						password,
-					}),
+					body: JSON.stringify({ email, password }),
 				},
 			)
 
-			const data = await response.json()
+			// Some server/proxy errors return HTML or an empty body instead of JSON.
+			const data = await response.json().catch(() => null)
 
 			if (!response.ok) {
-				setError(
-					data.error ??
-						'Something went wrong.',
-				)
-				setIsSubmitting(false)
+				if (response.status === 401) {
+					setError('The email or password you entered is incorrect.')
+				} else if (response.status === 403) {
+					setError('You cannot sign in at this time. Please contact support if the problem continues.')
+				} else if (response.status === 429) {
+					setError('Too many sign-in attempts. Please wait a moment and try again.')
+				} else if (response.status >= 500) {
+					setError('We’re having trouble signing you in. Please try again later.')
+				} else {
+					setError('We couldn’t sign you in. Please check your details and try again.')
+				}
+
+				console.error('Login request failed:', {
+					status: response.status,
+					errorCode: data?.code,
+				})
 				return
 			}
 
-			setSuccessMessage(
-				'Logged in successfully! Redirecting...',
-			)
+			if (!data?.user?.role) {
+				console.error('Login returned an unexpected response.')
+				setError('We couldn’t complete your sign-in. Please try again.')
+				return
+			}
 
-			const role = data.user?.role
+			setSuccessMessage('Sign-in successful! Redirecting...')
 
+			const role = data.user.role
 			setTimeout(() => {
 				if (role === 'ADMINISTRATOR') {
 					router.push('/admin')
 				} else if (role === 'LANDLORD') {
-					router.push(
-						'/landlord/dashboard',
-					)
+					router.push('/landlord/dashboard')
 				} else if (role === 'STUDENT') {
-					router.push(
-						'/students/dashboard',
-					)
+					router.push('/students/dashboard')
 				} else {
 					router.push('/')
 				}
 			}, 1200)
-		} catch {
+		} catch (error) {
+			console.error('Unexpected login error:', error)
 			setError(
-				'Could not reach the server. Please try again.',
+				'We couldn’t sign you in right now. Please check your connection and try again.',
 			)
+		} finally {
 			setIsSubmitting(false)
 		}
 	}
