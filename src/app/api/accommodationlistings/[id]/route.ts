@@ -174,6 +174,7 @@ export async function PATCH(
 			latitude,
 			longitude,
 			roomIdentifier,
+			photos,
 		} = body
 
 		if (status !== undefined) {
@@ -236,6 +237,7 @@ export async function PATCH(
 					? new Date(availableFrom)
 					: null,
 				roomIdentifier: roomIdentifier || null,
+				photos: Array.isArray(photos) ? photos : [],
 			},
 		})
 
