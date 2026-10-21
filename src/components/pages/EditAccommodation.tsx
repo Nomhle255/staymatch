@@ -33,6 +33,13 @@ import {
 	Search,
 	CheckCircle2,
 	ArrowLeft,
+	PanelTop,
+	LayoutGrid,
+	Blinds,
+	DoorClosed,
+	LockKeyhole,
+	Fence
+	
 } from 'lucide-react'
 import type * as Leaflet from 'leaflet'
 
@@ -51,13 +58,18 @@ const propertyTypes = [
 ]
 
 const amenitiesList = [
-	{ label: 'Wi-Fi included', icon: Wifi },
+	{ label: 'Water included', icon: Droplets },
+	{ label: 'Electricity included', icon: Zap },
+	{ label: 'Ceiling', icon: PanelTop },
+	{ label: 'Tile', icon: LayoutGrid },
+	{ label: 'Buglars on windows', icon: Blinds },
+	{ label: 'buglars on doors', icon: DoorClosed },
+	{ label: 'Buglars on doors and windows', icon: LockKeyhole },
+	{ label: 'Fenced', icon: Fence },
+	{ label: 'Wi-Fi', icon: Wifi },
 	{ label: 'Furnished', icon: Sofa },
 	{ label: 'Parking available', icon: Car },
 	{ label: '24/7 security', icon: ShieldCheck },
-	{ label: 'Water included', icon: Droplets },
-	{ label: 'Electricity included', icon: Zap },
-	{ label: 'Laundry facilities', icon: WashingMachine },
 ]
 
 const inputClasses =
