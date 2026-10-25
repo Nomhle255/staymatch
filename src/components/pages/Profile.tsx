@@ -1,12 +1,10 @@
 'use client'
-
 import { useEffect, useState } from 'react'
-import type { ReactNode, ComponentType } from 'react'
+import type { ReactNode, ComponentType, FormEvent } from 'react'
 import Link from 'next/link'
 import {
 	LayoutDashboard,
 	Search,
-	FileText,
 	Home,
 	PlusCircle,
 	Users,
@@ -14,20 +12,21 @@ import {
 	LogOut,
 	Mail,
 	Phone,
-	CalendarDays,
 	ShieldCheck,
 	Pencil,
 	Check,
 	University,
 } from 'lucide-react'
 
+type UserRole = 'STUDENT' | 'LANDLORD' | 'ADMINISTRATOR'
+
 type UserProfile = {
 	id: string
 	name: string
 	email: string
 	phone: string | null
-	role: 'STUDENT' | 'LANDLORD' | 'ADMINISTRATOR'
-	createdAt: string
+	role: UserRole
+	createdAt?: string
 }
 
 type NavItem = {
@@ -42,7 +41,7 @@ const profileNavItem: NavItem = {
 	href: '/profile',
 }
 
-function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
+function getNavItems(role: UserRole | undefined): NavItem[] {
 	switch (role) {
 		case 'LANDLORD':
 			return [
@@ -76,10 +75,11 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 					icon: University,
 					href: '/admin/universities',
 				},
-				{ 
-					label: 'Landlords', 
+				{
+					label: 'Landlords',
 					icon: Users,
-					 href: '/admin/landlords' },
+					href: '/admin/landlords',
+				},
 				{
 					label: 'Accommodation',
 					icon: Home,
@@ -88,6 +88,7 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 				profileNavItem,
 			]
 
+		case 'STUDENT':
 		default:
 			return [
 				{
@@ -105,7 +106,7 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 	}
 }
 
-const roleLabels: Record<UserProfile['role'], string> = {
+const roleLabels: Record<UserRole, string> = {
 	STUDENT: 'Student',
 	LANDLORD: 'Landlord',
 	ADMINISTRATOR: 'Administrator',
@@ -113,18 +114,6 @@ const roleLabels: Record<UserProfile['role'], string> = {
 
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
-
-function formatDate(value: string) {
-	const date = new Date(value)
-
-	if (Number.isNaN(date.getTime())) return '—'
-
-	return date.toLocaleDateString('en-GB', {
-		day: 'numeric',
-		month: 'long',
-		year: 'numeric',
-	})
-}
 
 function SidebarShell({ children }: { children: ReactNode }) {
 	return (
@@ -153,7 +142,6 @@ function Row({
 				<p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
 					{label}
 				</p>
-
 				<div className="mt-0.5 break-words text-sm font-semibold text-slate-800">
 					{children}
 				</div>
@@ -182,15 +170,33 @@ function Profile() {
 				setLoading(true)
 				setLoadError('')
 
-				const response = await fetch('/api/profile')
+				const response = await fetch('/api/profile', {
+					credentials: 'same-origin',
+					cache: 'no-store',
+				})
 
 				const data = await response.json().catch(() => null)
 
-				if (!response.ok || !data) {
-					throw new Error(data?.error || 'Failed to load your profile.')
+				if (!response.ok || !data?.user) {
+					throw new Error(
+						data?.error || 'Failed to load your profile.',
+					)
 				}
 
-				setProfile(data.user)
+				const user = data.user as UserProfile
+
+				if (
+					!user.id ||
+					!user.name ||
+					!user.email ||
+					!['STUDENT', 'LANDLORD', 'ADMINISTRATOR'].includes(
+						user.role,
+					)
+				) {
+					throw new Error('The profile response is invalid.')
+				}
+
+				setProfile(user)
 			} catch (error) {
 				console.error('Failed to fetch profile:', error)
 
@@ -204,7 +210,7 @@ function Profile() {
 			}
 		}
 
-		fetchProfile()
+		void fetchProfile()
 	}, [])
 
 	const startEditing = () => {
@@ -225,43 +231,56 @@ function Profile() {
 
 	const hasChanges =
 		profile !== null &&
-		(name.trim() !== profile.name || phone.trim() !== (profile.phone ?? '') || email.trim() !== profile.email)
+		(name.trim() !== profile.name ||
+			phone.trim() !== (profile.phone ?? '') ||
+			email.trim() !== profile.email)
 
-	const handleSave = async (event: React.FormEvent) => {
+	const handleSave = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
-		if (!profile) return
+		if (!profile || saving) return
 
 		setSaveError('')
+		setSuccessMessage('')
 		setSaving(true)
 
 		try {
 			const response = await fetch('/api/profile', {
 				method: 'PATCH',
+				credentials: 'same-origin',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, phone, email }),
+				body: JSON.stringify({
+					name: name.trim(),
+					phone: phone.trim(),
+					email: email.trim(),
+				}),
 			})
 
 			const data = await response.json().catch(() => null)
 
-			if (!response.ok || !data) {
-				setSaveError(data?.error ?? 'Something went wrong.')
-				setSaving(false)
-				return
+			if (!response.ok || !data?.user) {
+				throw new Error(data?.error || 'Something went wrong.')
 			}
 
-			setProfile(data.user)
+			// The API returns the role retrieved from the database.
+			setProfile(data.user as UserProfile)
 			setIsEditing(false)
 			setSuccessMessage('Your profile has been updated.')
-			setSaving(false)
-		} catch {
-			setSaveError('Could not reach the server. Please try again.')
+		} catch (error) {
+			setSaveError(
+				error instanceof Error
+					? error.message
+					: 'Could not reach the server. Please try again.',
+			)
+		} finally {
 			setSaving(false)
 		}
 	}
 
 	const navItems = getNavItems(profile?.role)
-	const initial = profile?.name ? profile.name.charAt(0).toUpperCase() : '?'
+	const initial = profile?.name
+		? profile.name.charAt(0).toUpperCase()
+		: '?'
 	const isLandlord = profile?.role === 'LANDLORD'
 
 	return (
@@ -272,7 +291,6 @@ function Profile() {
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 							⌂
 						</div>
-
 						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
 							Stay<span className="text-blue-600">Match</span>
 						</p>
@@ -307,12 +325,10 @@ function Profile() {
 							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
 								{initial}
 							</div>
-
-							<div>
-								<p className="text-sm font-bold text-slate-900">
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
 									{loading ? 'Loading...' : profile?.name || 'User'}
 								</p>
-
 								<p className="text-xs text-slate-500">
 									{profile ? roleLabels[profile.role] : ''}
 								</p>
@@ -321,7 +337,7 @@ function Profile() {
 					</div>
 
 					<Link
-						href="/"
+						href="/api/auth/logout"
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
@@ -335,7 +351,6 @@ function Profile() {
 					<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
 						My Profile
 					</h1>
-
 					<p className="mt-1 text-sm text-slate-500">
 						View and update your account details.
 					</p>
@@ -354,7 +369,6 @@ function Profile() {
 						<p className="text-sm font-semibold text-rose-700">
 							{loadError}
 						</p>
-
 						<Link
 							href="/login"
 							className="mt-4 inline-block rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
@@ -379,12 +393,10 @@ function Profile() {
 									<div className="grid h-16 w-16 place-items-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-lg shadow-blue-600/25">
 										{initial}
 									</div>
-
 									<div>
 										<h2 className="text-xl font-black tracking-[-0.03em] text-slate-950">
 											{profile.name}
 										</h2>
-
 										<span className="mt-1 inline-block rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600">
 											{roleLabels[profile.role]}
 										</span>
@@ -404,16 +416,13 @@ function Profile() {
 							</div>
 
 							{!isEditing ? (
-								/* VIEW MODE */
 								<div className="mt-6">
 									<Row icon={User} label="Full name">
 										{profile.name}
 									</Row>
-
 									<Row icon={Mail} label="Email address">
 										{profile.email}
 									</Row>
-
 									<Row icon={Phone} label="Phone number">
 										{profile.phone || (
 											<span className="font-medium text-slate-400">
@@ -421,13 +430,11 @@ function Profile() {
 											</span>
 										)}
 									</Row>
-
 									<Row icon={ShieldCheck} label="Account type">
 										{roleLabels[profile.role]}
 									</Row>
 								</div>
 							) : (
-								/* EDIT MODE */
 								<form className="mt-6 space-y-5" onSubmit={handleSave}>
 									{saveError && (
 										<div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
@@ -439,10 +446,8 @@ function Profile() {
 										<span className="text-sm font-bold text-slate-900">
 											Full name
 										</span>
-
 										<div className="relative">
 											<User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
 											<input
 												type="text"
 												value={name}
@@ -459,10 +464,8 @@ function Profile() {
 										<span className="text-sm font-bold text-slate-900">
 											Email address
 										</span>
-
 										<div className="relative">
 											<Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
 											<input
 												type="email"
 												value={email}
@@ -480,10 +483,8 @@ function Profile() {
 												? 'Phone / WhatsApp number'
 												: 'Phone number (optional)'}
 										</span>
-
 										<div className="relative">
 											<Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
 											<input
 												type="tel"
 												value={phone}
@@ -496,8 +497,7 @@ function Profile() {
 
 										{isLandlord && (
 											<p className="text-xs text-slate-400">
-												Students use this number to contact you about
-												your rooms.
+												Students use this number to contact you about your rooms.
 											</p>
 										)}
 									</label>
@@ -510,7 +510,6 @@ function Profile() {
 										>
 											{saving ? 'Saving...' : 'Save changes'}
 										</button>
-
 										<button
 											type="button"
 											onClick={cancelEditing}
