@@ -81,7 +81,7 @@ export async function PUT(request: NextRequest) {
 			},
 			select: {
 				id: true,
-				role: true,
+				role: { select: { name: true } }, 
 			},
 		})
 
@@ -92,7 +92,7 @@ export async function PUT(request: NextRequest) {
 			)
 		}
 
-		if (student.role !== 'STUDENT') {
+		if (student.role.name !== 'STUDENT') { 
 			return NextResponse.json(
 				{
 					error:

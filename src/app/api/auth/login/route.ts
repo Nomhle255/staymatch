@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
 		}
 
-		const user = await prisma.user.findUnique({ where: { email } })
+		const user = await prisma.user.findUnique({
+			where: { email },
+			include: { role: true },
+		})
 		if (!user) {
 			return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
 		}
@@ -21,10 +24,10 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
 		}
 
-		const token = signToken({ userId: user.id, role: user.role })
+		const token = signToken({ userId: user.id, role: user.role.name })
 
 		const response = NextResponse.json({
-			user: { id: user.id, name: user.name, email: user.email, role: user.role },
+			user: { id: user.id, name: user.name, email: user.email, role: user.role.name },
 		})
 
 		response.cookies.set('staymatch_token', token, {

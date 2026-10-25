@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, signToken } from '@/lib/auth'
 
-const ROLE_MAP = {
-	student: 'STUDENT',
-	landlord: 'LANDLORD',
-	administrator: 'ADMINISTRATOR',
-} as const
-
 export async function POST(request: NextRequest) {
 	try {
 		const body = await request.json()
@@ -17,8 +11,14 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
 		}
 
-		const mappedRole = ROLE_MAP[role as keyof typeof ROLE_MAP]
-		if (!mappedRole) {
+		// Validate the role against the database
+		const roleRecord = await prisma.role.findFirst({
+			where: {
+				name: String(role).toUpperCase(),
+				selfAssignable: true,
+			},
+		})
+		if (!roleRecord) {
 			return NextResponse.json({ error: 'Invalid role.' }, { status: 400 })
 		}
 
@@ -34,15 +34,16 @@ export async function POST(request: NextRequest) {
 				name,
 				email,
 				phone,
-				role: mappedRole,
+				roleId: roleRecord.id,
 				passwordHash,
 			},
+			include: { role: true },
 		})
 
-		const token = signToken({ userId: user.id, role: user.role })
+		const token = signToken({ userId: user.id, role: user.role.name })
 
 		const response = NextResponse.json({
-			user: { id: user.id, name: user.name, email: user.email, role: user.role },
+			user: { id: user.id, name: user.name, email: user.email, role: user.role.name },
 		})
 
 		response.cookies.set('staymatch_token', token, {
