@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
@@ -14,16 +15,32 @@ export async function GET(request: NextRequest) {
 			)
 		}
 
-		if (payload.role !== 'ADMINISTRATOR') {
+		// Retrieve the user's role from the database
+		const admin = await prisma.user.findUnique({
+			where: { id: payload.userId },
+			select: {
+				role: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		})
+
+		if (!admin || admin.role.name !== 'ADMINISTRATOR') {
 			return NextResponse.json(
 				{ error: 'Only administrators can view landlords.' },
 				{ status: 403 },
 			)
 		}
 
-		// Never select passwordHash
+		// Retrieve landlords through the Role relation
 		const landlords = await prisma.user.findMany({
-			where: { role: 'LANDLORD' },
+			where: {
+				role: {
+					name: 'LANDLORD',
+				},
+			},
 			orderBy: { createdAt: 'desc' },
 			select: {
 				id: true,
@@ -32,7 +49,9 @@ export async function GET(request: NextRequest) {
 				phone: true,
 				createdAt: true,
 				_count: {
-					select: { accommodations: true },
+					select: {
+						accommodations: true,
+					},
 				},
 			},
 		})

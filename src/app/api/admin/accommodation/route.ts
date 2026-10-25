@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
@@ -14,7 +15,19 @@ export async function GET(request: NextRequest) {
 			)
 		}
 
-		if (payload.role !== 'ADMINISTRATOR') {
+		// Retrieve the authenticated user's role from the database
+		const admin = await prisma.user.findUnique({
+			where: { id: payload.userId },
+			select: {
+				role: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		})
+
+		if (!admin || admin.role.name !== 'ADMINISTRATOR') {
 			return NextResponse.json(
 				{ error: 'Only administrators can view all accommodations.' },
 				{ status: 403 },
@@ -41,9 +54,6 @@ export async function GET(request: NextRequest) {
 						phone: true,
 					},
 				},
-				_count: {
-					select: { applications: true },
-				},
 			},
 		})
 
@@ -61,10 +71,9 @@ export async function GET(request: NextRequest) {
 				landlordName: accommodation.landlord.name,
 				landlordEmail: accommodation.landlord.email,
 				landlordPhone: accommodation.landlord.phone,
-				// Only send the first photo to keep the response small
+				// Return only the first photo to keep the response small
 				photo: accommodation.photos[0] ?? null,
 				photoCount: accommodation.photos.length,
-				applicationCount: accommodation._count.applications,
 			})),
 		})
 	} catch (error) {

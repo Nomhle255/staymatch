@@ -41,11 +41,6 @@ export async function GET(
 						phone: true,
 					},
 				},
-				_count: {
-					select: {
-						applications: true,
-					},
-				},
 			},
 		})
 
