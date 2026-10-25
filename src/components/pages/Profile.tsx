@@ -18,6 +18,7 @@ import {
 	ShieldCheck,
 	Pencil,
 	Check,
+	University,
 } from 'lucide-react'
 
 type UserProfile = {
@@ -65,7 +66,20 @@ function getNavItems(role: UserProfile['role'] | undefined): NavItem[] {
 
 		case 'ADMINISTRATOR':
 			return [
-				{ label: 'Landlords', icon: Users, href: '/admin/landlords' },
+				{
+					label: 'Dashboard',
+					icon: LayoutDashboard,
+					href: '/admin',
+				},
+				{
+					label: 'Universities',
+					icon: University,
+					href: '/admin/universities',
+				},
+				{ 
+					label: 'Landlords', 
+					icon: Users,
+					 href: '/admin/landlords' },
 				{
 					label: 'Accommodation',
 					icon: Home,
