@@ -22,6 +22,9 @@ import {
 	useSavedPreferences,
 	type SaveStatus,
 } from '@/hooks/useSavedPreferences'
+import AiPreferenceAssistant, {
+	type ParsedPreferences,
+} from '@/components/pages/PreferenceAssistant'
 
 const navItems = [
 	{
@@ -99,58 +102,38 @@ type PreferenceFactor = {
 }
 
 const preferenceFactors: PreferenceFactor[] = [
-	{ key: 'price', label: 'Low price' },
-	{ key: 'distance', label: 'Close to university' },
-	{ key: 'verified', label: 'Verified listing' },
+	{  key: 'price', label: 'Low price' },
+	{  key: 'distance', label: 'Close to university' },
+	{  key: 'verified', label: 'Verified listing' },
 	{
-		key: 'wifi',
-		label: 'Wi-Fi',
-		keywords: ['wi-fi', 'wifi', 'internet'],
+	   key: 'wifi',label: 'Wi-Fi',keywords: ['wi-fi', 'wifi', 'internet'],
 	},
 	{
-		key: 'water',
-		label: 'Water included',
-		keywords: ['water'],
+		key: 'water',label: 'Water included',keywords: ['water'],
 	},
 	{
-		key: 'electricity',
-		label: 'Electricity included',
-		keywords: ['electricity'],
+		key: 'electricity',label: 'Electricity included',keywords: ['electricity'],
 	},
 	{
-		key: 'furnished',
-		label: 'Furnished',
-		keywords: ['furnished'],
+		key: 'furnished',label: 'Furnished',keywords: ['furnished'],
 	},
 	{
-		key: 'parking',
-		label: 'Parking available',
-		keywords: ['parking'],
+		key: 'parking',label: 'Parking available',keywords: ['parking'],
 	},
 	{
-		key: 'security',
-		label: '24/7 security',
-		keywords: ['24/7 security'],
+		key: 'security',label: '24/7 security',keywords: ['24/7 security'],
 	},
 	{
-		key: 'fenced',
-		label: 'Fenced',
-		keywords: ['fence'],
+		key: 'fenced',label: 'Fenced',keywords: ['fence'],
 	},
 	{
-		key: 'burglar',
-		label: 'Burglar bars',
-		keywords: ['buglar', 'burglar'],
+		key: 'burglar',label: 'Burglar bars',keywords: ['buglar', 'burglar'],
 	},
 	{
-		key: 'ceiling',
-		label: 'Ceiling',
-		keywords: ['ceiling'],
+		key: 'ceiling',label: 'Ceiling',keywords: ['ceiling'],
 	},
 	{
-		key: 'tile',
-		label: 'Tiled floors',
-		keywords: ['tile'],
+		key: 'tile',label: 'Tiled floors',keywords: ['tile'],
 	},
 ]
 
@@ -275,16 +258,12 @@ function matchesPriceRange(price: number, range: string) {
 	switch (range) {
 		case 'Under M500':
 			return price < 500
-
 		case 'M500 – M800':
 			return price >= 500 && price <= 800
-
 		case 'M800 – M1,000':
 			return price > 800 && price <= 1000
-
 		case 'Above M1,000':
 			return price > 1000
-
 		default:
 			return true
 	}
@@ -441,49 +420,38 @@ function getSaveStatusMessage(status: SaveStatus) {
 	}
 }
 
+// The dropdowns only allow fixed values, so move the AI's number to the nearest one
+function snapToOption(value: number, options: number[]) {
+	return options.reduce((best, option) =>
+		Math.abs(option - value) < Math.abs(best - value) ? option : best,
+	)
+}
+
 function StudentBrowseListings() {
 	const [query, setQuery] = useState('')
 	const [propertyType, setPropertyType] = useState('All Types')
 	const [priceRange, setPriceRange] = useState('Any Price')
 	const [maxDistance, setMaxDistance] = useState(0)
-
 	const [ratings, setRatings] = useState<Record<string, number>>({})
-
 	const [minMatch, setMinMatch] = useState(0)
-
 	const [showPreferences, setShowPreferences] = useState(false)
-
 	const [universities, setUniversities] = useState<UniversityOption[]>(
 		[],
 	)
-
-	/*
-	 * University IDs are CUID/string values in the database.
-	 *
-	 * Example:
-	 * cmu7gi7av0001lgu0733rgl64
-	 */
 	const [selectedUniversityId, setSelectedUniversityId] = useState<
 		string | null
 	>(null)
-
 	const [listings, setListings] = useState<Accommodation[]>([])
-
 	const [loading, setLoading] = useState(true)
-
 	const [universityLoading, setUniversityLoading] = useState(true)
-
 	const [error, setError] = useState('')
 	const [universityError, setUniversityError] = useState('')
-
 	const [studentName, setStudentName] = useState('')
 	const [studentLoading, setStudentLoading] = useState(true)
 
 	/*
 	 * Saved student preferences
-	 *
-	 * The hook:
-	 * - loads the student's saved preferences
+	 * The hook: loads the student's saved preferences
 	 * - populates the existing state through onLoad
 	 * - automatically saves changes after a short debounce
 	 */
@@ -505,17 +473,52 @@ function StudentBrowseListings() {
 								'All Types')
 						: 'All Types',
 				)
-
 				setPriceRange(saved.priceRange || 'Any Price')
-
 				setMaxDistance(saved.maxDistance ?? 0)
-
 				setRatings(saved.ratings ?? {})
-
 				setMinMatch(saved.minMatch ?? 0)
 			},
 		})
 
+	/*
+	 * Fill the existing filters and ratings from the AI's answer.
+	 * Only the fields the AI found are changed.
+	 */
+	const applyAiPreferences = (p: ParsedPreferences) => {
+		if (
+			p.universityId &&
+			universities.some((university) => university.id === p.universityId)
+		) {
+			setSelectedUniversityId(p.universityId)
+		}
+		if (p.propertyType) {
+			setPropertyType(
+				reversePropertyTypeMap[p.propertyType] ?? 'All Types',
+			)
+		}
+		if (p.priceRange && priceRanges.includes(p.priceRange)) {
+			setPriceRange(p.priceRange)
+		}
+		if (p.maxDistance !== undefined) {
+			setMaxDistance(
+				p.maxDistance <= 0
+					? 0
+					: snapToOption(p.maxDistance, [5, 10, 15, 20]),
+			)
+		}
+		if (p.minMatch !== undefined) {
+			setMinMatch(snapToOption(p.minMatch, [0, 50, 70, 90]))
+		}
+		const newRatings = p.ratings
+		if (newRatings) {
+			setRatings((current) => ({ ...current, ...newRatings }))
+			// Open the panel so the student can see what was set
+			setShowPreferences(true)
+		}
+	}
+	const handleAiSearch = (preferences: ParsedPreferences) => {
+	applyAiPreferences(preferences);
+	};
 	// Fetch accommodation listings
 	useEffect(() => {
 		const fetchListings = async () => {
@@ -608,14 +611,6 @@ function StudentBrowseListings() {
 					)
 				}
 
-				/*
-				 * University IDs are strings/CUIDs.
-				 *
-				 * Do NOT use Number(university.id)
-				 * because values such as
-				 * "cmu7gi7av0001lgu0733rgl64"
-				 * would become NaN.
-				 */
 				const universityList = Array.isArray(data)
 					? data
 					: data.universities || []
@@ -880,6 +875,14 @@ function StudentBrowseListings() {
 						</p>
 					</div>
 				</div>
+
+				{/* AI assistant: shown once saved preferences have loaded, so a
+				    late load can't overwrite what the AI fills in */}
+				{preferencesLoaded && (
+					<div className="mt-6">
+						<AiPreferenceAssistant onSearch={handleAiSearch} />
+					</div>
+					)}
 
 				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
 					<div className="flex flex-col gap-3">
