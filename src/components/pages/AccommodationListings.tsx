@@ -69,6 +69,9 @@ type Accommodation = {
 	createdAt: string
 	updatedAt: string
 	roomIdentifier: string | null
+	// Comment left by an admin when a listing needs changes
+	adminNote?: string | null
+	adminNoteAt?: string | null
 }
 
 type AvailabilityStatus = 'AVAILABLE' | 'OCCUPIED'
@@ -351,6 +354,10 @@ function AccommodationListings() {
 		return matchesFilter && matchesPropertyType && matchesQuery
 	})
 
+	const needsChangesCount = listings.filter(
+		(listing) => listing.status === 'INACTIVE' && listing.adminNote,
+	).length
+
 	const displayName = landlordName || 'Landlord'
 	const initial = displayName.charAt(0).toUpperCase()
 
@@ -425,6 +432,22 @@ function AccommodationListings() {
 						Add Listing
 					</Link>
 				</div>
+
+				{/* Summary when an admin has asked for changes */}
+				{!loading && needsChangesCount > 0 && (
+					<div
+						role="alert"
+						className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800"
+					>
+						{needsChangesCount === 1
+							? '1 listing needs changes.'
+							: `${needsChangesCount} listings need changes.`}{' '}
+						<span className="font-medium text-amber-700">
+							They are hidden from students until you edit and save
+							them.
+						</span>
+					</div>
+				)}
 
 				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
 					<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -527,6 +550,11 @@ function AccommodationListings() {
 									listing.propertyType,
 								)
 
+								// INACTIVE is only ever set by an administrator
+								const isHidden = listing.status === 'INACTIVE'
+								const needsChanges =
+									isHidden && Boolean(listing.adminNote)
+
 								const canUpdateAvailability = [
 									'AVAILABLE',
 									'OCCUPIED',
@@ -572,7 +600,9 @@ function AccommodationListings() {
 												className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${style.tint}`}
 											>
 												<StatusIcon className="h-3.5 w-3.5" />
-												{displayStatus}
+												{needsChanges
+													? 'Needs changes'
+													: displayStatus}
 											</span>
 
 											<button
@@ -614,6 +644,19 @@ function AccommodationListings() {
 												/ month
 											</p>
 
+											{/* Admin's comment */}
+											{needsChanges && (
+												<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
+													<p className="font-bold text-amber-800">
+														Changes requested by the admin
+													</p>
+
+													<p className="mt-1 line-clamp-4 whitespace-pre-wrap text-amber-900">
+														{listing.adminNote}
+													</p>
+												</div>
+											)}
+
 											<div className="mt-4 flex gap-2">
 												<Link
 													href={`/landlord/accommodationdetails?id=${listing.id}`}
@@ -625,10 +668,14 @@ function AccommodationListings() {
 
 												<Link
 													href={`/landlord/accommodationlisting/edit?id=${listing.id}`}
-													className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
+													className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white transition ${
+														needsChanges
+															? 'bg-amber-600 hover:bg-amber-700'
+															: 'bg-blue-600 hover:bg-blue-700'
+													}`}
 												>
 													<Pencil className="h-3.5 w-3.5" />
-													Edit
+													{needsChanges ? 'Fix listing' : 'Edit'}
 												</Link>
 
 												<DeleteAccommodation
@@ -647,52 +694,62 @@ function AccommodationListings() {
 											</div>
 
 											<div className="mt-4 border-t border-slate-100 pt-4">
-												<label
-													htmlFor={`availability-${listing.id}`}
-													className="mb-2 block text-xs font-bold text-slate-600"
-												>
-													Room availability
-												</label>
-
-												<select
-													id={`availability-${listing.id}`}
-													value={availabilityValue}
-													disabled={
-														updatingStatusId ===
-															listing.id ||
-														!canUpdateAvailability
-													}
-													onChange={(event) => {
-														const newStatus =
-															event.target.value
-
-														if (
-															newStatus ===
-																'AVAILABLE' ||
-															newStatus ===
-																'OCCUPIED'
-														) {
-															handleAvailabilityChange(
-																listing.id,
-																newStatus,
-															)
-														}
-													}}
-													className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-												>
-													<option value="AVAILABLE">
-														Available
-													</option>
-													<option value="OCCUPIED">
-														Occupied / Rented
-													</option>
-												</select>
-
-												{updatingStatusId ===
-													listing.id && (
-													<p className="mt-2 text-xs font-medium text-blue-600">
-														Updating availability...
+												{isHidden ? (
+													<p className="text-xs font-semibold text-slate-500">
+														{needsChanges
+															? 'Hidden from students. Edit the listing and save to put it back online.'
+															: 'Hidden from students by an administrator.'}
 													</p>
+												) : (
+													<>
+														<label
+															htmlFor={`availability-${listing.id}`}
+															className="mb-2 block text-xs font-bold text-slate-600"
+														>
+															Room availability
+														</label>
+
+														<select
+															id={`availability-${listing.id}`}
+															value={availabilityValue}
+															disabled={
+																updatingStatusId ===
+																	listing.id ||
+																!canUpdateAvailability
+															}
+															onChange={(event) => {
+																const newStatus =
+																	event.target.value
+
+																if (
+																	newStatus ===
+																		'AVAILABLE' ||
+																	newStatus ===
+																		'OCCUPIED'
+																) {
+																	handleAvailabilityChange(
+																		listing.id,
+																		newStatus,
+																	)
+																}
+															}}
+															className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+														>
+															<option value="AVAILABLE">
+																Available
+															</option>
+															<option value="OCCUPIED">
+																Occupied / Rented
+															</option>
+														</select>
+
+														{updatingStatusId ===
+															listing.id && (
+															<p className="mt-2 text-xs font-medium text-blue-600">
+																Updating availability...
+															</p>
+														)}
+													</>
 												)}
 											</div>
 										</div>
