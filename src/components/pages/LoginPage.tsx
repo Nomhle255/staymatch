@@ -2,6 +2,7 @@
 
 import {
 	useCallback,
+	useEffect,
 	useState,
 	type ReactNode,
 	type ComponentType,
@@ -20,6 +21,12 @@ import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
+
+// A role returned by /api/roles.
+type RoleOption = {
+	name: string
+	label: string
+}
 
 type FieldProps = {
 	label: string
@@ -70,10 +77,57 @@ function LoginPage() {
 	const [pendingToken, setPendingToken] =
 		useState<string | null>(null)
 
-	const [selectedRole, setSelectedRole] =
-		useState<'STUDENT' | 'LANDLORD'>('STUDENT')
+	// Roles a new Google user can choose from, loaded from the database.
+	const [roles, setRoles] = useState<RoleOption[]>([])
+	const [rolesLoading, setRolesLoading] = useState(false)
+	const [selectedRole, setSelectedRole] = useState('')
 
 	const [phone, setPhone] = useState('')
+
+	// Load the roles only when the role picker is needed.
+	useEffect(() => {
+		if (!pendingToken || roles.length > 0) return
+
+		let cancelled = false
+
+		async function loadRoles() {
+			setRolesLoading(true)
+
+			try {
+				const response = await fetch('/api/roles')
+				const data = await response.json()
+
+				if (!response.ok) throw new Error(data?.error)
+
+				if (!cancelled) {
+					const loaded: RoleOption[] = data.roles
+					setRoles(loaded)
+
+					// Default to STUDENT if available, otherwise the first role.
+					setSelectedRole(
+						(current) =>
+							current ||
+							loaded.find((r) => r.name === 'STUDENT')?.name ||
+							loaded[0]?.name ||
+							'',
+					)
+				}
+			} catch (err) {
+				console.error('Failed to load roles:', err)
+				if (!cancelled) {
+					setError('We couldn’t load the account types. Please try again.')
+				}
+			} finally {
+				if (!cancelled) setRolesLoading(false)
+			}
+		}
+
+		loadRoles()
+
+		return () => {
+			cancelled = true
+		}
+	}, [pendingToken, roles.length])
 
 	const redirectByRole = useCallback(
 		(role: string | undefined) => {
@@ -100,7 +154,7 @@ function LoginPage() {
 		async (
 			accessToken: string,
 			extra?: {
-				role: 'STUDENT' | 'LANDLORD'
+				role: string
 				phone: string
 			},
 		) => {
@@ -190,6 +244,11 @@ function LoginPage() {
 		event.preventDefault()
 
 		if (!pendingToken) return
+
+		if (!selectedRole) {
+			setError('Please choose how you will use StayMatch.')
+			return
+		}
 
 		if (
 			selectedRole === 'LANDLORD' &&
@@ -345,42 +404,37 @@ function LoginPage() {
 							How will you use StayMatch?
 						</p>
 
-						<div className="grid gap-3 sm:grid-cols-2">
-							{(
-								[
-									{
-										value: 'STUDENT',
-										label: 'I’m a student',
-									},
-									{
-										value: 'LANDLORD',
-										label: 'I’m a landlord',
-									},
-								] as const
-							).map((option) => (
-								<button
-									key={option.value}
-									type="button"
-									onClick={() =>
-										setSelectedRole(
-											option.value,
-										)
-									}
-									aria-pressed={
-										selectedRole ===
-										option.value
-									}
-									className={`rounded-xl border px-4 py-3 text-sm font-bold transition ${
-										selectedRole ===
-										option.value
-											? 'border-blue-400 bg-blue-50 text-blue-700'
-											: 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-									}`}
-								>
-									{option.label}
-								</button>
-							))}
-						</div>
+						{rolesLoading ? (
+							<p className="text-center text-sm text-slate-400">
+								Loading...
+							</p>
+						) : (
+							<div className="grid gap-3 sm:grid-cols-2">
+								{roles.map((option) => (
+									<button
+										key={option.name}
+										type="button"
+										onClick={() =>
+											setSelectedRole(
+												option.name,
+											)
+										}
+										aria-pressed={
+											selectedRole ===
+											option.name
+										}
+										className={`rounded-xl border px-4 py-3 text-sm font-bold transition ${
+											selectedRole ===
+											option.name
+												? 'border-blue-400 bg-blue-50 text-blue-700'
+												: 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+										}`}
+									>
+										{option.label}
+									</button>
+								))}
+							</div>
+						)}
 
 						<Field label="Phone number">
 							<InputShell icon={Phone}>
@@ -404,7 +458,11 @@ function LoginPage() {
 
 						<button
 							type="submit"
-							disabled={isSubmitting}
+							disabled={
+								isSubmitting ||
+								rolesLoading ||
+								!selectedRole
+							}
 							className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 disabled:opacity-60"
 						>
 							{isSubmitting
