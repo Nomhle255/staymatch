@@ -360,16 +360,6 @@ function LoginPage() {
 						</p>
 					</div>
 				</div>
-
-				<p className="text-sm text-slate-500">
-					Don't have an account?{' '}
-					<Link
-						href="/register"
-						className="font-semibold text-blue-600 hover:text-blue-700"
-					>
-						Sign up
-					</Link>
-				</p>
 			</div>
 
 			<div className="mx-auto mt-8 max-w-md rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:p-10">
