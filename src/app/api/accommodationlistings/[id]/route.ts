@@ -9,6 +9,11 @@ const VALID_PROPERTY_TYPES = [
 	'COMMUNE',
 ]
 
+// Where a listing goes after the landlord fixes it and saves.
+//   'AVAILABLE'      -> back online straight away
+//   'PENDING_REVIEW' -> stays hidden until an admin approves it again
+const FIXED_LISTING_STATUS: 'AVAILABLE' | 'PENDING_REVIEW' = 'AVAILABLE'
+
 type RouteContext = {
 	params: Promise<{ id: string }>
 }
@@ -49,6 +54,15 @@ export async function GET(
 				{ error: 'You do not have access to this listing.' },
 				{ status: 403 },
 			)
+		}
+
+		// The admin's comment is for the landlord and admins only.
+		// Students must never receive it.
+		if (payload.role !== 'LANDLORD' && payload.role !== 'ADMINISTRATOR') {
+			const { adminNote, adminNoteAt, ...publicAccommodation } = accommodation
+			void adminNote
+			void adminNoteAt
+			return NextResponse.json({ accommodation: publicAccommodation })
 		}
 
 		return NextResponse.json({ accommodation })
@@ -178,6 +192,19 @@ export async function PATCH(
 		} = body
 
 		if (status !== undefined) {
+			// Landlords can only set AVAILABLE or OCCUPIED, so INACTIVE always
+			// means an administrator hid the listing. They must not be able to
+			// switch it back on from here without editing it.
+			if (existing.status === 'INACTIVE') {
+				return NextResponse.json(
+					{
+						error:
+							'An administrator hid this listing. Update the listing details and save to put it back online.',
+					},
+					{ status: 409 },
+				)
+			}
+
 			if (status !== 'AVAILABLE' && status !== 'OCCUPIED') {
 				return NextResponse.json(
 					{ error: 'Status must be AVAILABLE or OCCUPIED.' },
@@ -223,6 +250,11 @@ export async function PATCH(
 			)
 		}
 
+		// The admin marked this listing incomplete and the landlord is now
+		// saving changes: take it off the "needs fixing" list.
+		const wasFlaggedIncomplete =
+			existing.status === 'INACTIVE' && Boolean(existing.adminNote)
+
 		const accommodation = await prisma.accommodation.update({
 			where: { id },
 			data: {
@@ -238,6 +270,13 @@ export async function PATCH(
 					: null,
 				roomIdentifier: roomIdentifier || null,
 				photos: Array.isArray(photos) ? photos : [],
+				...(wasFlaggedIncomplete
+					? {
+							status: FIXED_LISTING_STATUS,
+							adminNote: null,
+							adminNoteAt: null,
+						}
+					: {}),
 			},
 		})
 

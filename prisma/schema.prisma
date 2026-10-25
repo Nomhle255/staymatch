@@ -23,7 +23,6 @@ model User {
   phone             String?
   passwordHash      String
   roleId            String
-  role              Role               @relation(fields: [roleId], references: [id])
   university        String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -32,6 +31,7 @@ model User {
   pushSubscriptions PushSubscription[]
 
   accommodations Accommodation[] @relation("LandlordAccommodations")
+  role              Role               @relation(fields: [roleId], references: [id])
 
   @@index([roleId])
 }
@@ -52,9 +52,12 @@ model Accommodation {
   longitude      Float
   photos         String[]            @default([])
   roomIdentifier String?             @map("roomName")
+  adminNote      String?
+  adminNoteAt    DateTime?
 
-  landlord      User           @relation("LandlordAccommodations", fields: [landlordId], references: [id])
   notifications Notification[]
+  landlord      User           @relation("LandlordAccommodations", fields: [landlordId], references: [id])
+ 
 }
 
 model University {

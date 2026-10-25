@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
@@ -46,6 +45,8 @@ export async function GET(request: NextRequest) {
 				photos: true,
 				availableFrom: true,
 				createdAt: true,
+				adminNote: true,
+				adminNoteAt: true,
 				landlordId: true,
 				landlord: {
 					select: {
@@ -67,6 +68,8 @@ export async function GET(request: NextRequest) {
 				status: accommodation.status,
 				availableFrom: accommodation.availableFrom,
 				createdAt: accommodation.createdAt,
+				adminNote: accommodation.adminNote,
+				adminNoteAt: accommodation.adminNoteAt,
 				landlordId: accommodation.landlordId,
 				landlordName: accommodation.landlord.name,
 				landlordEmail: accommodation.landlord.email,

@@ -42,6 +42,7 @@ import {
 	
 } from 'lucide-react'
 import type * as Leaflet from 'leaflet'
+import AdminNoteBanner from '@/components/pages/AdminNoteBanner'
 
 const navItems = [
 	{ label: 'Dashboard', icon: LayoutDashboard, active: false, href: '/landlord/dashboard' },
@@ -146,6 +147,15 @@ function EditAccommodation() {
 	const [price, setPrice] = useState('')
 	const [description, setDescription] = useState('')
 
+	// Not editable on this form, but kept so saving doesn't erase them.
+	const [roomIdentifier, setRoomIdentifier] = useState<string | null>(null)
+	const [availableFrom, setAvailableFrom] = useState<string | null>(null)
+
+	// Admin feedback on this listing
+	const [listingStatus, setListingStatus] = useState('')
+	const [adminNote, setAdminNote] = useState<string | null>(null)
+	const [adminNoteAt, setAdminNoteAt] = useState<string | null>(null)
+
 	const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
 	const [photos, setPhotos] = useState<string[]>([])
 
@@ -196,6 +206,11 @@ function EditAccommodation() {
 				setPropertyType(accommodation.propertyType ?? '')
 				setPrice(String(accommodation.price ?? ''))
 				setDescription(accommodation.description ?? '')
+				setRoomIdentifier(accommodation.roomIdentifier ?? null)
+				setAvailableFrom(accommodation.availableFrom ?? null)
+				setListingStatus(accommodation.status ?? '')
+				setAdminNote(accommodation.adminNote ?? null)
+				setAdminNoteAt(accommodation.adminNoteAt ?? null)
 				setSelectedAmenities(
 					Array.isArray(accommodation.amenities)
 						? accommodation.amenities
@@ -598,6 +613,9 @@ function EditAccommodation() {
 						photos,
 						latitude,
 						longitude,
+						// Send these back unchanged so saving doesn't erase them
+						roomIdentifier,
+						availableFrom,
 					}),
 				}
 			)
@@ -609,6 +627,11 @@ function EditAccommodation() {
 					data.error || 'Failed to save changes.'
 				)
 			}
+
+			// The server clears the admin's comment once the listing is saved
+			setAdminNote(null)
+			setAdminNoteAt(null)
+			setListingStatus(data.accommodation?.status ?? listingStatus)
 
 			setMessage(
 				'Changes saved successfully. Redirecting...'
@@ -716,6 +739,15 @@ function EditAccommodation() {
 					<p className="mt-1 text-sm text-slate-500">
 						Update the details below and save your changes.
 					</p>
+				</div>
+
+				{/* Admin's comment, if this listing needs changes */}
+				<div className="mt-5">
+					<AdminNoteBanner
+						status={listingStatus}
+						adminNote={adminNote}
+						adminNoteAt={adminNoteAt}
+					/>
 				</div>
 
 				{message && (
@@ -1119,8 +1151,9 @@ function EditAccommodation() {
 							</h2>
 
 							<p className="mt-1 text-sm leading-6 text-slate-500">
-								Changes are saved immediately and reflected
-								on your listing right away.
+								{adminNote
+									? 'Saving your changes puts this listing back online for students.'
+									: 'Changes are saved immediately and reflected on your listing right away.'}
 							</p>
 
 							<div className="mt-5 space-y-3">

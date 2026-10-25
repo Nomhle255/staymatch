@@ -301,24 +301,6 @@ export default function AdminAccommodationDetailsPage() {
 							</div>
 						</div>
 
-						<div className="border-b border-slate-200/70 p-5 sm:border-r lg:border-b-0">
-							<div className="flex items-center gap-3">
-								<div className="grid h-10 w-10 place-items-center rounded-xl bg-purple-50 text-purple-600">
-									<Users className="h-5 w-5" />
-								</div>
-
-								<div>
-									<p className="text-xs font-semibold text-slate-400">
-										Applications
-									</p>
-
-									<p className="mt-1 text-sm font-bold text-slate-900">
-										{accommodation._count.applications}
-									</p>
-								</div>
-							</div>
-						</div>
-
 						<div className="p-5">
 							<div className="flex items-center gap-3">
 								<div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-600">

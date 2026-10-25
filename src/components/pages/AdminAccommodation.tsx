@@ -15,6 +15,7 @@ import {
 	X,
 	Image as ImageIcon,
 	Eye,
+	MessageSquare,
 } from 'lucide-react'
 import AdminShell from '@/components/pages/AdminShell'
 
@@ -33,6 +34,9 @@ type AdminAccommodation = {
 	landlordPhone: string | null
 	photo: string | null
 	photoCount: number
+	// Latest admin comment (optional until the list API returns it)
+	adminNote?: string | null
+	adminNoteAt?: string | null
 }
 
 const statusOptions = [
@@ -40,6 +44,7 @@ const statusOptions = [
 	{ label: 'Available', value: 'AVAILABLE' },
 	{ label: 'Occupied', value: 'OCCUPIED' },
 	{ label: 'Inactive', value: 'INACTIVE' },
+	{ label: 'Pending review', value: 'PENDING_REVIEW' },
 ]
 
 const statusStyles: Record<
@@ -64,6 +69,11 @@ const statusStyles: Record<
 		label: 'Inactive',
 		tint: 'bg-slate-100 text-slate-500',
 		icon: PauseCircle,
+	},
+	PENDING_REVIEW: {
+		label: 'Pending review',
+		tint: 'bg-amber-50 text-amber-600',
+		icon: Clock,
 	},
 }
 
@@ -123,6 +133,14 @@ function AdminAccommodations() {
 	const [query, setQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState('ALL')
 
+	// Review dialog state
+	const [reviewTarget, setReviewTarget] =
+		useState<AdminAccommodation | null>(null)
+	const [comment, setComment] = useState('')
+	const [markIncomplete, setMarkIncomplete] = useState(false)
+	const [reviewSaving, setReviewSaving] = useState(false)
+	const [reviewError, setReviewError] = useState('')
+
 	useEffect(() => {
 		const fetchAccommodations = async () => {
 			try {
@@ -155,6 +173,94 @@ function AdminAccommodations() {
 
 		fetchAccommodations()
 	}, [])
+
+	const openReview = (item: AdminAccommodation) => {
+		setReviewTarget(item)
+		setComment('')
+		setMarkIncomplete(false)
+		setReviewError('')
+	}
+
+	const closeReview = () => {
+		if (reviewSaving) return
+		setReviewTarget(null)
+	}
+
+	// Close the dialog with the Escape key
+	useEffect(() => {
+		if (!reviewTarget) return
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape' && !reviewSaving) {
+				setReviewTarget(null)
+			}
+		}
+
+		window.addEventListener('keydown', onKeyDown)
+		return () => window.removeEventListener('keydown', onKeyDown)
+	}, [reviewTarget, reviewSaving])
+
+	const submitReview = async (event: React.FormEvent) => {
+		event.preventDefault()
+
+		if (!reviewTarget) return
+
+		if (!comment.trim()) {
+			setReviewError('Please write a comment explaining what is missing.')
+			return
+		}
+
+		setReviewSaving(true)
+		setReviewError('')
+
+		try {
+			const response = await fetch(
+				`/api/admin/accommodation/${reviewTarget.id}/review`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						comment: comment.trim(),
+						markIncomplete,
+					}),
+				},
+			)
+
+			const data = await response.json().catch(() => null)
+
+			if (!response.ok || !data?.accommodation) {
+				setReviewError(
+					data?.error || 'We couldn’t save your review. Please try again.',
+				)
+				return
+			}
+
+			const updated = data.accommodation
+
+			// Update the card in place so no reload is needed
+			setAccommodations((current) =>
+				current.map((item) =>
+					item.id === updated.id
+						? {
+								...item,
+								status: updated.status,
+								adminNote: updated.adminNote,
+								adminNoteAt: updated.adminNoteAt,
+							}
+						: item,
+				),
+			)
+
+			setReviewTarget(null)
+		} catch (error) {
+			console.error('Review error:', error)
+			setReviewError(
+				'We couldn’t reach the server. Please check your connection and try again.',
+			)
+		} finally {
+			setReviewSaving(false)
+		}
+	}
 
 	const filteredAccommodations = accommodations.filter((item) => {
 		const text = `${getPropertyTypeLabel(item.propertyType)} ${
@@ -384,6 +490,22 @@ function AdminAccommodations() {
 												</p>
 											</div>
 
+											{/* Latest admin comment */}
+											{item.adminNote && (
+												<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
+													<p className="font-bold text-amber-800">
+														Admin comment
+														{item.adminNoteAt
+															? ` · ${formatDate(item.adminNoteAt)}`
+															: ''}
+													</p>
+
+													<p className="mt-1 whitespace-pre-wrap text-amber-900">
+														{item.adminNote}
+													</p>
+												</div>
+											)}
+
 											<div className="mt-3 flex items-center justify-between text-xs text-slate-400">
 												<span>
 													Added{' '}
@@ -391,14 +513,28 @@ function AdminAccommodations() {
 												</span>
 											</div>
 
-											{/* View details button */}
-											<Link
-												href={`/admin/accommodations/${item.id}`}
-												className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
-											>
-												<Eye className="h-4 w-4" />
-												View accommodation details
-											</Link>
+											<div className="mt-4 grid gap-2">
+												{/* Review button */}
+												<button
+													type="button"
+													onClick={() =>
+														openReview(item)
+													}
+													className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+												>
+													<MessageSquare className="h-4 w-4" />
+													Comment or mark incomplete
+												</button>
+
+												{/* View details button */}
+												<Link
+													href={`/admin/accommodations/${item.id}`}
+													className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+												>
+													<Eye className="h-4 w-4" />
+													View accommodation details
+												</Link>
+											</div>
 										</div>
 									</article>
 								)
@@ -406,6 +542,118 @@ function AdminAccommodations() {
 						</div>
 					)}
 				</>
+			)}
+
+			{/* Review dialog */}
+			{reviewTarget && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+					onClick={closeReview}
+				>
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="review-title"
+						onClick={(event) => event.stopPropagation()}
+						className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+					>
+						<h2
+							id="review-title"
+							className="text-lg font-black tracking-[-0.02em] text-slate-950"
+						>
+							Review listing
+						</h2>
+
+						<p className="mt-1 text-sm text-slate-500">
+							{getPropertyTypeLabel(reviewTarget.propertyType)}
+							{reviewTarget.roomIdentifier
+								? ` · ${reviewTarget.roomIdentifier}`
+								: ''}
+							{' · '}
+							{reviewTarget.area}
+						</p>
+
+						<form className="mt-5 space-y-4" onSubmit={submitReview}>
+							{reviewError && (
+								<div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
+									{reviewError}
+								</div>
+							)}
+
+							<label className="grid gap-2">
+								<span className="text-sm font-bold text-slate-900">
+									Comment for the landlord
+								</span>
+
+								<textarea
+									value={comment}
+									onChange={(event) =>
+										setComment(event.target.value)
+									}
+									rows={5}
+									maxLength={1000}
+									required
+									disabled={reviewSaving}
+									placeholder="Say what is missing, for example: add at least 3 photos and the exact room number."
+									className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
+								/>
+
+								<span className="text-right text-xs text-slate-400">
+									{comment.length}/1000
+								</span>
+							</label>
+
+							<label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+								<input
+									type="checkbox"
+									checked={markIncomplete}
+									onChange={(event) =>
+										setMarkIncomplete(event.target.checked)
+									}
+									disabled={reviewSaving}
+									className="mt-0.5 h-4 w-4 rounded border-slate-300"
+								/>
+
+								<span>
+									<span className="font-bold text-slate-900">
+										Mark as incomplete
+									</span>
+									<span className="mt-0.5 block text-xs text-slate-500">
+										Sets the status to Inactive, so students
+										no longer see this listing.
+									</span>
+								</span>
+							</label>
+
+							<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+								<button
+									type="button"
+									onClick={closeReview}
+									disabled={reviewSaving}
+									className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+								>
+									Cancel
+								</button>
+
+								<button
+									type="submit"
+									disabled={reviewSaving}
+									className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${
+										markIncomplete
+											? 'bg-rose-600 hover:bg-rose-700'
+											: 'bg-blue-600 hover:bg-blue-700'
+									}`}
+								>
+									{reviewSaving
+										? 'Saving...'
+										: markIncomplete
+											? 'Mark incomplete'
+											: 'Send comment'}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
 			)}
 		</AdminShell>
 	)
