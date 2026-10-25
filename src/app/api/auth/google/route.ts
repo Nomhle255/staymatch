@@ -7,17 +7,6 @@ import { signToken } from '@/lib/auth'
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 const googleClient = new OAuth2Client(googleClientId)
 
-// Administrators can never be created through self-service sign-up.
-const SELF_SERVICE_ROLES = ['STUDENT', 'LANDLORD'] as const
-type SelfServiceRole = (typeof SELF_SERVICE_ROLES)[number]
-
-function isSelfServiceRole(value: unknown): value is SelfServiceRole {
-	return (
-		typeof value === 'string' &&
-		(SELF_SERVICE_ROLES as readonly string[]).includes(value)
-	)
-}
-
 export async function POST(request: NextRequest) {
 	try {
 		if (!googleClientId) {
@@ -80,11 +69,12 @@ export async function POST(request: NextRequest) {
 		// 2. Find an existing account with this email.
 		let user = await prisma.user.findFirst({
 			where: { email: { equals: email, mode: 'insensitive' } },
+			include: { role: true },
 		})
 
 		// 3. New user: ask the client which role they want before creating anything.
 		if (!user) {
-			if (!isSelfServiceRole(role)) {
+			if (typeof role !== 'string' || !role) {
 				return NextResponse.json({
 					needsRole: true,
 					name,
@@ -92,12 +82,25 @@ export async function POST(request: NextRequest) {
 				})
 			}
 
+			// Administrators can never be created through self-service sign-up:
+			// only roles marked selfAssignable in the database are accepted.
+			const roleRecord = await prisma.role.findFirst({
+				where: { name: role.toUpperCase(), selfAssignable: true },
+			})
+
+			if (!roleRecord) {
+				return NextResponse.json(
+					{ error: 'Invalid role.' },
+					{ status: 400 },
+				)
+			}
+
 			const cleanPhone = typeof phone === 'string' ? phone.trim() : ''
 			const phoneDigits = cleanPhone.replace(/\D/g, '')
 
 			// Students contact landlords over WhatsApp, so landlords need a number.
 			// Students may leave it empty, but if they enter one it must be valid.
-			const phoneRequired = role === 'LANDLORD'
+			const phoneRequired = roleRecord.name === 'LANDLORD'
 			const phoneGiven = phoneDigits.length > 0
 			const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15
 
@@ -113,24 +116,25 @@ export async function POST(request: NextRequest) {
 					name: name || email.split('@')[0],
 					email,
 					phone: cleanPhone || null,
-					role,
+					roleId: roleRecord.id,
 					// Google accounts have no password. This is not a valid hash,
 					// so password login can never succeed for this account.
 					passwordHash: `google-oauth:${randomBytes(32).toString('hex')}`,
 				},
+				include: { role: true },
 			})
 		}
 
 		// 4. Issue the same session cookie the password login uses.
 		// NOTE: keep this identical to /api/auth/login/route.ts
-		const token = signToken({ userId: user.id, role: user.role })
+		const token = signToken({ userId: user.id, role: user.role.name })
 
 		const response = NextResponse.json({
 			user: {
 				id: user.id,
 				name: user.name,
 				email: user.email,
-				role: user.role,
+				role: user.role.name,
 			},
 		})
 

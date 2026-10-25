@@ -2,6 +2,7 @@
 
 import {
 	useCallback,
+	useEffect,
 	useState,
 	type ReactNode,
 	type ComponentType,
@@ -23,25 +24,18 @@ import {
 } from 'lucide-react'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 
-const roleOptions = [
-	{
-		value: 'student',
-		label: 'Student',
-		icon: GraduationCap,
-	},
-	{
-		value: 'landlord',
-		label: 'Landlord',
-		icon: Home,
-	},
-	{
-		value: 'administrator',
-		label: 'Administrator',
-		icon: ShieldCheck,
-	},
-] as const
+// Icons can't come from the database, so map role names to icons here.
+const roleIcons: Record<string, ComponentType<{ className?: string }>> = {
+	STUDENT: GraduationCap,
+	LANDLORD: Home,
+	ADMINISTRATOR: ShieldCheck,
+}
 
-type Role = (typeof roleOptions)[number]['value']
+// Shape of a role returned by /api/roles.
+export type RoleOption = {
+	name: string
+	label: string
+}
 
 type FieldProps = {
 	label: string
@@ -80,8 +74,12 @@ const inputClasses =
 function RegisterUser() {
 	const router = useRouter()
 
+	// Roles are loaded from the database via /api/roles
+	const [roles, setRoles] = useState<RoleOption[]>([])
+	const [rolesLoading, setRolesLoading] = useState(true)
+
 	const [roleOpen, setRoleOpen] = useState(false)
-	const [role, setRole] = useState<Role | null>(null)
+	const [role, setRole] = useState<string | null>(null)
 
 	const [showPassword, setShowPassword] = useState(false)
 	const [showConfirm, setShowConfirm] = useState(false)
@@ -91,7 +89,6 @@ function RegisterUser() {
 	const [phone, setPhone] = useState('')
 	const [password, setPassword] = useState('')
 	const [confirmPassword, setConfirmPassword] = useState('')
-	const [agreed, setAgreed] = useState(false)
 
 	const [error, setError] = useState('')
 	const [successMessage, setSuccessMessage] = useState('')
@@ -102,15 +99,43 @@ function RegisterUser() {
 	const [pendingGoogleToken, setPendingGoogleToken] =
 		useState<string | null>(null)
 
-	const selectedRole = roleOptions.find(
-		(option) => option.value === role,
-	)
+	const selectedRole = roles.find((option) => option.name === role)
+	const SelectedIcon = selectedRole
+		? (roleIcons[selectedRole.name] ?? User)
+		: User
+
+	// Load the available roles when the page opens.
+	useEffect(() => {
+		let cancelled = false
+
+		async function loadRoles() {
+			try {
+				const response = await fetch('/api/roles')
+				const data = await response.json()
+
+				if (!response.ok) throw new Error(data?.error)
+
+				if (!cancelled) setRoles(data.roles)
+			} catch (err) {
+				console.error('Failed to load roles:', err)
+				if (!cancelled) {
+					setError('Could not load roles. Please refresh the page.')
+				}
+			} finally {
+				if (!cancelled) setRolesLoading(false)
+			}
+		}
+
+		loadRoles()
+
+		return () => {
+			cancelled = true
+		}
+	}, [])
 
 	const redirectByRole = useCallback(
 		(userRole: string | undefined) => {
-			setSuccessMessage(
-				'Registered successfully! Redirecting...',
-			)
+			setSuccessMessage('Registered successfully! Redirecting...')
 
 			setTimeout(() => {
 				if (userRole === 'ADMINISTRATOR') {
@@ -127,12 +152,12 @@ function RegisterUser() {
 		[router],
 	)
 
-	 // Send the Google access token to the backend.
+	// Send the Google access token to the backend.
 	const submitGoogle = useCallback(
 		async (
 			accessToken: string,
 			additionalData?: {
-				role: Role
+				role: string
 				phone: string
 			},
 		) => {
@@ -149,16 +174,14 @@ function RegisterUser() {
 						accessToken,
 						...(additionalData
 							? {
-									role: additionalData.role.toUpperCase(),
+									role: additionalData.role,
 									phone: additionalData.phone.trim(),
 								}
 							: {}),
 					}),
 				})
 
-				const data = await response
-					.json()
-					.catch(() => null)
+				const data = await response.json().catch(() => null)
 
 				if (!response.ok || !data) {
 					setError(
@@ -179,14 +202,9 @@ function RegisterUser() {
 				setPendingGoogleToken(null)
 				redirectByRole(data.user?.role)
 			} catch (error) {
-				console.error(
-					'Google registration error:',
-					error,
-				)
+				console.error('Google registration error:', error)
 
-				setError(
-					'Could not reach the server. Please try again.',
-				)
+				setError('Could not reach the server. Please try again.')
 				setIsSubmitting(false)
 			}
 		},
@@ -194,7 +212,6 @@ function RegisterUser() {
 	)
 
 	// Reusable Google authentication hook.
-	
 	const { requestAccessToken } = useGoogleAuth({
 		onSuccess: (accessToken) => {
 			submitGoogle(accessToken)
@@ -206,7 +223,6 @@ function RegisterUser() {
 	})
 
 	// Start Google OAuth.
-	
 	const handleGoogleClick = () => {
 		setError('')
 		setSuccessMessage('')
@@ -223,9 +239,7 @@ function RegisterUser() {
 		setError('')
 
 		if (!pendingGoogleToken) {
-			setError(
-				'Your Google session has expired. Please try again.',
-			)
+			setError('Your Google session has expired. Please try again.')
 			return
 		}
 
@@ -234,29 +248,22 @@ function RegisterUser() {
 			return
 		}
 
-		if (role === 'administrator') {
-			setError(
-				'Administrator accounts cannot be created with Google.',
-			)
-			return
-		}
-
-		if (role === 'landlord' && !phone.trim()) {
+		if (role === 'LANDLORD' && !phone.trim()) {
 			setError(
 				'Please enter your phone number first. Students use it to contact landlords.',
 			)
 			return
 		}
 
+		// Administrator is never in `roles` (selfAssignable = false), and the
+		// server re-validates the role, so no client-side check is needed.
 		await submitGoogle(pendingGoogleToken, {
 			role,
 			phone: phone.trim(),
 		})
 	}
 
-	const handleSubmit = async (
-		event: React.FormEvent,
-	) => {
+	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
 		setError('')
 		setSuccessMessage('')
@@ -271,60 +278,40 @@ function RegisterUser() {
 			return
 		}
 
-		if (!agreed) {
-			setError(
-				'You must agree to the Terms of Service and Privacy Policy.',
-			)
-			return
-		}
-
 		setIsSubmitting(true)
 
 		try {
-			const response = await fetch(
-				'/api/auth/register',
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						name: name.trim(),
-						email: email.trim(),
-						phone: phone.trim(),
-						password,
-						role,
-					}),
+			const response = await fetch('/api/auth/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
 				},
-			)
+				body: JSON.stringify({
+					name: name.trim(),
+					email: email.trim(),
+					phone: phone.trim(),
+					password,
+					role,
+				}),
+			})
 
 			const data = await response.json()
 
 			if (!response.ok) {
-				setError(
-					data.error ??
-						'Something went wrong.',
-				)
+				setError(data.error ?? 'Something went wrong.')
 				setIsSubmitting(false)
 				return
 			}
 
-			setSuccessMessage(
-				'Registered successfully! Redirecting to login...',
-			)
+			setSuccessMessage('Registered successfully! Redirecting to login...')
 
 			setTimeout(() => {
 				router.push('/login')
 			}, 1200)
 		} catch (error) {
-			console.error(
-				'Registration error:',
-				error,
-			)
+			console.error('Registration error:', error)
 
-			setError(
-				'Could not reach the server. Please try again.',
-			)
+			setError('Could not reach the server. Please try again.')
 			setIsSubmitting(false)
 		}
 	}
@@ -341,9 +328,7 @@ function RegisterUser() {
 					<div>
 						<p className="text-xl font-black tracking-[-0.03em] text-slate-950">
 							Stay
-							<span className="text-blue-600">
-								Match
-							</span>
+							<span className="text-blue-600">Match</span>
 						</p>
 
 						<p className="text-xs font-medium text-slate-500">
@@ -361,15 +346,12 @@ function RegisterUser() {
 					</h1>
 
 					<p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500 sm:text-base">
-						Join StayMatch and find the perfect
-						accommodation for your studies.
+						Join StayMatch and find the perfect accommodation for
+						your studies.
 					</p>
 				</div>
 
-				<form
-					className="mt-8 space-y-5"
-					onSubmit={handleSubmit}
-				>
+				<form className="mt-8 space-y-5" onSubmit={handleSubmit}>
 					{/* Success message */}
 					{successMessage && (
 						<div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-600">
@@ -392,9 +374,8 @@ function RegisterUser() {
 							</p>
 
 							<p className="mt-1 text-xs leading-5 text-slate-500">
-								Your Google account has been verified.
-								Please select your account type to
-								continue.
+								Your Google account has been verified. Please
+								select your account type to continue.
 							</p>
 						</div>
 					)}
@@ -404,15 +385,11 @@ function RegisterUser() {
 						<div className="relative">
 							<button
 								type="button"
-								onClick={() =>
-									setRoleOpen(
-										(open) => !open,
-									)
-								}
-								disabled={isSubmitting}
+								onClick={() => setRoleOpen((open) => !open)}
+								disabled={isSubmitting || rolesLoading}
 								className="flex w-full items-center gap-3 rounded-xl border border-blue-300 bg-white py-3 pl-4 pr-4 text-left text-sm outline-none ring-4 ring-blue-100 transition disabled:cursor-not-allowed disabled:opacity-60"
 							>
-								<User className="h-4 w-4 shrink-0 text-slate-400" />
+								<SelectedIcon className="h-4 w-4 shrink-0 text-slate-400" />
 
 								<span
 									className={
@@ -423,60 +400,47 @@ function RegisterUser() {
 								>
 									{selectedRole
 										? selectedRole.label
-										: 'Choose your role'}
+										: rolesLoading
+											? 'Loading roles...'
+											: 'Choose your role'}
 								</span>
 
 								<ChevronDown
 									className={`h-4 w-4 shrink-0 text-slate-400 transition ${
-										roleOpen
-											? 'rotate-180'
-											: ''
+										roleOpen ? 'rotate-180' : ''
 									}`}
 								/>
 							</button>
 
 							{roleOpen && (
 								<div className="absolute z-10 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5">
-									{roleOptions.map(
-										(option) => {
-											const OptionIcon =
-												option.icon
+									{roles.map((option) => {
+										const OptionIcon =
+											roleIcons[option.name] ?? User
 
-											const isSelected =
-												option.value ===
-												role
+										const isSelected =
+											option.name === role
 
-											return (
-												<button
-													type="button"
-													key={
-														option.value
-													}
-													onClick={() => {
-														setRole(
-															option.value,
-														)
-														setRoleOpen(
-															false,
-														)
-														setError(
-															'',
-														)
-													}}
-													className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${
-														isSelected
-															? 'bg-blue-50 font-semibold text-blue-600'
-															: 'font-medium text-slate-700 hover:bg-slate-50'
-													}`}
-												>
-													<OptionIcon className="h-4 w-4" />
-													{
-														option.label
-													}
-												</button>
-											)
-										},
-									)}
+										return (
+											<button
+												type="button"
+												key={option.name}
+												onClick={() => {
+													setRole(option.name)
+													setRoleOpen(false)
+													setError('')
+												}}
+												className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${
+													isSelected
+														? 'bg-blue-50 font-semibold text-blue-600'
+														: 'font-medium text-slate-700 hover:bg-slate-50'
+												}`}
+											>
+												<OptionIcon className="h-4 w-4" />
+												{option.label}
+											</button>
+										)
+									})}
 								</div>
 							)}
 						</div>
@@ -488,11 +452,7 @@ function RegisterUser() {
 							<input
 								type="text"
 								value={name}
-								onChange={(event) =>
-									setName(
-										event.target.value,
-									)
-								}
+								onChange={(event) => setName(event.target.value)}
 								placeholder="Enter your full name"
 								required={!pendingGoogleToken}
 								disabled={isSubmitting}
@@ -507,11 +467,7 @@ function RegisterUser() {
 							<input
 								type="email"
 								value={email}
-								onChange={(event) =>
-									setEmail(
-										event.target.value,
-									)
-								}
+								onChange={(event) => setEmail(event.target.value)}
 								placeholder="Enter your email address"
 								required={!pendingGoogleToken}
 								disabled={isSubmitting}
@@ -526,11 +482,7 @@ function RegisterUser() {
 							<input
 								type="tel"
 								value={phone}
-								onChange={(event) =>
-									setPhone(
-										event.target.value,
-									)
-								}
+								onChange={(event) => setPhone(event.target.value)}
 								placeholder="+266 XXX XXX"
 								disabled={isSubmitting}
 								className={`${inputClasses} disabled:opacity-60`}
@@ -544,16 +496,10 @@ function RegisterUser() {
 							<Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
 							<input
-								type={
-									showPassword
-										? 'text'
-										: 'password'
-								}
+								type={showPassword ? 'text' : 'password'}
 								value={password}
 								onChange={(event) =>
-									setPassword(
-										event.target.value,
-									)
+									setPassword(event.target.value)
 								}
 								placeholder="Create a strong password"
 								required={!pendingGoogleToken}
@@ -563,11 +509,7 @@ function RegisterUser() {
 
 							<button
 								type="button"
-								onClick={() =>
-									setShowPassword(
-										(show) => !show,
-									)
-								}
+								onClick={() => setShowPassword((show) => !show)}
 								disabled={isSubmitting}
 								className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
 								aria-label={
@@ -591,16 +533,10 @@ function RegisterUser() {
 							<Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
 							<input
-								type={
-									showConfirm
-										? 'text'
-										: 'password'
-								}
+								type={showConfirm ? 'text' : 'password'}
 								value={confirmPassword}
 								onChange={(event) =>
-									setConfirmPassword(
-										event.target.value,
-									)
+									setConfirmPassword(event.target.value)
 								}
 								placeholder="Confirm your password"
 								required={!pendingGoogleToken}
@@ -610,11 +546,7 @@ function RegisterUser() {
 
 							<button
 								type="button"
-								onClick={() =>
-									setShowConfirm(
-										(show) => !show,
-									)
-								}
+								onClick={() => setShowConfirm((show) => !show)}
 								disabled={isSubmitting}
 								className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
 								aria-label={
@@ -636,9 +568,7 @@ function RegisterUser() {
 					{pendingGoogleToken ? (
 						<button
 							type="button"
-							onClick={
-								handleCompleteGoogleRegistration
-							}
+							onClick={handleCompleteGoogleRegistration}
 							disabled={isSubmitting}
 							className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
 						>
@@ -646,9 +576,7 @@ function RegisterUser() {
 								? 'Creating account...'
 								: 'Complete Registration'}
 
-							{!isSubmitting && (
-								<ArrowRight className="h-4 w-4" />
-							)}
+							{!isSubmitting && <ArrowRight className="h-4 w-4" />}
 						</button>
 					) : (
 						<>
@@ -681,10 +609,7 @@ function RegisterUser() {
 								disabled={isSubmitting}
 								className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
 							>
-								<svg
-									className="h-4 w-4"
-									viewBox="0 0 24 24"
-								>
+								<svg className="h-4 w-4" viewBox="0 0 24 24">
 									<path
 										fill="#4285F4"
 										d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.47c-.28 1.5-1.13 2.77-2.4 3.62v3h3.87c2.27-2.09 3.58-5.17 3.58-8.8z"

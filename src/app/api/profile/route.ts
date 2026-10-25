@@ -7,9 +7,14 @@ const profileSelect = {
 	name: true,
 	email: true,
 	phone: true,
-	role: true,
+	role: { select: { name: true } },
 	university: true,
 } as const
+
+// Keep the API response shape the same as before: role is a plain string.
+function toProfile<T extends { role: { name: string } }>(user: T) {
+	return { ...user, role: user.role.name }
+}
 
 function getPayload(request: NextRequest) {
 	const token = request.cookies.get('staymatch_token')?.value
@@ -44,7 +49,7 @@ export async function GET(request: NextRequest) {
 			)
 		}
 
-		return NextResponse.json({ user })
+		return NextResponse.json({ user: toProfile(user) })
 	} catch (error) {
 		console.error('Fetch profile error:', error)
 
@@ -68,7 +73,7 @@ export async function PATCH(request: NextRequest) {
 
 		const existing = await prisma.user.findUnique({
 			where: { id: payload.userId },
-			select: { id: true, role: true },
+			select: { id: true, role: { select: { name: true } } },
 		})
 
 		if (!existing) {
@@ -78,7 +83,7 @@ export async function PATCH(request: NextRequest) {
 			)
 		}
 
-		let body: { name?: unknown; phone?: unknown; email?: unknown } 
+		let body: { name?: unknown; phone?: unknown; email?: unknown }
 
 		try {
 			body = await request.json()
@@ -125,7 +130,7 @@ export async function PATCH(request: NextRequest) {
 			typeof phone === 'string' ? phone.trim() : ''
 
 		const phoneDigits = cleanPhone.replace(/\D/g, '')
-		const phoneRequired = existing.role === 'LANDLORD'
+		const phoneRequired = existing.role.name === 'LANDLORD'
 		const phoneGiven = phoneDigits.length > 0
 		const phoneValid =
 			phoneDigits.length >= 7 && phoneDigits.length <= 15
@@ -147,7 +152,7 @@ export async function PATCH(request: NextRequest) {
 			select: profileSelect,
 		})
 
-		return NextResponse.json({ user })
+		return NextResponse.json({ user: toProfile(user) })
 	} catch (error) {
 		console.error('Update profile error:', error)
 

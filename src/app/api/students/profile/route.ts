@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 				name: true,
 				phone: true,
 				university: true,
-				role: true,
+				role: { select: { name: true } },
 			},
 		})
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 			)
 		}
 
-		if (student.role !== 'STUDENT') {
+		if (student.role.name !== 'STUDENT') {
 			return NextResponse.json(
 				{ error: 'Only students can access this profile.' },
 				{ status: 403 },
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 				name: student.name,
 				phone: student.phone,
 				university: student.university,
-				role: student.role,
+				role: student.role.name,
 			},
 		})
 	} catch (error) {
