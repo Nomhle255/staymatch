@@ -15,6 +15,8 @@ import {
 	ShieldCheck,
 	Pencil,
 	Check,
+	Menu,
+	X,
 	University,
 } from 'lucide-react'
 
@@ -112,14 +114,118 @@ const roleLabels: Record<UserRole, string> = {
 	ADMINISTRATOR: 'Administrator',
 }
 
+// text-base on phones stops iOS from zooming in when a field is focused
 const inputClasses =
-	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
+	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm'
 
 function SidebarShell({ children }: { children: ReactNode }) {
 	return (
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
+	)
+}
+
+/*
+ * Top bar for screens smaller than lg, where the sidebar is hidden.
+ * It holds the logo, a menu button, and a dropdown with the same
+ * role-based navigation, user card, and log out link as the sidebar.
+ */
+function MobileNav({
+	navItems,
+	name,
+	roleLabel,
+	initial,
+	loading,
+}: {
+	navItems: NavItem[]
+	name: string
+	roleLabel: string
+	initial: string
+	loading: boolean
+}) {
+	const [open, setOpen] = useState(false)
+
+	return (
+		<header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
+			<div className="flex items-center justify-between px-4 py-3">
+				<Link href="/" className="flex items-center gap-2.5">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
+						⌂
+					</div>
+					<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
+						Stay<span className="text-blue-600">Match</span>
+					</p>
+				</Link>
+
+				<button
+					type="button"
+					onClick={() => setOpen((value) => !value)}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? 'Close menu' : 'Open menu'}
+					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+				>
+					{open ? (
+						<X className="h-5 w-5" />
+					) : (
+						<Menu className="h-5 w-5" />
+					)}
+				</button>
+			</div>
+
+			{open && (
+				<div
+					id="mobile-menu"
+					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+				>
+					<nav className="space-y-1">
+						{navItems.map((item) => {
+							const Icon = item.icon
+							const active = item.href === '/profile'
+
+							return (
+								<Link
+									key={item.label}
+									href={item.href}
+									onClick={() => setOpen(false)}
+									className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+										active
+											? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+											: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+									}`}
+								>
+									<Icon className="h-4 w-4" />
+									{item.label}
+								</Link>
+							)
+						})}
+					</nav>
+
+					<div className="mt-3 rounded-2xl bg-slate-50 p-3">
+						<div className="flex items-center gap-3">
+							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+								{initial}
+							</div>
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{loading ? 'Loading...' : name || 'User'}
+								</p>
+								<p className="text-xs text-slate-500">{roleLabel}</p>
+							</div>
+						</div>
+					</div>
+
+					<Link
+						href="/api/auth/logout"
+						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+					>
+						<LogOut className="h-4 w-4" />
+						Log out
+					</Link>
+				</div>
+			)}
+		</header>
 	)
 }
 
@@ -284,7 +390,16 @@ function Profile() {
 	const isLandlord = profile?.role === 'LANDLORD'
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
+		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
+			<MobileNav
+				navItems={navItems}
+				name={profile?.name || ''}
+				roleLabel={profile ? roleLabels[profile.role] : ''}
+				initial={initial}
+				loading={loading}
+			/>
+
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
@@ -346,7 +461,7 @@ function Profile() {
 				</div>
 			</SidebarShell>
 
-			<main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10">
+			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div>
 					<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
 						My Profile
@@ -357,7 +472,7 @@ function Profile() {
 				</div>
 
 				{loading && (
-					<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center">
+					<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-10">
 						<p className="text-sm font-semibold text-slate-600">
 							Loading your profile...
 						</p>
@@ -365,7 +480,7 @@ function Profile() {
 				)}
 
 				{loadError && !loading && (
-					<div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
+					<div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-center sm:p-6">
 						<p className="text-sm font-semibold text-rose-700">
 							{loadError}
 						</p>
@@ -382,19 +497,19 @@ function Profile() {
 					<div className="mt-6 max-w-2xl">
 						{successMessage && (
 							<div className="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-								<Check className="h-4 w-4" />
+								<Check className="h-4 w-4 shrink-0" />
 								{successMessage}
 							</div>
 						)}
 
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-5 shadow-sm sm:p-6">
-							<div className="flex flex-wrap items-center justify-between gap-4">
-								<div className="flex items-center gap-4">
-									<div className="grid h-16 w-16 place-items-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-lg shadow-blue-600/25">
+						<section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
+							<div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+								<div className="flex min-w-0 items-center gap-4">
+									<div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-lg shadow-blue-600/25">
 										{initial}
 									</div>
-									<div>
-										<h2 className="text-xl font-black tracking-[-0.03em] text-slate-950">
+									<div className="min-w-0">
+										<h2 className="break-words text-xl font-black tracking-[-0.03em] text-slate-950">
 											{profile.name}
 										</h2>
 										<span className="mt-1 inline-block rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600">
@@ -407,7 +522,7 @@ function Profile() {
 									<button
 										type="button"
 										onClick={startEditing}
-										className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+										className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 sm:w-auto"
 									>
 										<Pencil className="h-4 w-4" />
 										Edit profile
@@ -502,11 +617,11 @@ function Profile() {
 										)}
 									</label>
 
-									<div className="flex flex-wrap gap-3 pt-1">
+									<div className="flex flex-col gap-3 pt-1 sm:flex-row">
 										<button
 											type="submit"
 											disabled={saving || !hasChanges}
-											className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+											className="w-full rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
 										>
 											{saving ? 'Saving...' : 'Save changes'}
 										</button>
@@ -514,7 +629,7 @@ function Profile() {
 											type="button"
 											onClick={cancelEditing}
 											disabled={saving}
-											className="rounded-xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+											className="w-full rounded-xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
 										>
 											Cancel
 										</button>
