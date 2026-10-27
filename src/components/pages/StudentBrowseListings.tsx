@@ -72,7 +72,7 @@ const reversePropertyTypeMap: Record<string, string> = {
 
 const priceRanges = [
 	'Any Price',
-	'Under M500',
+	'Up to M500',
 	'M500 – M800',
 	'M800 – M1,000',
 	'Above M1,000',
@@ -257,7 +257,7 @@ function openWhatsAppApplication(
 function matchesPriceRange(price: number, range: string) {
 	switch (range) {
 		case 'Under M500':
-			return price < 500
+			return price <= 500
 		case 'M500 – M800':
 			return price >= 500 && price <= 800
 		case 'M800 – M1,000':

@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react';
 export type ParsedPreferences = {
   propertyType?: 'SINGLE_ROOM' | 'DOUBLE' | 'COMMUNE' | 'BACHELOR';
   priceRange?:
-    | 'Under M500'
+    | 'Up to M500'
     | 'M500 – M800'
     | 'M800 – M1,000'
     | 'Above M1,000';
@@ -36,101 +36,94 @@ export default function AiPreferenceAssistant({
       return;
     }
 
+    // Clear the textarea immediately after the user clicks search.
+    // The request below uses `text`, so it is not affected.
+    setDescription('');
     setLoading(true);
     setError('');
 
     try {
-        const response = await fetch('/api/students/preferences/interpret', {
+      const response = await fetch('/api/students/preferences/interpret', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ description: text }),
-        });
+      });
 
-       const contentType = response.headers.get('content-type') || '';
+      const contentType = response.headers.get('content-type') || '';
 
-        let data: {
+      let data: {
         preferences?: ParsedPreferences;
         error?: string;
         message?: string;
-        };
+      };
 
-        if (contentType.includes('application/json')) {
+      if (contentType.includes('application/json')) {
         data = await response.json();
-        } else {
+      } else {
         // Log technical details for the developer, not the student.
         console.error(
-            'Accommodation preference API returned a non-JSON response:',
-            response.status,
-            response.url,
+          'Accommodation preference API returned a non-JSON response:',
+          response.status,
+          response.url,
         );
 
         if (response.status === 404) {
-            throw new Error(
+          throw new Error(
             'The accommodation search service is currently unavailable. Please try again later.',
-            );
+          );
         }
 
         if (response.status >= 500) {
-            throw new Error(
+          throw new Error(
             'We could not process your search right now. Please try again in a few minutes.',
-            );
+          );
         }
 
         throw new Error(
-            'We encountered a problem processing your request. Please try again.',
+          'We encountered a problem processing your request. Please try again.',
         );
-        }
+      }
 
-        if (!response.ok) {
+      if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-            throw new Error(
+          throw new Error(
             'Your session may have expired. Please sign in again to search for accommodation.',
-            );
+          );
         }
 
         if (response.status === 429) {
-            throw new Error(
+          throw new Error(
             'Too many search requests have been made. Please wait a moment and try again.',
-            );
+          );
         }
 
         if (response.status >= 500) {
-            throw new Error(
+          throw new Error(
             'Our search service is temporarily unavailable. Please try again shortly.',
-            );
+          );
         }
 
         throw new Error(
-            data.error ||
+          data.error ||
             data.message ||
             'We could not understand your accommodation preferences. Please revise your description and try again.',
-        );
-        }
-
-        if (!data.preferences) {
-        throw new Error(
-            'We could not identify your accommodation preferences. Please describe your requirements more clearly.',
-        );
-        }
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || 'Unable to understand your preferences. Please try again.',
         );
       }
 
       if (!data.preferences || typeof data.preferences !== 'object') {
         throw new Error(
-          'No valid preferences were returned. Please describe your needs differently.',
+          'We could not identify your accommodation preferences. Please describe your requirements more clearly.',
         );
       }
 
       // Send preferences to the parent component only once.
       // The parent applies them to the existing accommodation filters.
-      onSearch(data.preferences as ParsedPreferences);
+      onSearch(data.preferences);
     } catch (err) {
+      // Restore the text so the user can edit it and retry.
+      setDescription(text);
       setError(
         err instanceof Error
           ? err.message
