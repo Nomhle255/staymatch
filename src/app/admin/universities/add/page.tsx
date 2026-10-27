@@ -14,6 +14,8 @@ import {
 	Search,
 	Save,
 	CheckCircle2,
+	Menu,
+	X,
 } from 'lucide-react'
 
 const navItems = [
@@ -54,18 +56,23 @@ function NavButton({
 	icon: Icon,
 	active,
 	href,
+	onNavigate,
 }: {
 	label: string
 	icon: ComponentType<{ className?: string }>
 	active: boolean
 	href: string
+	onNavigate?: () => void
 }) {
 	const router = useRouter()
 
 	return (
 		<button
 			type="button"
-			onClick={() => router.push(href)}
+			onClick={() => {
+				onNavigate?.()
+				router.push(href)
+			}}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
 				active
 					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
@@ -87,6 +94,101 @@ function SidebarShell({
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
+	)
+}
+
+/*
+ * Top bar for screens smaller than lg, where the sidebar is hidden.
+ * It holds the logo, a menu button, and a dropdown with the same
+ * navigation, admin card, and log out button as the sidebar.
+ */
+function MobileNav({
+	adminName,
+	adminInitial,
+	onLogout,
+}: {
+	adminName: string
+	adminInitial: string
+	onLogout: () => void
+}) {
+	const [open, setOpen] = useState(false)
+
+	return (
+		<header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
+			<div className="flex items-center justify-between px-4 py-3">
+				<div className="flex items-center gap-2.5">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
+						⌂
+					</div>
+
+					<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
+						Stay<span className="text-blue-600">Match</span>
+					</p>
+				</div>
+
+				<button
+					type="button"
+					onClick={() => setOpen((value) => !value)}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? 'Close menu' : 'Open menu'}
+					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+				>
+					{open ? (
+						<X className="h-5 w-5" />
+					) : (
+						<Menu className="h-5 w-5" />
+					)}
+				</button>
+			</div>
+
+			{open && (
+				<div
+					id="mobile-menu"
+					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+				>
+					<nav className="space-y-1">
+						{navItems.map((item) => (
+							<NavButton
+								key={item.label}
+								{...item}
+								onNavigate={() => setOpen(false)}
+							/>
+						))}
+					</nav>
+
+					<div className="mt-3 rounded-2xl bg-slate-50 p-3">
+						<div className="flex items-center gap-3">
+							<div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+								{adminInitial}
+							</div>
+
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{adminName}
+								</p>
+
+								<p className="text-xs text-slate-500">
+									Administrator
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<button
+						type="button"
+						onClick={() => {
+							setOpen(false)
+							onLogout()
+						}}
+						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+					>
+						<LogOut className="h-4 w-4" />
+						Log out
+					</button>
+				</div>
+			)}
+		</header>
 	)
 }
 
@@ -246,7 +348,14 @@ export default function AddUniversityPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
+		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
+			<MobileNav
+				adminName={adminName}
+				adminInitial={adminInitial}
+				onLogout={handleLogout}
+			/>
+
 			<SidebarShell>
 				<div>
 					<div className="flex items-center gap-3 px-2">
@@ -302,14 +411,14 @@ export default function AddUniversityPage() {
 				</div>
 			</SidebarShell>
 
-			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div className="mx-auto max-w-4xl">
 					<button
 						type="button"
 						onClick={() =>
 							router.push('/admin/universities')
 						}
-						className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+						className="mb-5 flex items-center gap-2 py-1 text-sm font-semibold text-slate-500 transition hover:text-slate-900 sm:mb-6"
 					>
 						<ArrowLeft className="h-4 w-4" />
 						Back to Universities
@@ -326,13 +435,13 @@ export default function AddUniversityPage() {
 						</p>
 					</div>
 
-					<div className="mt-8 rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
-						<div className="mb-8 flex items-start gap-4">
+					<div className="mt-6 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[1.75rem] sm:p-8">
+						<div className="mb-6 flex items-start gap-4 sm:mb-8">
 							<div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
 								<University className="h-5 w-5" />
 							</div>
 
-							<div>
+							<div className="min-w-0">
 								<h2 className="text-base font-extrabold text-slate-950">
 									University Information
 								</h2>
@@ -351,6 +460,7 @@ export default function AddUniversityPage() {
 									University Name
 								</label>
 
+								{/* text-base on phones stops iOS from zooming in on focus */}
 								<input
 									type="text"
 									value={name}
@@ -360,7 +470,7 @@ export default function AddUniversityPage() {
 										)
 									}
 									placeholder="e.g. Botho University"
-									className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+									className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
 								/>
 							</div>
 
@@ -370,7 +480,7 @@ export default function AddUniversityPage() {
 								</label>
 
 								<div className="flex flex-col gap-3 sm:flex-row">
-									<div className="relative flex-1">
+									<div className="relative min-w-0 flex-1">
 										<MapPin className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
 										<input
@@ -385,7 +495,7 @@ export default function AddUniversityPage() {
 												)
 											}
 											placeholder="e.g. Botho University, Maseru, Lesotho"
-											className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+											className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
 										/>
 									</div>
 
@@ -395,7 +505,7 @@ export default function AddUniversityPage() {
 											findCoordinates
 										}
 										disabled={loading}
-										className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+										className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 									>
 										<Search className="h-4 w-4" />
 
@@ -413,7 +523,7 @@ export default function AddUniversityPage() {
 
 							{results.length > 0 && (
 								<div className="overflow-hidden rounded-2xl border border-slate-200">
-									<div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+									<div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-5">
 										<p className="text-sm font-bold text-slate-900">
 											Select the correct
 											location
@@ -437,20 +547,20 @@ export default function AddUniversityPage() {
 															result
 														)
 													}
-													className="flex w-full items-start gap-4 border-b border-slate-100 p-5 text-left transition last:border-b-0 hover:bg-blue-50"
+													className="flex w-full items-start gap-3 border-b border-slate-100 p-4 text-left transition last:border-b-0 hover:bg-blue-50 sm:gap-4 sm:p-5"
 												>
 													<div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
 														<MapPin className="h-4 w-4" />
 													</div>
 
 													<div className="min-w-0">
-														<p className="text-sm font-semibold leading-5 text-slate-900">
+														<p className="break-words text-sm font-semibold leading-5 text-slate-900">
 															{
 																result.display_name
 															}
 														</p>
 
-														<p className="mt-1 text-xs text-slate-500">
+														<p className="mt-1 break-all text-xs text-slate-500">
 															{
 																result.lat
 															}
@@ -479,8 +589,8 @@ export default function AddUniversityPage() {
 									</p>
 								</div>
 
-								<div className="grid gap-4 sm:grid-cols-2">
-									<div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+								<div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+									<div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4">
 										<div className="flex items-center gap-2">
 											<MapPin className="h-4 w-4 text-blue-600" />
 
@@ -489,13 +599,13 @@ export default function AddUniversityPage() {
 											</p>
 										</div>
 
-										<p className="mt-2 min-h-5 text-sm font-semibold text-slate-900">
+										<p className="mt-2 min-h-5 break-all text-sm font-semibold text-slate-900">
 											{latitude ||
 												'Not selected'}
 										</p>
 									</div>
 
-									<div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+									<div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4">
 										<div className="flex items-center gap-2">
 											<MapPin className="h-4 w-4 text-blue-600" />
 
@@ -504,7 +614,7 @@ export default function AddUniversityPage() {
 											</p>
 										</div>
 
-										<p className="mt-2 min-h-5 text-sm font-semibold text-slate-900">
+										<p className="mt-2 min-h-5 break-all text-sm font-semibold text-slate-900">
 											{longitude ||
 												'Not selected'}
 										</p>
