@@ -27,6 +27,7 @@ import {
 	Zap,
 	UploadCloud,
 	X,
+	Menu,
 	Crosshair,
 	Search,
 	CheckCircle2,
@@ -91,8 +92,9 @@ const amenitiesList = [
 
 const MAX_ROOM_IDENTIFIER_LENGTH = 50
 
+// text-base on phones stops iOS from zooming in when a field is focused
 const inputClasses =
-	'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100'
+	'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm'
 
 type FieldProps = {
 	label: string
@@ -127,15 +129,18 @@ function NavButton({
 	icon: Icon,
 	active,
 	href,
+	onClick,
 }: {
 	label: string
 	icon: ComponentType<{ className?: string }>
 	active: boolean
 	href: string
+	onClick?: () => void
 }) {
 	return (
 		<Link
 			href={href}
+			onClick={onClick}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
 				active
 					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
@@ -153,6 +158,101 @@ function SidebarShell({ children }: { children: ReactNode }) {
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
+	)
+}
+
+/*
+ * Top bar for screens smaller than lg, where the sidebar is hidden.
+ * It holds the logo, a menu button, and a dropdown with the same
+ * navigation, landlord card, and log out button as the sidebar.
+ */
+function MobileNav({
+	displayName,
+	initial,
+	profileLoading,
+	onLogout,
+}: {
+	displayName: string
+	initial: string
+	profileLoading: boolean
+	onLogout: () => void
+}) {
+	const [open, setOpen] = useState(false)
+
+	return (
+		<header className="sticky top-0 z-[1100] border-b border-slate-200/70 bg-white lg:hidden">
+			<div className="flex items-center justify-between px-4 py-3">
+				<Link href="/" className="flex items-center gap-2.5">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
+						⌂
+					</div>
+
+					<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
+						Stay<span className="text-blue-600">Match</span>
+					</p>
+				</Link>
+
+				<button
+					type="button"
+					onClick={() => setOpen((value) => !value)}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? 'Close menu' : 'Open menu'}
+					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+				>
+					{open ? (
+						<X className="h-5 w-5" />
+					) : (
+						<Menu className="h-5 w-5" />
+					)}
+				</button>
+			</div>
+
+			{open && (
+				<div
+					id="mobile-menu"
+					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+				>
+					<nav className="space-y-1">
+						{navItems.map((item) => (
+							<NavButton
+								key={item.label}
+								{...item}
+								onClick={() => setOpen(false)}
+							/>
+						))}
+					</nav>
+
+					<div className="mt-3 rounded-2xl bg-slate-50 p-3">
+						<div className="flex items-center gap-3">
+							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+								{profileLoading ? '...' : initial}
+							</div>
+
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{profileLoading ? 'Loading...' : displayName}
+								</p>
+
+								<p className="text-xs text-slate-500">Landlord</p>
+							</div>
+						</div>
+					</div>
+
+					<button
+						type="button"
+						onClick={() => {
+							setOpen(false)
+							onLogout()
+						}}
+						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+					>
+						<LogOut className="h-4 w-4" />
+						Log out
+					</button>
+				</div>
+			)}
+		</header>
 	)
 }
 
@@ -594,7 +694,16 @@ function AddAccommodation() {
 	const initial = displayName.charAt(0).toUpperCase()
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
+		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg).
+			    Its z-index is above Leaflet's map panes so the menu opens over the map */}
+			<MobileNav
+				displayName={displayName}
+				initial={initial}
+				profileLoading={profileLoading}
+				onLogout={handleLogout}
+			/>
+
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
@@ -642,7 +751,7 @@ function AddAccommodation() {
 				</div>
 			</SidebarShell>
 
-			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div>
 					<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
 						Add a New Listing
@@ -670,11 +779,11 @@ function AddAccommodation() {
 
 				<form
 					onSubmit={handleSubmit}
-					className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]"
+					className="mt-5 grid gap-6 sm:mt-6 xl:grid-cols-[1.6fr_1fr]"
 				>
-					<div className="space-y-6">
+					<div className="min-w-0 space-y-6">
 						{/* BASIC INFORMATION */}
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+						<section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
 							<h2 className="text-lg font-extrabold text-slate-950">
 								Basic information
 							</h2>
@@ -711,12 +820,13 @@ function AddAccommodation() {
 									<Field label="Monthly rent (M)">
 										<input
 											type="number"
+											inputMode="numeric"
 											value={price}
 											onChange={(event) => setPrice(event.target.value)}
 											placeholder="2800"
 											required
 											min="0"
-											className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+											className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
 										/>
 									</Field>
 								</div>
@@ -775,7 +885,7 @@ function AddAccommodation() {
 											}
 											placeholder="Describe the property, what's nearby, and what makes it a good fit for students..."
 											required
-											className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+											className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
 										/>
 									</div>
 								</Field>
@@ -795,6 +905,7 @@ function AddAccommodation() {
 													type="button"
 													key={amenity.label}
 													onClick={() => toggleAmenity(amenity.label)}
+													aria-pressed={isSelected}
 													className={`flex items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${
 														isSelected
 															? 'border-blue-400 bg-blue-50 text-blue-700'
@@ -812,7 +923,7 @@ function AddAccommodation() {
 						</section>
 
 						{/* PROPERTY LOCATION */}
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+						<section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
 							<div className="flex items-start justify-between gap-4">
 								<div>
 									<h2 className="text-lg font-extrabold text-slate-950">
@@ -856,7 +967,7 @@ function AddAccommodation() {
 
 							{/* Search Location */}
 							<div className="flex gap-2">
-								<div className="relative flex-1">
+								<div className="relative min-w-0 flex-1">
 									<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
 									<input
@@ -882,7 +993,7 @@ function AddAccommodation() {
 									disabled={
 										locationLoading || !searchLocation.trim()
 									}
-									className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+									className="shrink-0 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
 								>
 									Search
 								</button>
@@ -891,11 +1002,11 @@ function AddAccommodation() {
 							{/* Map */}
 							<div
 								ref={mapRef}
-								className="mt-4 h-[350px] w-full overflow-hidden rounded-2xl border border-slate-200"
+								className="mt-4 h-[300px] w-full overflow-hidden rounded-2xl border border-slate-200 sm:h-[350px]"
 							/>
 
 							<p className="mt-3 text-xs text-slate-400">
-								Click anywhere on the map to select the
+								Tap or click anywhere on the map to select the
 								property. You can drag the map in any
 								direction and drag the marker to adjust the
 								exact location.
@@ -954,9 +1065,9 @@ function AddAccommodation() {
 					</div>
 
 					{/* RIGHT COLUMN */}
-					<div className="space-y-6">
+					<div className="min-w-0 space-y-6">
 						{/* PHOTOS */}
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+						<section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
 							<h2 className="text-lg font-extrabold text-slate-950">
 								Photos
 							</h2>
@@ -970,7 +1081,7 @@ function AddAccommodation() {
 								<UploadCloud className="h-6 w-6 text-slate-400" />
 
 								<p className="text-sm font-semibold text-slate-600">
-									Click to upload photos
+									Tap to upload photos
 								</p>
 
 								<p className="text-xs text-slate-400">
@@ -1000,10 +1111,12 @@ function AddAccommodation() {
 												className="h-full w-full object-cover"
 											/>
 
+											{/* Always visible on touch screens (there is no hover);
+											    revealed on hover or focus from sm up */}
 											<button
 												type="button"
 												onClick={() => removePhoto(index)}
-												className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100"
+												className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white transition sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
 												aria-label={`Remove ${photo.name}`}
 											>
 												<X className="h-3.5 w-3.5" />
@@ -1015,8 +1128,8 @@ function AddAccommodation() {
 						</section>
 
 						{/* PUBLISH */}
-						<section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-							<div className="mt-5">
+						<section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
+							<div>
 								<button
 									type="submit"
 									disabled={loading}
