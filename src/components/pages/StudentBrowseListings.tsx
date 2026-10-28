@@ -16,6 +16,8 @@ import {
 	ChevronRight,
 	University,
 	Sparkles,
+	Menu,
+	X,
 	Image as ImageIcon,
 } from 'lucide-react'
 import {
@@ -102,39 +104,27 @@ type PreferenceFactor = {
 }
 
 const preferenceFactors: PreferenceFactor[] = [
-	{  key: 'price', label: 'Low price' },
-	{  key: 'distance', label: 'Close to university' },
-	{  key: 'verified', label: 'Verified listing' },
+	{ key: 'price', label: 'Low price' },
+	{ key: 'distance', label: 'Close to university' },
+	{ key: 'verified', label: 'Verified listing' },
+	{ key: 'wifi', label: 'Wi-Fi', keywords: ['wi-fi', 'wifi', 'internet'] },
+	{ key: 'water', label: 'Water included', keywords: ['water'] },
 	{
-	   key: 'wifi',label: 'Wi-Fi',keywords: ['wi-fi', 'wifi', 'internet'],
+		key: 'electricity',
+		label: 'Electricity included',
+		keywords: ['electricity'],
 	},
+	{ key: 'furnished', label: 'Furnished', keywords: ['furnished'] },
+	{ key: 'parking', label: 'Parking available', keywords: ['parking'] },
+	{ key: 'security', label: '24/7 security', keywords: ['24/7 security'] },
+	{ key: 'fenced', label: 'Fenced', keywords: ['fence'] },
 	{
-		key: 'water',label: 'Water included',keywords: ['water'],
+		key: 'burglar',
+		label: 'Burglar bars',
+		keywords: ['buglar', 'burglar'],
 	},
-	{
-		key: 'electricity',label: 'Electricity included',keywords: ['electricity'],
-	},
-	{
-		key: 'furnished',label: 'Furnished',keywords: ['furnished'],
-	},
-	{
-		key: 'parking',label: 'Parking available',keywords: ['parking'],
-	},
-	{
-		key: 'security',label: '24/7 security',keywords: ['24/7 security'],
-	},
-	{
-		key: 'fenced',label: 'Fenced',keywords: ['fence'],
-	},
-	{
-		key: 'burglar',label: 'Burglar bars',keywords: ['buglar', 'burglar'],
-	},
-	{
-		key: 'ceiling',label: 'Ceiling',keywords: ['ceiling'],
-	},
-	{
-		key: 'tile',label: 'Tiled floors',keywords: ['tile'],
-	},
+	{ key: 'ceiling', label: 'Ceiling', keywords: ['ceiling'] },
+	{ key: 'tile', label: 'Tiled floors', keywords: ['tile'] },
 ]
 
 type Accommodation = {
@@ -173,15 +163,18 @@ function NavButton({
 	icon: Icon,
 	active,
 	href,
+	onClick,
 }: {
 	label: string
 	icon: ComponentType<{ className?: string }>
 	active: boolean
 	href: string
+	onClick?: () => void
 }) {
 	return (
 		<Link
 			href={href}
+			onClick={onClick}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
 				active
 					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
@@ -199,6 +192,99 @@ function SidebarShell({ children }: { children: ReactNode }) {
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
+	)
+}
+
+/*
+ * Top bar for screens smaller than lg, where the sidebar is hidden.
+ * It holds the logo, a menu button, and a dropdown with the same
+ * navigation, student card, and log out link as the sidebar.
+ */
+function MobileNav({
+	studentName,
+	studentInitial,
+	studentLoading,
+}: {
+	studentName: string
+	studentInitial: string
+	studentLoading: boolean
+}) {
+	const [open, setOpen] = useState(false)
+
+	return (
+		<header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
+			<div className="flex items-center justify-between px-4 py-3">
+				<Link href="/" className="flex items-center gap-2.5">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
+						⌂
+					</div>
+
+					<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
+						Stay<span className="text-blue-600">Match</span>
+					</p>
+				</Link>
+
+				<button
+					type="button"
+					onClick={() => setOpen((value) => !value)}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? 'Close menu' : 'Open menu'}
+					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+				>
+					{open ? (
+						<X className="h-5 w-5" />
+					) : (
+						<Menu className="h-5 w-5" />
+					)}
+				</button>
+			</div>
+
+			{open && (
+				<div
+					id="mobile-menu"
+					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+				>
+					<nav className="space-y-1">
+						{navItems.map((item) => (
+							<NavButton
+								key={item.label}
+								{...item}
+								onClick={() => setOpen(false)}
+							/>
+						))}
+					</nav>
+
+					<div className="mt-3 rounded-2xl bg-slate-50 p-3">
+						<div className="flex items-center gap-3">
+							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+								{studentInitial}
+							</div>
+
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{studentLoading
+										? 'Loading...'
+										: studentName || 'Student'}
+								</p>
+
+								<p className="text-xs text-slate-500">
+									Student
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<Link
+						href="/"
+						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+					>
+						<LogOut className="h-4 w-4" />
+						Log out
+					</Link>
+				</div>
+			)}
+		</header>
 	)
 }
 
@@ -516,9 +602,11 @@ function StudentBrowseListings() {
 			setShowPreferences(true)
 		}
 	}
+
 	const handleAiSearch = (preferences: ParsedPreferences) => {
-	applyAiPreferences(preferences);
-	};
+		applyAiPreferences(preferences)
+	}
+
 	// Fetch accommodation listings
 	useEffect(() => {
 		const fetchListings = async () => {
@@ -810,7 +898,14 @@ function StudentBrowseListings() {
 		: 'S'
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
+		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
+			<MobileNav
+				studentName={studentName}
+				studentInitial={studentInitial}
+				studentLoading={studentLoading}
+			/>
+
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
@@ -862,7 +957,7 @@ function StudentBrowseListings() {
 				</div>
 			</SidebarShell>
 
-			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
@@ -879,12 +974,12 @@ function StudentBrowseListings() {
 				{/* AI assistant: shown once saved preferences have loaded, so a
 				    late load can't overwrite what the AI fills in */}
 				{preferencesLoaded && (
-					<div className="mt-6">
+					<div className="mt-5 sm:mt-6">
 						<AiPreferenceAssistant onSearch={handleAiSearch} />
 					</div>
-					)}
+				)}
 
-				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
+				<div className="mt-5 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm sm:mt-6 sm:rounded-[1.75rem] sm:p-5">
 					<div className="flex flex-col gap-3">
 						<div className="relative">
 							<University className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -900,7 +995,7 @@ function StudentBrowseListings() {
 									universityLoading ||
 									universities.length === 0
 								}
-								className="w-full appearance-none rounded-xl border border-blue-200 bg-blue-50 py-3 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+								className="w-full appearance-none truncate rounded-xl border border-blue-200 bg-blue-50 py-3 pl-11 pr-10 text-base font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
 							>
 								<option value="">
 									{universityLoading
@@ -938,102 +1033,113 @@ function StudentBrowseListings() {
 										setQuery(event.target.value)
 									}
 									placeholder="Search by area or listing name"
-									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
 								/>
 							</div>
 
-							<div className="relative lg:w-48">
-								<select
-									value={propertyType}
-									onChange={(event) =>
-										setPropertyType(
-											event.target.value,
-										)
-									}
-									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-								>
-									{propertyTypes.map((type) => (
-										<option key={type} value={type}>
-											{type}
-										</option>
-									))}
-								</select>
-
-								<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-							</div>
-
-							<div className="relative lg:w-48">
-								<select
-									value={priceRange}
-									onChange={(event) =>
-										setPriceRange(event.target.value)
-									}
-									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-								>
-									{priceRanges.map((range) => (
-										<option key={range} value={range}>
-											{range}
-										</option>
-									))}
-								</select>
-
-								<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-							</div>
-
-							{selectedUniversity && (
+							{/* Selects sit in a 2-column grid on tablets, and become
+							    direct children of the row again on large screens */}
+							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:contents">
 								<div className="relative lg:w-48">
 									<select
-										value={maxDistance}
+										value={propertyType}
 										onChange={(event) =>
-											setMaxDistance(
-												Number(
-													event.target.value,
-												),
+											setPropertyType(
+												event.target.value,
 											)
 										}
-										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-base text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
 									>
-										{distanceOptions.map((option) => (
-											<option
-												key={option.value}
-												value={option.value}
-											>
-												{option.label}
+										{propertyTypes.map((type) => (
+											<option key={type} value={type}>
+												{type}
 											</option>
 										))}
 									</select>
 
 									<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 								</div>
-							)}
 
-							<button
-								type="button"
-								onClick={() =>
-									setShowPreferences((open) => !open)
-								}
-								aria-expanded={showPreferences}
-								className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition ${
-									showPreferences || ratedCount > 0
-										? 'border-blue-300 bg-blue-50 text-blue-600'
-										: 'border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
-								}`}
-							>
-								<SlidersHorizontal className="h-4 w-4" />
-								Preferences
-								{ratedCount > 0 && (
-									<span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">
-										{ratedCount}
-									</span>
+								<div className="relative lg:w-48">
+									<select
+										value={priceRange}
+										onChange={(event) =>
+											setPriceRange(
+												event.target.value,
+											)
+										}
+										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-base text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
+									>
+										{priceRanges.map((range) => (
+											<option
+												key={range}
+												value={range}
+											>
+												{range}
+											</option>
+										))}
+									</select>
+
+									<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								</div>
+
+								{selectedUniversity && (
+									<div className="relative lg:w-48">
+										<select
+											value={maxDistance}
+											onChange={(event) =>
+												setMaxDistance(
+													Number(
+														event.target.value,
+													),
+												)
+											}
+											className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-base text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
+										>
+											{distanceOptions.map(
+												(option) => (
+													<option
+														key={option.value}
+														value={option.value}
+													>
+														{option.label}
+													</option>
+												),
+											)}
+										</select>
+
+										<ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+									</div>
 								)}
-							</button>
+
+								<button
+									type="button"
+									onClick={() =>
+										setShowPreferences((open) => !open)
+									}
+									aria-expanded={showPreferences}
+									className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition ${
+										showPreferences || ratedCount > 0
+											? 'border-blue-300 bg-blue-50 text-blue-600'
+											: 'border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+									}`}
+								>
+									<SlidersHorizontal className="h-4 w-4" />
+									Preferences
+									{ratedCount > 0 && (
+										<span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">
+											{ratedCount}
+										</span>
+									)}
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>
 
 				{showPreferences && (
-					<div className="mt-4 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
-						<div className="flex flex-wrap items-start justify-between gap-3">
+					<div className="mt-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-5">
+						<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
 							<div className="max-w-xl">
 								<h2 className="text-base font-black tracking-[-0.02em] text-slate-950">
 									What matters most to you?
@@ -1048,8 +1154,8 @@ function StudentBrowseListings() {
 								</p>
 							</div>
 
-							<div className="flex items-center gap-3">
-								<div className="relative">
+							<div className="flex w-full items-center gap-3 sm:w-auto">
+								<div className="relative flex-1 sm:flex-none">
 									<select
 										value={minMatch}
 										onChange={(event) =>
@@ -1061,7 +1167,7 @@ function StudentBrowseListings() {
 										}
 										disabled={!preferencesActive}
 										aria-label="Minimum match"
-										className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+										className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-base text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
 									>
 										{minMatchOptions.map((option) => (
 											<option
@@ -1101,7 +1207,7 @@ function StudentBrowseListings() {
 								return (
 									<div
 										key={factor.key}
-										className={`flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 ${
+										className={`flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
 											disabled ? 'opacity-50' : ''
 										}`}
 									>
@@ -1119,7 +1225,7 @@ function StudentBrowseListings() {
 										</div>
 
 										<div
-											className="flex gap-1"
+											className="flex gap-1.5 sm:gap-1"
 											role="group"
 											aria-label={`Importance of ${factor.label}`}
 										>
@@ -1148,7 +1254,7 @@ function StudentBrowseListings() {
 																}),
 															)
 														}
-														className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-bold transition disabled:cursor-not-allowed ${
+														className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold transition disabled:cursor-not-allowed sm:h-8 sm:w-8 sm:text-xs ${
 															value <= current
 																? 'bg-blue-600 text-white'
 																: 'border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600'
@@ -1208,7 +1314,7 @@ function StudentBrowseListings() {
 				)}
 
 				{loading && (
-					<div className="mt-10 rounded-2xl border border-slate-200 bg-white p-10 text-center">
+					<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center sm:mt-10 sm:p-10">
 						<p className="text-sm font-semibold text-slate-600">
 							Loading accommodation listings...
 						</p>
@@ -1216,7 +1322,7 @@ function StudentBrowseListings() {
 				)}
 
 				{error && !loading && (
-					<div className="mt-10 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
+					<div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-center sm:mt-10 sm:p-6">
 						<p className="text-sm font-semibold text-rose-700">
 							{error}
 						</p>
@@ -1243,14 +1349,14 @@ function StudentBrowseListings() {
 								: ''}
 						</p>
 
-						<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+						<div className="mt-4 grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
 							{filteredListings.map((listing, index) => (
 								<article
 									key={listing.id}
-									className="group overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+									className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
 								>
 									<div
-										className={`relative h-44 bg-gradient-to-br ${getGradient(
+										className={`relative h-48 bg-gradient-to-br sm:h-44 ${getGradient(
 											index,
 										)}`}
 									>
@@ -1300,7 +1406,7 @@ function StudentBrowseListings() {
 										)}
 									</div>
 
-									<div className="p-5">
+									<div className="p-4 sm:p-5">
 										<p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">
 											{getPropertyTypeLabel(
 												listing.propertyType,
@@ -1308,19 +1414,21 @@ function StudentBrowseListings() {
 										</p>
 
 										{listing.roomIdentifier && (
-											<p className="mt-2 text-sm font-semibold text-slate-700">
+											<p className="mt-2 break-words text-sm font-semibold text-slate-700">
 												Room: {listing.roomIdentifier}
 											</p>
 										)}
 
 										<p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
-											<MapPin className="h-3.5 w-3.5" />
-											{listing.area}
+											<MapPin className="h-3.5 w-3.5 shrink-0" />
+											<span className="break-words">
+												{listing.area}
+											</span>
 										</p>
 
 										{listing.distanceKm !== null &&
 											selectedUniversity && (
-												<p className="mt-1 text-xs text-slate-400">
+												<p className="mt-1 break-words text-xs text-slate-400">
 													{formatDistance(
 														listing.distanceKm,
 													)}{' '}
@@ -1342,7 +1450,7 @@ function StudentBrowseListings() {
 										<div className="mt-4 flex gap-2">
 											<Link
 												href={`/students/accommodationdetails?id=${listing.id}`}
-												className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+												className="flex-1 rounded-lg border border-slate-200 px-3 py-2.5 text-center text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600 sm:py-2"
 											>
 												View Details
 											</Link>
@@ -1355,7 +1463,7 @@ function StudentBrowseListings() {
 														studentName,
 													)
 												}
-												className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
+												className="flex-1 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700 sm:py-2"
 											>
 												Contact Landlord
 											</button>
@@ -1366,7 +1474,7 @@ function StudentBrowseListings() {
 						</div>
 
 						{filteredListings.length === 0 && (
-							<div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+							<div className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center sm:mt-10 sm:p-10">
 								<p className="text-sm font-semibold text-slate-600">
 									No listings match your search.
 								</p>
@@ -1380,7 +1488,7 @@ function StudentBrowseListings() {
 						)}
 
 						{filteredListings.length > 0 && (
-							<div className="mt-8 flex items-center justify-between">
+							<div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
 								<p className="text-sm text-slate-500">
 									Showing 1–{filteredListings.length} of{' '}
 									{listings.length}
@@ -1389,7 +1497,7 @@ function StudentBrowseListings() {
 								<div className="flex items-center gap-2">
 									<button
 										type="button"
-										className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600"
+										className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600 sm:h-9 sm:w-9"
 										aria-label="Previous page"
 									>
 										<ChevronLeft className="h-4 w-4" />
@@ -1397,14 +1505,14 @@ function StudentBrowseListings() {
 
 									<button
 										type="button"
-										className="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-sm font-bold text-white"
+										className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-sm font-bold text-white sm:h-9 sm:w-9"
 									>
 										1
 									</button>
 
 									<button
 										type="button"
-										className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600"
+										className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600 sm:h-9 sm:w-9"
 										aria-label="Next page"
 									>
 										<ChevronRight className="h-4 w-4" />

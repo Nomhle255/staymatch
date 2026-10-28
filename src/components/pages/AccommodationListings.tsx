@@ -22,6 +22,8 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Eye,
+	Menu,
+	X,
 	Image as ImageIcon,
 } from 'lucide-react'
 
@@ -142,15 +144,18 @@ function NavButton({
 	icon: Icon,
 	active,
 	href,
+	onClick,
 }: {
 	label: string
 	icon: ComponentType<{ className?: string }>
 	active: boolean
 	href: string
+	onClick?: () => void
 }) {
 	return (
 		<Link
 			href={href}
+			onClick={onClick}
 			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
 				active
 					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
@@ -168,6 +173,100 @@ function SidebarShell({ children }: { children: ReactNode }) {
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
+	)
+}
+
+/*
+ * Top bar for screens smaller than lg, where the sidebar is hidden.
+ * It holds the logo, a menu button, and a dropdown with the same
+ * navigation, landlord card, and log out button as the sidebar.
+ */
+function MobileNav({
+	displayName,
+	initial,
+	profileLoading,
+	onLogout,
+}: {
+	displayName: string
+	initial: string
+	profileLoading: boolean
+	onLogout: () => void
+}) {
+	const [open, setOpen] = useState(false)
+
+	return (
+		<header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
+			<div className="flex items-center justify-between px-4 py-3">
+				<Link href="/" className="flex items-center gap-2.5">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
+						⌂
+					</div>
+
+					<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
+						Stay<span className="text-blue-600">Match</span>
+					</p>
+				</Link>
+
+				<button
+					type="button"
+					onClick={() => setOpen((value) => !value)}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? 'Close menu' : 'Open menu'}
+					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+				>
+					{open ? (
+						<X className="h-5 w-5" />
+					) : (
+						<Menu className="h-5 w-5" />
+					)}
+				</button>
+			</div>
+
+			{open && (
+				<div
+					id="mobile-menu"
+					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+				>
+					<nav className="space-y-1">
+						{navItems.map((item) => (
+							<NavButton
+								key={item.label}
+								{...item}
+								onClick={() => setOpen(false)}
+							/>
+						))}
+					</nav>
+
+					<div className="mt-3 rounded-2xl bg-slate-50 p-3">
+						<div className="flex items-center gap-3">
+							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+								{profileLoading ? '...' : initial}
+							</div>
+
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold text-slate-900">
+									{profileLoading ? 'Loading...' : displayName}
+								</p>
+								<p className="text-xs text-slate-500">Landlord</p>
+							</div>
+						</div>
+					</div>
+
+					<button
+						type="button"
+						onClick={() => {
+							setOpen(false)
+							onLogout()
+						}}
+						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+					>
+						<LogOut className="h-4 w-4" />
+						Log out
+					</button>
+				</div>
+			)}
+		</header>
 	)
 }
 
@@ -362,7 +461,15 @@ function AccommodationListings() {
 	const initial = displayName.charAt(0).toUpperCase()
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
+		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
+			<MobileNav
+				displayName={displayName}
+				initial={initial}
+				profileLoading={profileLoading}
+				onLogout={handleLogout}
+			/>
+
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
@@ -411,9 +518,9 @@ function AccommodationListings() {
 				</div>
 			</SidebarShell>
 
-			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div className="flex flex-wrap items-center justify-between gap-4">
-					<div>
+					<div className="min-w-0">
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
 							My Listings
 						</h1>
@@ -426,7 +533,7 @@ function AccommodationListings() {
 
 					<Link
 						href="/landlord/addaccommodation"
-						className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+						className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 sm:w-auto"
 					>
 						<PlusCircle className="h-4 w-4" />
 						Add Listing
@@ -449,7 +556,7 @@ function AccommodationListings() {
 					</div>
 				)}
 
-				<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
+				<div className="mt-5 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm sm:mt-6 sm:rounded-[1.75rem] sm:p-5">
 					<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 						<div className="flex flex-wrap gap-2">
 							{filterTabs.map((tab) => (
@@ -468,8 +575,8 @@ function AccommodationListings() {
 							))}
 						</div>
 
-						<div className="flex gap-3">
-							<div className="relative">
+						<div className="flex flex-col gap-3 sm:flex-row">
+							<div className="relative flex-1 sm:flex-none">
 								<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
 								<input
@@ -479,7 +586,7 @@ function AccommodationListings() {
 										setQuery(event.target.value)
 									}
 									placeholder="Search by room, area or type"
-									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:w-64"
+									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:w-64 sm:text-sm"
 								/>
 							</div>
 
@@ -491,7 +598,7 @@ function AccommodationListings() {
 											event.target.value,
 										)
 									}
-									className="appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-9 text-base font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:w-auto sm:text-sm"
 								>
 									<option>All Types</option>
 									<option>Single Room</option>
@@ -507,7 +614,7 @@ function AccommodationListings() {
 				</div>
 
 				{loading && (
-					<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center">
+					<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-10">
 						<p className="text-sm font-semibold text-slate-600">
 							Loading your accommodations...
 						</p>
@@ -531,7 +638,7 @@ function AccommodationListings() {
 							of {listings.length} listings
 						</p>
 
-						<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+						<div className="mt-4 grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
 							{filteredListings.map((listing) => {
 								const displayStatus = getDisplayStatus(
 									listing.status,
@@ -571,9 +678,9 @@ function AccommodationListings() {
 								return (
 									<article
 										key={listing.id}
-										className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+										className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
 									>
-										<div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500">
+										<div className="relative h-44 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 sm:h-40">
 											{firstPhoto ? (
 												// eslint-disable-next-line @next/next/no-img-element
 												<img
@@ -607,7 +714,7 @@ function AccommodationListings() {
 
 											<button
 												type="button"
-												className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:text-slate-700"
+												className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:text-slate-700 sm:h-8 sm:w-8"
 												aria-label="More options"
 											>
 												<MoreVertical className="h-4 w-4" />
@@ -623,20 +730,22 @@ function AccommodationListings() {
 											)}
 										</div>
 
-										<div className="p-5">
+										<div className="p-4 sm:p-5">
 											<h3 className="text-base font-bold text-slate-950">
 												{typeLabel}
 											</h3>
 
 											{listing.roomIdentifier && (
-												<p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-blue-600">
+												<p className="mt-1 flex items-center gap-1.5 break-words text-sm font-bold text-blue-600">
 													Room: {listing.roomIdentifier}
 												</p>
 											)}
 
 											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-												<MapPin className="h-3.5 w-3.5" />
-												{listing.area}
+												<MapPin className="h-3.5 w-3.5 shrink-0" />
+												<span className="break-words">
+													{listing.area}
+												</span>
 											</p>
 
 											<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
@@ -651,16 +760,16 @@ function AccommodationListings() {
 														Changes requested by the admin
 													</p>
 
-													<p className="mt-1 line-clamp-4 whitespace-pre-wrap text-amber-900">
+													<p className="mt-1 line-clamp-4 whitespace-pre-wrap break-words text-amber-900">
 														{listing.adminNote}
 													</p>
 												</div>
 											)}
 
-											<div className="mt-4 flex gap-2">
+											<div className="mt-4 flex flex-wrap gap-2">
 												<Link
 													href={`/landlord/accommodationdetails?id=${listing.id}`}
-													className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+													className="flex min-w-[7rem] flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600 sm:py-2"
 												>
 													<Eye className="h-3.5 w-3.5" />
 													View Details
@@ -668,7 +777,7 @@ function AccommodationListings() {
 
 												<Link
 													href={`/landlord/accommodationlisting/edit?id=${listing.id}`}
-													className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white transition ${
+													className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold text-white transition sm:py-2 ${
 														needsChanges
 															? 'bg-amber-600 hover:bg-amber-700'
 															: 'bg-blue-600 hover:bg-blue-700'
@@ -733,7 +842,7 @@ function AccommodationListings() {
 																	)
 																}
 															}}
-															className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+															className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 sm:text-sm"
 														>
 															<option value="AVAILABLE">
 																Available
@@ -759,7 +868,7 @@ function AccommodationListings() {
 						</div>
 
 						{filteredListings.length === 0 && (
-							<div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+							<div className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center sm:mt-10 sm:p-10">
 								<p className="text-sm font-semibold text-slate-600">
 									No listings match your filters.
 								</p>
@@ -770,7 +879,7 @@ function AccommodationListings() {
 							</div>
 						)}
 
-						<div className="mt-8 flex items-center justify-between">
+						<div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
 							<p className="text-sm text-slate-500">
 								Showing 1–{filteredListings.length} of{' '}
 								{listings.length}
@@ -779,7 +888,7 @@ function AccommodationListings() {
 							<div className="flex items-center gap-2">
 								<button
 									type="button"
-									className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600"
+									className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600 sm:h-9 sm:w-9"
 									aria-label="Previous page"
 								>
 									<ChevronLeft className="h-4 w-4" />
@@ -787,14 +896,14 @@ function AccommodationListings() {
 
 								<button
 									type="button"
-									className="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-sm font-bold text-white"
+									className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-sm font-bold text-white sm:h-9 sm:w-9"
 								>
 									1
 								</button>
 
 								<button
 									type="button"
-									className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600"
+									className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-blue-300 hover:text-blue-600 sm:h-9 sm:w-9"
 									aria-label="Next page"
 								>
 									<ChevronRight className="h-4 w-4" />

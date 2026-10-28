@@ -68,8 +68,9 @@ function InputShell({ icon: Icon, children }: InputShellProps) {
 	)
 }
 
+// text-base on phones stops iOS from zooming in when a field is focused
 const inputClasses =
-	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
+	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm'
 
 function RegisterUser() {
 	const router = useRouter()
@@ -317,15 +318,15 @@ function RegisterUser() {
 	}
 
 	return (
-		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-6 sm:px-6 lg:px-10">
+		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 			{/* Header */}
 			<div className="mx-auto flex max-w-6xl items-center justify-between">
-				<div className="flex items-center gap-3">
-					<div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
+				<div className="flex min-w-0 items-center gap-3">
+					<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 						⌂
 					</div>
 
-					<div>
+					<div className="min-w-0">
 						<p className="text-xl font-black tracking-[-0.03em] text-slate-950">
 							Stay
 							<span className="text-blue-600">Match</span>
@@ -339,7 +340,7 @@ function RegisterUser() {
 			</div>
 
 			{/* Registration Card */}
-			<div className="mx-auto mt-8 max-w-2xl rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:p-10">
+			<div className="mx-auto mt-6 max-w-2xl rounded-3xl border border-slate-200/70 bg-white p-5 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:mt-8 sm:rounded-[2rem] sm:p-10">
 				<div className="text-center">
 					<h1 className="text-3xl font-black tracking-[-0.05em] text-slate-950 sm:text-4xl">
 						Create Your Account
@@ -351,7 +352,7 @@ function RegisterUser() {
 					</p>
 				</div>
 
-				<form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+				<form className="mt-6 space-y-5 sm:mt-8" onSubmit={handleSubmit}>
 					{/* Success message */}
 					{successMessage && (
 						<div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-600">
@@ -368,7 +369,7 @@ function RegisterUser() {
 
 					{/* Google account authenticated - collect role */}
 					{pendingGoogleToken && (
-						<div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
+						<div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:p-5">
 							<p className="text-sm font-bold text-slate-900">
 								Complete your Google registration
 							</p>
@@ -387,7 +388,9 @@ function RegisterUser() {
 								type="button"
 								onClick={() => setRoleOpen((open) => !open)}
 								disabled={isSubmitting || rolesLoading}
-								className="flex w-full items-center gap-3 rounded-xl border border-blue-300 bg-white py-3 pl-4 pr-4 text-left text-sm outline-none ring-4 ring-blue-100 transition disabled:cursor-not-allowed disabled:opacity-60"
+								aria-haspopup="listbox"
+								aria-expanded={roleOpen}
+								className="flex w-full items-center gap-3 rounded-xl border border-blue-300 bg-white py-3 pl-4 pr-4 text-left text-base outline-none ring-4 ring-blue-100 transition disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
 							>
 								<SelectedIcon className="h-4 w-4 shrink-0 text-slate-400" />
 
@@ -430,7 +433,7 @@ function RegisterUser() {
 													setRoleOpen(false)
 													setError('')
 												}}
-												className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${
+												className={`flex w-full items-center gap-3 px-4 py-3.5 text-left text-base transition sm:py-3 sm:text-sm ${
 													isSelected
 														? 'bg-blue-50 font-semibold text-blue-600'
 														: 'font-medium text-slate-700 hover:bg-slate-50'
@@ -451,6 +454,7 @@ function RegisterUser() {
 						<InputShell icon={User}>
 							<input
 								type="text"
+								autoComplete="name"
 								value={name}
 								onChange={(event) => setName(event.target.value)}
 								placeholder="Enter your full name"
@@ -466,6 +470,7 @@ function RegisterUser() {
 						<InputShell icon={Mail}>
 							<input
 								type="email"
+								autoComplete="email"
 								value={email}
 								onChange={(event) => setEmail(event.target.value)}
 								placeholder="Enter your email address"
@@ -481,6 +486,7 @@ function RegisterUser() {
 						<InputShell icon={Phone}>
 							<input
 								type="tel"
+								autoComplete="tel"
 								value={phone}
 								onChange={(event) => setPhone(event.target.value)}
 								placeholder="+266 XXX XXX"
@@ -497,6 +503,7 @@ function RegisterUser() {
 
 							<input
 								type={showPassword ? 'text' : 'password'}
+								autoComplete="new-password"
 								value={password}
 								onChange={(event) =>
 									setPassword(event.target.value)
@@ -504,14 +511,15 @@ function RegisterUser() {
 								placeholder="Create a strong password"
 								required={!pendingGoogleToken}
 								disabled={isSubmitting}
-								className={`${inputClasses} pr-11 disabled:opacity-60`}
+								className={`${inputClasses} pr-12 disabled:opacity-60`}
 							/>
 
+							{/* Larger tap target for the show/hide button */}
 							<button
 								type="button"
 								onClick={() => setShowPassword((show) => !show)}
 								disabled={isSubmitting}
-								className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
+								className="absolute right-1.5 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
 								aria-label={
 									showPassword
 										? 'Hide password'
@@ -534,6 +542,7 @@ function RegisterUser() {
 
 							<input
 								type={showConfirm ? 'text' : 'password'}
+								autoComplete="new-password"
 								value={confirmPassword}
 								onChange={(event) =>
 									setConfirmPassword(event.target.value)
@@ -541,14 +550,14 @@ function RegisterUser() {
 								placeholder="Confirm your password"
 								required={!pendingGoogleToken}
 								disabled={isSubmitting}
-								className={`${inputClasses} pr-11 disabled:opacity-60`}
+								className={`${inputClasses} pr-12 disabled:opacity-60`}
 							/>
 
 							<button
 								type="button"
 								onClick={() => setShowConfirm((show) => !show)}
 								disabled={isSubmitting}
-								className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
+								className="absolute right-1.5 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
 								aria-label={
 									showConfirm
 										? 'Hide password'
@@ -607,7 +616,7 @@ function RegisterUser() {
 								type="button"
 								onClick={handleGoogleClick}
 								disabled={isSubmitting}
-								className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+								className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
 							>
 								<svg className="h-4 w-4" viewBox="0 0 24 24">
 									<path

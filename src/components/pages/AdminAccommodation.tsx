@@ -106,8 +106,8 @@ function formatDate(value: string) {
 
 function StatCard({ label, value }: { label: string; value: number }) {
 	return (
-		<div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
-			<p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+		<div className="min-w-0 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm sm:p-4">
+			<p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">
 				{label}
 			</p>
 
@@ -299,7 +299,7 @@ function AdminAccommodations() {
 			subtitle="Every listing added to StayMatch, across all landlords."
 		>
 			{!loading && !error && (
-				<div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+				<div className="mt-5 grid grid-cols-3 gap-3 sm:mt-6 md:grid-cols-4">
 					<StatCard label="Listings" value={accommodations.length} />
 					<StatCard label="Available" value={liveCount} />
 					<StatCard label="Occupied" value={occupiedCount} />
@@ -307,7 +307,7 @@ function AdminAccommodations() {
 			)}
 
 			{loading && (
-				<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center">
+				<div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-10">
 					<p className="text-sm font-semibold text-slate-600">
 						Loading accommodations...
 					</p>
@@ -315,7 +315,7 @@ function AdminAccommodations() {
 			)}
 
 			{error && !loading && (
-				<div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
+				<div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-center sm:p-6">
 					<p className="text-sm font-semibold text-rose-700">
 						{error}
 					</p>
@@ -332,11 +332,12 @@ function AdminAccommodations() {
 
 			{!loading && !error && (
 				<>
-					<div className="mt-6 rounded-[1.75rem] border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
+					<div className="mt-5 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm sm:mt-6 sm:rounded-[1.75rem] sm:p-5">
 						<div className="flex flex-col gap-3 lg:flex-row">
 							<div className="relative flex-1">
 								<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
+								{/* text-base on phones stops iOS from zooming in on focus */}
 								<input
 									type="text"
 									value={query}
@@ -344,7 +345,7 @@ function AdminAccommodations() {
 										setQuery(event.target.value)
 									}
 									placeholder="Search by room, area, type or landlord"
-									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+									className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
 								/>
 							</div>
 
@@ -354,7 +355,7 @@ function AdminAccommodations() {
 									onChange={(event) =>
 										setStatusFilter(event.target.value)
 									}
-									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+									className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-9 text-base text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
 								>
 									{statusOptions.map((option) => (
 										<option
@@ -371,13 +372,15 @@ function AdminAccommodations() {
 						</div>
 
 						{selectedLandlordName && (
-							<div className="mt-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-								Landlord: {selectedLandlordName}
+							<div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+								<span className="truncate">
+									Landlord: {selectedLandlordName}
+								</span>
 
 								<Link
 									href="/admin/accommodations"
 									aria-label="Clear landlord filter"
-									className="grid h-4 w-4 place-items-center rounded-full hover:bg-blue-100"
+									className="grid h-5 w-5 shrink-0 place-items-center rounded-full hover:bg-blue-100"
 								>
 									<X className="h-3 w-3" />
 								</Link>
@@ -393,13 +396,13 @@ function AdminAccommodations() {
 					</p>
 
 					{filteredAccommodations.length === 0 ? (
-						<div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+						<div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center sm:p-10">
 							<p className="text-sm font-semibold text-slate-600">
 								No listings match your filters.
 							</p>
 						</div>
 					) : (
-						<div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+						<div className="mt-4 grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
 							{filteredAccommodations.map((item) => {
 								const style =
 									statusStyles[item.status] ??
@@ -410,9 +413,9 @@ function AdminAccommodations() {
 								return (
 									<article
 										key={item.id}
-										className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
+										className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
 									>
-										<div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500">
+										<div className="relative h-44 overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 sm:h-40">
 											{item.photo ? (
 												// eslint-disable-next-line @next/next/no-img-element
 												<img
@@ -449,7 +452,7 @@ function AdminAccommodations() {
 											)}
 										</div>
 
-										<div className="p-5">
+										<div className="p-4 sm:p-5">
 											<h3 className="text-base font-bold text-slate-950">
 												{getPropertyTypeLabel(
 													item.propertyType,
@@ -457,15 +460,17 @@ function AdminAccommodations() {
 											</h3>
 
 											{item.roomIdentifier && (
-												<p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-blue-600">
-													<DoorClosed className="h-3.5 w-3.5" />
+												<p className="mt-1 flex items-center gap-1.5 break-words text-sm font-bold text-blue-600">
+													<DoorClosed className="h-3.5 w-3.5 shrink-0" />
 													{item.roomIdentifier}
 												</p>
 											)}
 
 											<p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-												<MapPin className="h-3.5 w-3.5" />
-												{item.area}
+												<MapPin className="h-3.5 w-3.5 shrink-0" />
+												<span className="break-words">
+													{item.area}
+												</span>
 											</p>
 
 											<p className="mt-3 text-lg font-black tracking-[-0.02em] text-slate-950">
@@ -476,11 +481,11 @@ function AdminAccommodations() {
 											</p>
 
 											<div className="mt-4 rounded-xl bg-slate-50 p-3 text-xs">
-												<p className="font-bold text-slate-800">
+												<p className="break-words font-bold text-slate-800">
 													{item.landlordName}
 												</p>
 
-												<p className="mt-0.5 text-slate-500">
+												<p className="mt-0.5 break-all text-slate-500">
 													{item.landlordEmail}
 												</p>
 
@@ -500,7 +505,7 @@ function AdminAccommodations() {
 															: ''}
 													</p>
 
-													<p className="mt-1 whitespace-pre-wrap text-amber-900">
+													<p className="mt-1 whitespace-pre-wrap break-words text-amber-900">
 														{item.adminNote}
 													</p>
 												</div>
@@ -520,18 +525,18 @@ function AdminAccommodations() {
 													onClick={() =>
 														openReview(item)
 													}
-													className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+													className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:py-2.5"
 												>
-													<MessageSquare className="h-4 w-4" />
+													<MessageSquare className="h-4 w-4 shrink-0" />
 													Comment or mark incomplete
 												</button>
 
 												{/* View details button */}
 												<Link
 													href={`/admin/accommodations/${item.id}`}
-													className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+													className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 sm:py-2.5"
 												>
-													<Eye className="h-4 w-4" />
+													<Eye className="h-4 w-4 shrink-0" />
 													View accommodation details
 												</Link>
 											</div>
@@ -544,10 +549,11 @@ function AdminAccommodations() {
 				</>
 			)}
 
-			{/* Review dialog */}
+			{/* Review dialog. It scrolls inside the screen so the buttons stay
+			    reachable on short phones and when the keyboard is open */}
 			{reviewTarget && (
 				<div
-					className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+					className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
 					onClick={closeReview}
 				>
 					<div
@@ -555,7 +561,7 @@ function AdminAccommodations() {
 						aria-modal="true"
 						aria-labelledby="review-title"
 						onClick={(event) => event.stopPropagation()}
-						className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+						className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:max-h-[90vh] sm:rounded-2xl sm:p-6"
 					>
 						<h2
 							id="review-title"
@@ -564,7 +570,7 @@ function AdminAccommodations() {
 							Review listing
 						</h2>
 
-						<p className="mt-1 text-sm text-slate-500">
+						<p className="mt-1 break-words text-sm text-slate-500">
 							{getPropertyTypeLabel(reviewTarget.propertyType)}
 							{reviewTarget.roomIdentifier
 								? ` · ${reviewTarget.roomIdentifier}`
@@ -595,7 +601,7 @@ function AdminAccommodations() {
 									required
 									disabled={reviewSaving}
 									placeholder="Say what is missing, for example: add at least 3 photos and the exact room number."
-									className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
+									className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:opacity-60 sm:text-sm"
 								/>
 
 								<span className="text-right text-xs text-slate-400">
@@ -611,7 +617,7 @@ function AdminAccommodations() {
 										setMarkIncomplete(event.target.checked)
 									}
 									disabled={reviewSaving}
-									className="mt-0.5 h-4 w-4 rounded border-slate-300"
+									className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"
 								/>
 
 								<span>
@@ -630,7 +636,7 @@ function AdminAccommodations() {
 									type="button"
 									onClick={closeReview}
 									disabled={reviewSaving}
-									className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+									className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60 sm:py-2.5"
 								>
 									Cancel
 								</button>
@@ -638,7 +644,7 @@ function AdminAccommodations() {
 								<button
 									type="submit"
 									disabled={reviewSaving}
-									className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${
+									className={`rounded-xl px-4 py-3 text-sm font-bold text-white transition disabled:opacity-60 sm:py-2.5 ${
 										markIncomplete
 											? 'bg-rose-600 hover:bg-rose-700'
 											: 'bg-blue-600 hover:bg-blue-700'

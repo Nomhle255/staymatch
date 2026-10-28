@@ -19,8 +19,9 @@ import {
 } from 'lucide-react'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 
+// text-base on phones stops iOS from zooming in when a field is focused
 const inputClasses =
-	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
+	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm'
 
 // A role returned by /api/roles.
 type RoleOption = {
@@ -137,7 +138,7 @@ function LoginPage() {
 
 			setTimeout(() => {
 				if (role === 'ADMINISTRATOR') {
-					router.push('/admin')
+					router.push('/admin/dashboard')
 				} else if (role === 'LANDLORD') {
 					router.push('/landlord/dashboard')
 				} else if (role === 'STUDENT') {
@@ -340,14 +341,14 @@ function LoginPage() {
 	}
 
 	return (
-		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-6 sm:px-6 lg:px-10">
+		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 			<div className="mx-auto flex max-w-6xl items-center justify-between">
-				<div className="flex items-center gap-3">
-					<div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
+				<div className="flex min-w-0 items-center gap-3">
+					<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
 						⌂
 					</div>
 
-					<div>
+					<div className="min-w-0">
 						<p className="text-xl font-black tracking-[-0.03em] text-slate-950">
 							Stay
 							<span className="text-blue-600">
@@ -362,7 +363,7 @@ function LoginPage() {
 				</div>
 			</div>
 
-			<div className="mx-auto mt-8 max-w-md rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:p-10">
+			<div className="mx-auto mt-6 max-w-md rounded-3xl border border-slate-200/70 bg-white p-5 shadow-[0_30px_70px_rgba(30,41,59,0.1)] sm:mt-8 sm:rounded-[2rem] sm:p-10">
 				<div className="text-center">
 					<h1 className="text-3xl font-black tracking-[-0.05em] text-slate-950 sm:text-4xl">
 						Welcome 
@@ -375,7 +376,7 @@ function LoginPage() {
 
 				{pendingToken ? (
 					<form
-						className="mt-8 space-y-5"
+						className="mt-6 space-y-5 sm:mt-8"
 						onSubmit={handleRoleSubmit}
 					>
 						{successMessage && (
@@ -430,6 +431,7 @@ function LoginPage() {
 							<InputShell icon={Phone}>
 								<input
 									type="tel"
+									autoComplete="tel"
 									value={phone}
 									onChange={(event) =>
 										setPhone(
@@ -472,14 +474,14 @@ function LoginPage() {
 								setError('')
 							}}
 							disabled={isSubmitting}
-							className="w-full text-center text-sm font-semibold text-slate-500 transition hover:text-slate-700"
+							className="w-full py-2 text-center text-sm font-semibold text-slate-500 transition hover:text-slate-700"
 						>
 							Back to sign in
 						</button>
 					</form>
 				) : (
 					<form
-						className="mt-8 space-y-5"
+						className="mt-6 space-y-5 sm:mt-8"
 						onSubmit={handleSubmit}
 					>
 						{successMessage && (
@@ -498,6 +500,7 @@ function LoginPage() {
 							<InputShell icon={Mail}>
 								<input
 									type="email"
+									autoComplete="email"
 									value={email}
 									onChange={(event) =>
 										setEmail(
@@ -521,6 +524,7 @@ function LoginPage() {
 											? 'text'
 											: 'password'
 									}
+									autoComplete="current-password"
 									value={password}
 									onChange={(event) =>
 										setPassword(
@@ -529,9 +533,10 @@ function LoginPage() {
 									}
 									placeholder="Enter your password"
 									required
-									className={`${inputClasses} pr-11`}
+									className={`${inputClasses} pr-12`}
 								/>
 
+								{/* Larger tap target for the show/hide button */}
 								<button
 									type="button"
 									onClick={() =>
@@ -540,7 +545,7 @@ function LoginPage() {
 												!show,
 										)
 									}
-									className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+									className="absolute right-1.5 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:text-slate-600"
 									aria-label={
 										showPassword
 											? 'Hide password'
@@ -557,7 +562,7 @@ function LoginPage() {
 						</Field>
 
 						<div className="flex items-center justify-between text-sm">
-							<Link href="/forgot-password" className="font-semibold text-blue-600 hover:text-blue-700">
+							<Link href="/forgot-password" className="inline-block py-1 font-semibold text-blue-600 hover:text-blue-700">
 								Forgot password?
 							</Link>
 						</div>
@@ -586,7 +591,7 @@ function LoginPage() {
 							type="button"
 							onClick={handleGoogleClick}
 							disabled={isSubmitting}
-							className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+							className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 sm:py-3"
 						>
 							<svg
 								className="h-4 w-4"
@@ -614,7 +619,7 @@ function LoginPage() {
 						</button>
 
 						<p className="text-center text-sm text-slate-500">
-							Don't have an account?{' '}
+							Don&apos;t have an account?{' '}
 							<Link
 								href="/register"
 								className="font-semibold text-blue-600 hover:text-blue-700"

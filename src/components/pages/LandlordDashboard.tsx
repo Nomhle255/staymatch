@@ -8,7 +8,9 @@ import {
     PlusCircle,
     LogOut,
     MapPin,
-	User,
+    User,
+    Menu,
+    X,
     Image as ImageIcon,
 } from 'lucide-react'
 type Accommodation = {
@@ -46,13 +48,12 @@ const navItems = [
         active: false,
         href: '/landlord/addaccommodation',
     },
-{
-
+    {
         label: 'Profile',
         icon: User,
         active: false,
         href: '/profile',
-    }
+    },
 ]
 
 function getPropertyTypeLabel(propertyType: string) {
@@ -68,7 +69,6 @@ function getPropertyTypeLabel(propertyType: string) {
         default:
             return propertyType
     }
-
 }
 
 function NavButton({
@@ -76,15 +76,18 @@ function NavButton({
     icon: Icon,
     active,
     href,
+    onClick,
 }: {
     label: string
     icon: ComponentType<{ className?: string }>
     active: boolean
     href: string
+    onClick?: () => void
 }) {
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
                 active
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
@@ -108,7 +111,7 @@ function StatCard({
     tint: string
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
             <div
                 className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${tint}`}
             >
@@ -128,6 +131,93 @@ function SidebarShell({ children }: { children: ReactNode }) {
         </aside>
     )
 }
+
+/*
+ * Top bar for screens smaller than lg, where the sidebar is hidden.
+ * It holds the logo, a menu button, and a dropdown with the same
+ * navigation, landlord card, and log out link as the sidebar.
+ */
+function MobileNav({
+    displayName,
+    landlordInitial,
+    landlordLoading,
+}: {
+    displayName: string
+    landlordInitial: string
+    landlordLoading: boolean
+}) {
+    const [open, setOpen] = useState(false)
+
+    return (
+        <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
+            <div className="flex items-center justify-between px-4 py-3">
+                <Link href="/" className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
+                        ⌂
+                    </div>
+                    <p className="text-lg font-black tracking-[-0.03em] text-slate-950">
+                        Stay<span className="text-blue-600">Match</span>
+                    </p>
+                </Link>
+
+                <button
+                    type="button"
+                    onClick={() => setOpen((value) => !value)}
+                    aria-expanded={open}
+                    aria-controls="mobile-menu"
+                    aria-label={open ? 'Close menu' : 'Open menu'}
+                    className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+                >
+                    {open ? (
+                        <X className="h-5 w-5" />
+                    ) : (
+                        <Menu className="h-5 w-5" />
+                    )}
+                </button>
+            </div>
+
+            {open && (
+                <div
+                    id="mobile-menu"
+                    className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+                >
+                    <nav className="space-y-1">
+                        {navItems.map((item) => (
+                            <NavButton
+                                key={item.label}
+                                {...item}
+                                onClick={() => setOpen(false)}
+                            />
+                        ))}
+                    </nav>
+
+                    <div className="mt-3 rounded-2xl bg-slate-50 p-3">
+                        <div className="flex items-center gap-3">
+                            <div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                                {landlordLoading ? '...' : landlordInitial}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-slate-900">
+                                    {landlordLoading ? 'Loading...' : displayName}
+                                </p>
+                                <p className="text-xs text-slate-500">Landlord</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Link
+                        href="/"
+                        className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Log out
+                    </Link>
+                </div>
+            )}
+        </header>
+    )
+}
+
 function LandlordDashboard() {
     const [landlordName, setLandlordName] = useState('')
     const [landlordLoading, setLandlordLoading] = useState(true)
@@ -258,7 +348,14 @@ function LandlordDashboard() {
         },
     ]
     return (
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+            {/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
+            <MobileNav
+                displayName={displayName}
+                landlordInitial={landlordInitial}
+                landlordLoading={landlordLoading}
+            />
+
             {/* Sidebar */}
             <SidebarShell>
                 <div>
@@ -301,21 +398,21 @@ function LandlordDashboard() {
                 </div>
             </SidebarShell>
             {/* Main Content */}
-            <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+            <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
+                    <div className="min-w-0">
+                        <h1 className="break-words text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
                             Welcome back, {landlordLoading ? '...' : firstName}
                         </h1>
                         <p className="mt-1 text-sm text-slate-500">
                             Here&apos;s how your listings are performing.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full items-center gap-3 sm:w-auto">
                         <Link
                             href="/landlord/addaccommodation"
-                            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 sm:w-auto"
                         >
                             <PlusCircle className="h-4 w-4" />
                             Add Listing
@@ -323,21 +420,21 @@ function LandlordDashboard() {
                     </div>
                 </div>
                 {/* Stats */}
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-5 grid gap-4 sm:mt-6 sm:grid-cols-2 xl:grid-cols-4">
                     {stats.map((stat) => (
                         <StatCard key={stat.label} {...stat} />
                     ))}
                 </div>
                 {/* Listings */}
-                <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-                    <section className="rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-                        <div className="flex items-center justify-between">
+                <div className="mt-5 grid gap-6 sm:mt-6 xl:grid-cols-[1.6fr_1fr]">
+                    <section className="min-w-0 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
+                        <div className="flex items-center justify-between gap-3">
                             <h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
                                 Your listings
                             </h2>
                             <Link
                                 href="/landlord/accommodationlisting"
-                                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                                className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-700"
                             >
                                 Manage all
                             </Link>
@@ -353,7 +450,7 @@ function LandlordDashboard() {
                             )}
                             {/* Error */}
                             {!loadingListings && listingsError && (
-                                <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5">
                                     <p className="text-sm font-medium text-red-600">
                                         {listingsError}
                                     </p>
@@ -363,7 +460,7 @@ function LandlordDashboard() {
                             {!loadingListings &&
                                 !listingsError &&
                                 listings.length === 0 && (
-                                    <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center">
+                                    <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center sm:p-8">
                                         <Home className="mx-auto h-8 w-8 text-slate-300" />
                                         <p className="mt-3 text-sm font-semibold text-slate-700">
                                             No accommodations yet
@@ -387,10 +484,10 @@ function LandlordDashboard() {
                                 listings.slice(0, 3).map((listing) => (
                                     <div
                                         key={listing.id}
-                                        className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 p-4 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center"
+                                        className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center sm:p-4"
                                     >
                                         {/* Photo, or a placeholder when none was uploaded */}
-                                        <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:w-32">
+                                        <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:h-24 sm:w-32">
                                             {listing.photos[0] ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img
@@ -411,7 +508,7 @@ function LandlordDashboard() {
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex-1">
+                                        <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="text-base font-bold text-slate-950">
                                                     {getPropertyTypeLabel(
@@ -443,13 +540,15 @@ function LandlordDashboard() {
                                                 )}
                                             </div>
                                             {listing.roomIdentifier && (
-                                                <p className="mt-1 text-sm font-semibold text-slate-700">
+                                                <p className="mt-1 break-words text-sm font-semibold text-slate-700">
                                                     Room: {listing.roomIdentifier}
                                                 </p>
                                             )}
                                             <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-                                                <MapPin className="h-3.5 w-3.5" />
-                                                {listing.area}
+                                                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                                <span className="break-words">
+                                                    {listing.area}
+                                                </span>
                                             </p>
                                             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                                                 <span className="font-bold text-slate-900">
