@@ -137,7 +137,7 @@ function LoginPage() {
 
 			setTimeout(() => {
 				if (role === 'ADMINISTRATOR') {
-					router.push('/admin')
+					router.push('/admin/dashboard')
 				} else if (role === 'LANDLORD') {
 					router.push('/landlord/dashboard')
 				} else if (role === 'STUDENT') {
