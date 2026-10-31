@@ -318,24 +318,34 @@ function RegisterUser() {
 	}
 
 	return (
-		<main className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-white px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
+			<main className="relative min-h-screen overflow-hidden px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
+			{/* Background image */}
+				<div
+					aria-hidden="true"
+					className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+					style={{
+						backgroundImage: "url('/images/staymatch_backgroundImage.png')",
+					}}
+				/>
+			{/* Dark overlay */}
+				<div
+					aria-hidden="true"
+					className="absolute inset-0 z-0 bg-slate-950/50"
+				/>
+
+			{/* All page content */}
+				<div className="relative z-10">
 			{/* Header */}
 			<div className="mx-auto flex max-w-6xl items-center justify-between">
 				<div className="flex min-w-0 items-center gap-3">
-					<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
-						⌂
-					</div>
-
-					<div className="min-w-0">
-						<p className="text-xl font-black tracking-[-0.03em] text-slate-950">
-							Stay
-							<span className="text-blue-600">Match</span>
-						</p>
+				<div className="flex min-w-0 flex-col gap-1">
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
 
 						<p className="text-xs font-medium text-slate-500">
 							Student Accommodation Made Easy
 						</p>
-					</div>
+				</div>
 				</div>
 			</div>
 
@@ -658,6 +668,7 @@ function RegisterUser() {
 						</Link>
 					</p>
 				</form>
+			</div>
 			</div>
 		</main>
 	)

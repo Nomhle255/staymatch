@@ -707,13 +707,11 @@ function AddAccommodation() {
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
-						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
-							⌂
-						</div>
+					<div className="flex min-w-0 flex-col gap-1">
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
+					</div>
 
-						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
-						</p>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
