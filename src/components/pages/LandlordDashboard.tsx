@@ -152,12 +152,12 @@ function MobileNav({
         <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
             <div className="flex items-center justify-between px-4 py-3">
                 <Link href="/" className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
-                        ⌂
-                    </div>
-                    <p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-                        Stay<span className="text-blue-600">Match</span>
-                    </p>
+                    <div className="flex min-w-0 items-center gap-3">
+					<div className="flex min-w-0 flex-col gap-1">
+					    {/* eslint-disable-next-line @next/next/no-img-element */}
+						    <img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
+				    </div>
+			        </div>
                 </Link>
 
                 <button
@@ -398,17 +398,34 @@ function LandlordDashboard() {
                 </div>
             </SidebarShell>
             {/* Main Content */}
-            <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
+            <main className="relative z-10 min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
+                {/* Background image */}
+                            <div
+                                aria-hidden="true"
+                                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+                                style={{
+                                    backgroundImage: "url('/images/staymatch_backgroundImage.png')",
+                                }}
+                            />
+                        {/* Dark overlay */}
+                            <div
+                                aria-hidden="true"
+                                className="absolute inset-0 z-0 bg-slate-950/50"
+                            />
+
+                        {/* All page content */}
+                            <div className="relative z-10">
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="min-w-0">
-                        <h1 className="break-words text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
+                        <h1 className="break-words text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
                             Welcome back, {landlordLoading ? '...' : firstName}
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Here&apos;s how your listings are performing.
+                        <p className="mt-1 text-sm text-white/80">
+                            Here's how your listings are performing.
                         </p>
                     </div>
+
                     <div className="flex w-full items-center gap-3 sm:w-auto">
                         <Link
                             href="/landlord/addaccommodation"
@@ -419,15 +436,17 @@ function LandlordDashboard() {
                         </Link>
                     </div>
                 </div>
+
                 {/* Stats */}
                 <div className="mt-5 grid gap-4 sm:mt-6 sm:grid-cols-2 xl:grid-cols-4">
                     {stats.map((stat) => (
                         <StatCard key={stat.label} {...stat} />
                     ))}
                 </div>
+
                 {/* Listings */}
                 <div className="mt-5 grid gap-6 sm:mt-6 xl:grid-cols-[1.6fr_1fr]">
-                    <section className="min-w-0 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:rounded-[1.75rem] sm:p-6">
+                    <section className="min-w-0 rounded-2xl border border-white/30 bg-white/90 p-4 shadow-sm backdrop-blur-md sm:rounded-[1.75rem] sm:p-6">
                         <div className="flex items-center justify-between gap-3">
                             <h2 className="text-lg font-extrabold tracking-[-0.03em] text-slate-950">
                                 Your listings
@@ -439,6 +458,7 @@ function LandlordDashboard() {
                                 Manage all
                             </Link>
                         </div>
+
                         <div className="mt-5 space-y-4">
                             {/* Loading */}
                             {loadingListings && (
@@ -448,6 +468,7 @@ function LandlordDashboard() {
                                     </p>
                                 </div>
                             )}
+
                             {/* Error */}
                             {!loadingListings && listingsError && (
                                 <div className="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5">
@@ -456,6 +477,7 @@ function LandlordDashboard() {
                                     </p>
                                 </div>
                             )}
+
                             {/* No listings */}
                             {!loadingListings &&
                                 !listingsError &&
@@ -478,15 +500,16 @@ function LandlordDashboard() {
                                         </Link>
                                     </div>
                                 )}
+
                             {/* Database listings */}
                             {!loadingListings &&
                                 !listingsError &&
                                 listings.slice(0, 3).map((listing) => (
                                     <div
                                         key={listing.id}
-                                        className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center sm:p-4"
+                                        className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/70 p-3 transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center sm:p-4"
                                     >
-                                        {/* Photo, or a placeholder when none was uploaded */}
+                                        {/* Photo */}
                                         <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 sm:h-24 sm:w-32">
                                             {listing.photos[0] ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
@@ -502,12 +525,14 @@ function LandlordDashboard() {
                                                     <ImageIcon className="h-8 w-8 text-white/80" />
                                                 </div>
                                             )}
+
                                             {listing.photos.length > 1 && (
                                                 <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
                                                     {listing.photos.length} photos
                                                 </span>
                                             )}
                                         </div>
+
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="text-base font-bold text-slate-950">
@@ -515,6 +540,7 @@ function LandlordDashboard() {
                                                         listing.propertyType,
                                                     )}
                                                 </h3>
+
                                                 {(listing.status === 'AVAILABLE' ||
                                                     listing.status === 'VERIFIED') && (
                                                     <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
@@ -523,33 +549,39 @@ function LandlordDashboard() {
                                                             : 'Available'}
                                                     </span>
                                                 )}
+
                                                 {listing.status === 'OCCUPIED' && (
                                                     <span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600">
                                                         Occupied
                                                     </span>
                                                 )}
+
                                                 {listing.status === 'PENDING_REVIEW' && (
                                                     <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
                                                         Pending review
                                                     </span>
                                                 )}
+
                                                 {listing.status === 'INACTIVE' && (
                                                     <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
                                                         Inactive
                                                     </span>
                                                 )}
                                             </div>
+
                                             {listing.roomIdentifier && (
                                                 <p className="mt-1 break-words text-sm font-semibold text-slate-700">
                                                     Room: {listing.roomIdentifier}
                                                 </p>
                                             )}
+
                                             <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
                                                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                                                 <span className="break-words">
                                                     {listing.area}
                                                 </span>
                                             </p>
+
                                             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                                                 <span className="font-bold text-slate-900">
                                                     M{listing.price.toLocaleString()} /
@@ -561,6 +593,7 @@ function LandlordDashboard() {
                                 ))}
                         </div>
                     </section>
+                </div>
                 </div>
             </main>
         </div>

@@ -1,4 +1,6 @@
+
 'use client'
+
 import { useEffect, useState } from 'react'
 import type { ReactNode, ComponentType, FormEvent } from 'react'
 import Link from 'next/link'
@@ -114,22 +116,38 @@ const roleLabels: Record<UserRole, string> = {
 	ADMINISTRATOR: 'Administrator',
 }
 
-// text-base on phones stops iOS from zooming in when a field is focused
+// Text-base on phones stops iOS from zooming in when a field is focused.
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm'
+
+// Shared logout function for both mobile and desktop navigation.
+async function handleLogout() {
+	try {
+		const response = await fetch('/api/auth/logout', {
+			method: 'POST',
+			credentials: 'same-origin',
+		})
+
+		if (!response.ok) {
+			throw new Error('Logout failed')
+		}
+
+		window.location.href = '/login'
+	} catch (error) {
+		console.error('Logout error:', error)
+	}
+}
 
 function SidebarShell({ children }: { children: ReactNode }) {
 	return (
 		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
 			{children}
 		</aside>
-	)
-}
+	)}
 
 /*
  * Top bar for screens smaller than lg, where the sidebar is hidden.
- * It holds the logo, a menu button, and a dropdown with the same
- * role-based navigation, user card, and log out link as the sidebar.
+ * It holds the logo, a menu button, and the dropdown navigation.
  */
 function MobileNav({
 	navItems,
@@ -211,18 +229,21 @@ function MobileNav({
 								<p className="truncate text-sm font-bold text-slate-900">
 									{loading ? 'Loading...' : name || 'User'}
 								</p>
-								<p className="text-xs text-slate-500">{roleLabel}</p>
+								<p className="text-xs text-slate-500">
+									{roleLabel}
+								</p>
 							</div>
 						</div>
 					</div>
 
-					<Link
-						href="/api/auth/logout"
+					<button
+						type="button"
+						onClick={handleLogout}
 						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
 						Log out
-					</Link>
+					</button>
 				</div>
 			)}
 		</header>
@@ -368,7 +389,6 @@ function Profile() {
 				throw new Error(data?.error || 'Something went wrong.')
 			}
 
-			// The API returns the role retrieved from the database.
 			setProfile(data.user as UserProfile)
 			setIsEditing(false)
 			setSuccessMessage('Your profile has been updated.')
@@ -384,14 +404,16 @@ function Profile() {
 	}
 
 	const navItems = getNavItems(profile?.role)
+
 	const initial = profile?.name
 		? profile.name.charAt(0).toUpperCase()
 		: '?'
+
 	const isLandlord = profile?.role === 'LANDLORD'
 
 	return (
 		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
-			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
+			{/* Mobile and tablet navigation */}
 			<MobileNav
 				navItems={navItems}
 				name={profile?.name || ''}
@@ -400,15 +422,16 @@ function Profile() {
 				loading={loading}
 			/>
 
+			{/* Desktop sidebar */}
 			<SidebarShell>
 				<div>
 					<Link href="/" className="flex items-center gap-3 px-2">
-						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
-							⌂
-						</div>
-						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay<span className="text-blue-600">Match</span>
-						</p>
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img
+							src="/brand/staymatch-logo.svg"
+							alt="StayMatch"
+							className="h-11 w-auto"
+						/>
 					</Link>
 
 					<nav className="mt-8 space-y-1">
@@ -442,7 +465,9 @@ function Profile() {
 							</div>
 							<div className="min-w-0">
 								<p className="truncate text-sm font-bold text-slate-900">
-									{loading ? 'Loading...' : profile?.name || 'User'}
+									{loading
+										? 'Loading...'
+										: profile?.name || 'User'}
 								</p>
 								<p className="text-xs text-slate-500">
 									{profile ? roleLabels[profile.role] : ''}
@@ -451,16 +476,19 @@ function Profile() {
 						</div>
 					</div>
 
-					<Link
-						href="/api/auth/logout"
+					{/* Desktop logout button */}
+					<button
+						type="button"
+						onClick={handleLogout}
 						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
 					>
 						<LogOut className="h-4 w-4" />
 						Log out
-					</Link>
+					</button>
 				</div>
 			</SidebarShell>
 
+			{/* Main content */}
 			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div>
 					<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
@@ -550,7 +578,10 @@ function Profile() {
 									</Row>
 								</div>
 							) : (
-								<form className="mt-6 space-y-5" onSubmit={handleSave}>
+								<form
+									className="mt-6 space-y-5"
+									onSubmit={handleSave}
+								>
 									{saveError && (
 										<div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
 											{saveError}
@@ -566,7 +597,9 @@ function Profile() {
 											<input
 												type="text"
 												value={name}
-												onChange={(event) => setName(event.target.value)}
+												onChange={(event) =>
+													setName(event.target.value)
+												}
 												placeholder="Enter your full name"
 												required
 												maxLength={100}
@@ -584,7 +617,9 @@ function Profile() {
 											<input
 												type="email"
 												value={email}
-												onChange={(event) => setEmail(event.target.value)}
+												onChange={(event) =>
+													setEmail(event.target.value)
+												}
 												placeholder="Enter your email address"
 												required
 												className={inputClasses}
@@ -603,7 +638,9 @@ function Profile() {
 											<input
 												type="tel"
 												value={phone}
-												onChange={(event) => setPhone(event.target.value)}
+												onChange={(event) =>
+													setPhone(event.target.value)
+												}
 												placeholder="+266 XXX XXX"
 												required={isLandlord}
 												className={inputClasses}
@@ -623,7 +660,9 @@ function Profile() {
 											disabled={saving || !hasChanges}
 											className="w-full rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
 										>
-											{saving ? 'Saving...' : 'Save changes'}
+											{saving
+												? 'Saving...'
+												: 'Save changes'}
 										</button>
 										<button
 											type="button"

@@ -116,15 +116,13 @@ function MobileNav({
     return (
         <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
             <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
-                        ⌂
-                    </div>
+               <div className="flex min-w-0 items-center gap-3">
+					<div className="flex min-w-0 flex-col gap-1">
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
 
-                    <p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-                        Stay<span className="text-blue-600">Match</span>
-                    </p>
-                </div>
+				</div>
+				</div>
 
                 <button
                     type="button"
