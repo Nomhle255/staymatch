@@ -17,15 +17,16 @@ function HomePage() {
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-16 pt-5 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 border-b border-slate-200/70 bg-white/70 px-4 py-4 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between md:rounded-2xl md:border md:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/20">
-            ⌂
-          </div>
-          <div>
-            <p className="text-lg font-extrabold text-slate-900">StayMatch</p>
+          <div className="flex min-w-0 flex-col gap-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/staymatch-logo.svg"
+              alt="StayMatch"
+              className="h-11 w-auto"
+            />
             <p className="text-sm text-slate-500">Student and landlord accommodation hub</p>
           </div>
         </div>
-
         <nav className="flex flex-wrap items-center gap-5 text-sm font-medium text-slate-600" aria-label="Primary">
           <Link className="transition hover:text-blue-600" href="#students">For Students</Link>
           <Link className="transition hover:text-blue-600" href="#landlords">For Landlords</Link>
