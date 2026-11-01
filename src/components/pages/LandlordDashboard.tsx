@@ -1,18 +1,14 @@
 'use client'
-import type { ReactNode, ComponentType } from 'react'
+import type { ComponentType } from 'react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-    LayoutDashboard,
     Home,
     PlusCircle,
-    LogOut,
     MapPin,
-    User,
-    Menu,
-    X,
     Image as ImageIcon,
 } from 'lucide-react'
+import LandlordShell from './LandlordShell'
 type Accommodation = {
     id: string
     roomIdentifier: string
@@ -29,33 +25,6 @@ type Accommodation = {
     createdAt: string
     updatedAt: string
 }
-const navItems = [
-    {
-        label: 'Dashboard',
-        icon: LayoutDashboard,
-        active: true,
-        href: '/landlord/dashboard',
-    },
-    {
-        label: 'My Listings',
-        icon: Home,
-        active: false,
-        href: '/landlord/accommodationlisting',
-    },
-    {
-        label: 'Add Listing',
-        icon: PlusCircle,
-        active: false,
-        href: '/landlord/addaccommodation',
-    },
-    {
-        label: 'Profile',
-        icon: User,
-        active: false,
-        href: '/profile',
-    },
-]
-
 function getPropertyTypeLabel(propertyType: string) {
     switch (propertyType) {
         case 'SINGLE_ROOM':
@@ -71,34 +40,6 @@ function getPropertyTypeLabel(propertyType: string) {
     }
 }
 
-function NavButton({
-    label,
-    icon: Icon,
-    active,
-    href,
-    onClick,
-}: {
-    label: string
-    icon: ComponentType<{ className?: string }>
-    active: boolean
-    href: string
-    onClick?: () => void
-}) {
-    return (
-        <Link
-            href={href}
-            onClick={onClick}
-            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                active
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-            }`}
-        >
-            <Icon className="h-4 w-4" />
-            {label}
-        </Link>
-    )
-}
 function StatCard({
     label,
     value,
@@ -124,100 +65,6 @@ function StatCard({
         </div>
     )
 }
-function SidebarShell({ children }: { children: ReactNode }) {
-    return (
-        <aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
-            {children}
-        </aside>
-    )
-}
-
-/*
- * Top bar for screens smaller than lg, where the sidebar is hidden.
- * It holds the logo, a menu button, and a dropdown with the same
- * navigation, landlord card, and log out link as the sidebar.
- */
-function MobileNav({
-    displayName,
-    landlordInitial,
-    landlordLoading,
-}: {
-    displayName: string
-    landlordInitial: string
-    landlordLoading: boolean
-}) {
-    const [open, setOpen] = useState(false)
-
-    return (
-        <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
-            <div className="flex items-center justify-between px-4 py-3">
-                <Link href="/" className="flex items-center gap-2.5">
-                    <div className="flex min-w-0 items-center gap-3">
-					<div className="flex min-w-0 flex-col gap-1">
-					    {/* eslint-disable-next-line @next/next/no-img-element */}
-						    <img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
-				    </div>
-			        </div>
-                </Link>
-
-                <button
-                    type="button"
-                    onClick={() => setOpen((value) => !value)}
-                    aria-expanded={open}
-                    aria-controls="mobile-menu"
-                    aria-label={open ? 'Close menu' : 'Open menu'}
-                    className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
-                >
-                    {open ? (
-                        <X className="h-5 w-5" />
-                    ) : (
-                        <Menu className="h-5 w-5" />
-                    )}
-                </button>
-            </div>
-
-            {open && (
-                <div
-                    id="mobile-menu"
-                    className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
-                >
-                    <nav className="space-y-1">
-                        {navItems.map((item) => (
-                            <NavButton
-                                key={item.label}
-                                {...item}
-                                onClick={() => setOpen(false)}
-                            />
-                        ))}
-                    </nav>
-
-                    <div className="mt-3 rounded-2xl bg-slate-50 p-3">
-                        <div className="flex items-center gap-3">
-                            <div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-                                {landlordLoading ? '...' : landlordInitial}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-slate-900">
-                                    {landlordLoading ? 'Loading...' : displayName}
-                                </p>
-                                <p className="text-xs text-slate-500">Landlord</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <Link
-                        href="/"
-                        className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Log out
-                    </Link>
-                </div>
-            )}
-        </header>
-    )
-}
-
 function LandlordDashboard() {
     const [landlordName, setLandlordName] = useState('')
     const [landlordLoading, setLandlordLoading] = useState(true)
@@ -328,9 +175,8 @@ function LandlordDashboard() {
             setUpdatingStatusId(null)
         }
     }
-    const displayName = landlordName || 'Landlord'
-    const landlordInitial = displayName.charAt(0).toUpperCase()
-    const firstName = displayName.trim().split(/\s+/)[0] || 'Landlord'
+    const firstName =
+        landlordName.trim().split(/\s+/)[0] || 'Landlord'
     const stats = [
         {
             label: 'Your Listings',
@@ -348,56 +194,7 @@ function LandlordDashboard() {
         },
     ]
     return (
-        <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
-            {/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
-            <MobileNav
-                displayName={displayName}
-                landlordInitial={landlordInitial}
-                landlordLoading={landlordLoading}
-            />
-
-            {/* Sidebar */}
-            <SidebarShell>
-                <div>
-                    <Link href="/" className="flex items-center gap-3 px-2">
-                    <div className="flex items-center gap-3">
-					<div className="flex min-w-0 flex-col gap-1">
-					    {/* eslint-disable-next-line @next/next/no-img-element */}
-						    <img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
-                    </div>
-                    </div>
-                    </Link>
-                    <nav className="mt-8 space-y-1">
-                        {navItems.map((item) => (
-                            <NavButton key={item.label} {...item} />
-                        ))}
-                    </nav>
-                </div>
-                {/* Landlord Profile */}
-                <div className="space-y-4">
-                    <div className="rounded-2xl bg-slate-50 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-                                {landlordLoading ? '...' : landlordInitial}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-slate-900">
-                                    {landlordLoading ? 'Loading...' : displayName}
-                                </p>
-                                <p className="text-xs text-slate-500">Landlord</p>
-                            </div>
-                        </div>
-                    </div>
-                    <Link
-                        href="/"
-                        className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Log out
-                    </Link>
-                </div>
-            </SidebarShell>
-            {/* Main Content */}
+        <LandlordShell>
             <main className="relative z-10 min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
                 {/* Background image */}
                             <div
@@ -596,7 +393,7 @@ function LandlordDashboard() {
                 </div>
                 </div>
             </main>
-        </div>
+        </LandlordShell>
     )
 }
 

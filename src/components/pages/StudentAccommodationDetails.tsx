@@ -1,18 +1,14 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import type { ReactNode, ComponentType } from 'react'
+import type { ComponentType } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import StudentShell from './StudentShell'
 import {
-	LayoutDashboard,
-	Search,
-	FileText,
-	LogOut,
 	MapPin,
 	BadgeCheck,
 	ChevronLeft,
-	CalendarDays,
 	Home,
 	ExternalLink,
 	Droplets,
@@ -30,23 +26,6 @@ import {
 	Bath,
 	Check,
 } from 'lucide-react'
-
-const navItems = [
-	{
-		label: 'Dashboard', icon: LayoutDashboard, active: false,
-		href: '/students/dashboard',
-	},
-	{
-		label: 'Browse Listings', icon: Search, active: true,
-		href: '/students/browseListings',
-	},
-	{
-		label: 'Applications',
-		icon: FileText,
-		active: false,
-		href: '/students/applications',
-	},
-]
 
 type Accommodation = {
 	id: string
@@ -68,40 +47,6 @@ type Accommodation = {
 }
 
 type IconComponent = ComponentType<{ className?: string }>
-
-function NavButton({
-	label,
-	icon: Icon,
-	active,
-	href,
-}: {
-	label: string
-	icon: IconComponent
-	active: boolean
-	href: string
-}) {
-	return (
-		<Link
-			href={href}
-			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-				active
-					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-					: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-			}`}
-		>
-			<Icon className="h-4 w-4" />
-			{label}
-		</Link>
-	)
-}
-
-function SidebarShell({ children }: { children: ReactNode }) {
-	return (
-		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
-			{children}
-		</aside>
-	)
-}
 
 function normalizePhotos(match: any): string[] {
 	const raw =
@@ -165,22 +110,6 @@ function getAmenityIcon(label: string): IconComponent {
 	return Check
 }
 
-function formatAvailability(availableFrom: string | null) {
-	if (!availableFrom) return 'Not specified'
-
-	const date = new Date(availableFrom)
-
-	if (Number.isNaN(date.getTime())) return 'Not specified'
-
-	if (date.getTime() <= Date.now()) return 'Available now'
-
-	return date.toLocaleDateString('en-GB', {
-		day: 'numeric',
-		month: 'long',
-		year: 'numeric',
-	})
-}
-
 function openWhatsAppApplication(
 	listing: Accommodation,
 	studentName: string,
@@ -215,7 +144,7 @@ function StudentAccommodationDetails() {
 	const [activePhoto, setActivePhoto] = useState(0)
 
 	const [studentName, setStudentName] = useState('')
-	const [studentLoading, setStudentLoading] = useState(true)
+	const [, setStudentLoading] = useState(true)
 
 	// Fetch the accommodation being viewed
 	useEffect(() => {
@@ -325,68 +254,15 @@ function StudentAccommodationDetails() {
 		fetchStudentProfile()
 	}, [])
 
-	const studentInitial = studentName
-		? studentName.charAt(0).toUpperCase()
-		: 'S'
-
 	const hasCoordinates =
 		listing !== null &&
 		Number.isFinite(listing.latitude) &&
 		Number.isFinite(listing.longitude)
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
-			<SidebarShell>
-				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
-						<div className="flex min-w-0 flex-col gap-1">
-							{/* eslint-disable-next-line @next/next/no-img-element */}
-								<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
-								<p className="text-xs font-medium text-slate-500">
-									Student Accommodation Made Easy
-								</p>
-						</div>
-					</Link>
+		<StudentShell>
+			<main>
 
-					<nav className="mt-8 space-y-1">
-						{navItems.map((item) => (
-							<NavButton key={item.label} {...item} />
-						))}
-					</nav>
-				</div>
-
-				<div className="space-y-4">
-					<div className="rounded-2xl bg-slate-50 p-4">
-						<div className="flex items-center gap-3">
-							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								{studentInitial}
-							</div>
-
-							<div>
-								<p className="text-sm font-bold text-slate-900">
-									{studentLoading
-										? 'Loading...'
-										: studentName || 'Student'}
-								</p>
-
-								<p className="text-xs text-slate-500">
-									Student
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<Link
-						href="/"
-						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-					>
-						<LogOut className="h-4 w-4" />
-						Log out
-					</Link>
-				</div>
-			</SidebarShell>
-
-			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
 				<Link
 					href="/students/browseListings"
 					className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-blue-600"
@@ -641,7 +517,7 @@ function StudentAccommodationDetails() {
 					</div>
 				)}
 			</main>
-		</div>
+		</StudentShell>
 	)
 }
 

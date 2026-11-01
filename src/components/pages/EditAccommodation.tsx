@@ -5,18 +5,12 @@ import {
 	useRef,
 	useState,
 	type ReactNode,
-	type ComponentType,
 	type ChangeEvent,
 	type FormEvent,
 } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
-	LayoutDashboard,
-	Home,
-	PlusCircle,
-	Users,
-	LogOut,
 	MapPin,
 	FileText,
 	ChevronDown,
@@ -26,7 +20,6 @@ import {
 	ShieldCheck,
 	Droplets,
 	Zap,
-	WashingMachine,
 	UploadCloud,
 	X,
 	Crosshair,
@@ -43,13 +36,7 @@ import {
 } from 'lucide-react'
 import type * as Leaflet from 'leaflet'
 import AdminNoteBanner from '@/components/pages/AdminNoteBanner'
-
-const navItems = [
-	{ label: 'Dashboard', icon: LayoutDashboard, active: false, href: '/landlord/dashboard' },
-	{ label: 'My Listings', icon: Home, active: true, href: '/landlord/accommodationlisting' },
-	{ label: 'Add Listing', icon: PlusCircle, active: false, href: '/landlord/addaccommodation' },
-	{ label: 'Applications', icon: Users, active: false, href: '/landlord/applications' },
-]
+import LandlordShell from './LandlordShell'
 
 const propertyTypes = [
 	{ label: 'Single Room', value: 'SINGLE_ROOM' },
@@ -87,54 +74,6 @@ function Field({ label, children }: FieldProps) {
 			<span className="text-sm font-bold text-slate-900">{label}</span>
 			{children}
 		</label>
-	)
-}
-
-type InputShellProps = {
-	icon: ComponentType<{ className?: string }>
-	children: ReactNode
-}
-
-function InputShell({ icon: Icon, children }: InputShellProps) {
-	return (
-		<div className="relative">
-			<Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-			{children}
-		</div>
-	)
-}
-
-function NavButton({
-	label,
-	icon: Icon,
-	active,
-	href,
-}: {
-	label: string
-	icon: ComponentType<{ className?: string }>
-	active: boolean
-	href: string
-}) {
-	return (
-		<Link
-			href={href}
-			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-				active
-					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-					: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-			}`}
-		>
-			<Icon className="h-4 w-4" />
-			{label}
-		</Link>
-	)
-}
-
-function SidebarShell({ children }: { children: ReactNode }) {
-	return (
-		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
-			{children}
-		</aside>
 	)
 }
 
@@ -664,61 +603,8 @@ function EditAccommodation() {
 	}
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
-			<SidebarShell>
-				<div>
-					<Link
-						href="/"
-						className="flex items-center gap-3 px-2"
-					>
-						<div className="flex min-w-0 items-center gap-3">
-					<div className="flex min-w-0 flex-col gap-1">
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-						<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
-				</div>
-				</div>
-					</Link>
-
-					<nav className="mt-8 space-y-1">
-						{navItems.map((item) => (
-							<NavButton
-								key={item.label}
-								{...item}
-							/>
-						))}
-					</nav>
-				</div>
-
-				<div className="space-y-4">
-					<div className="rounded-2xl bg-slate-50 p-4">
-						<div className="flex items-center gap-3">
-							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								K
-							</div>
-
-							<div>
-								<p className="text-sm font-bold text-slate-900">
-									Khaya Cathala
-								</p>
-
-								<p className="text-xs text-slate-500">
-									Landlord
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<Link
-						href="/"
-						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-					>
-						<LogOut className="h-4 w-4" />
-						Log out
-					</Link>
-				</div>
-			</SidebarShell>
-
-			<main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+		<LandlordShell>
+			<main className="px-0 py-0">
 				<Link
 					href={`/landlord/accommodationdetails?id=${accommodationId}`}
 					className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
@@ -1174,7 +1060,7 @@ function EditAccommodation() {
 					</div>
 				</form>
 			</main>
-		</div>
+		</LandlordShell>
 	)
 }
 

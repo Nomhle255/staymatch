@@ -1,13 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { ReactNode, ComponentType } from 'react'
 import Link from 'next/link'
 import {
-	LayoutDashboard,
 	Search,
-	Users,
-	LogOut,
 	MapPin,
 	BadgeCheck,
 	SlidersHorizontal,
@@ -15,39 +11,17 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	University,
-	Sparkles,
-	Menu,
-	X,
+	Sparkles,
 	Image as ImageIcon,
 } from 'lucide-react'
 import {
 	useSavedPreferences,
 	type SaveStatus,
 } from '@/hooks/useSavedPreferences'
+import StudentShell from './StudentShell'
 import AiPreferenceAssistant, {
 	type ParsedPreferences,
 } from '@/components/pages/PreferenceAssistant'
-
-const navItems = [
-	{
-		label: 'Dashboard',
-		icon: LayoutDashboard,
-		active: false,
-		href: '/students/dashboard',
-	},
-	{
-		label: 'Browse Listings',
-		icon: Search,
-		active: true,
-		href: '/students/browseListings',
-	},
-	{
-		label: 'Profile',
-		icon: Users,
-		active: false,
-		href: '/profile',
-	},
-]
 
 const propertyTypes = [
 	'All Types',
@@ -156,136 +130,6 @@ type UniversityOption = {
 	name: string
 	latitude: number | null
 	longitude: number | null
-}
-
-function NavButton({
-	label,
-	icon: Icon,
-	active,
-	href,
-	onClick,
-}: {
-	label: string
-	icon: ComponentType<{ className?: string }>
-	active: boolean
-	href: string
-	onClick?: () => void
-}) {
-	return (
-		<Link
-			href={href}
-			onClick={onClick}
-			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-				active
-					? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-					: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-			}`}
-		>
-			<Icon className="h-4 w-4" />
-			{label}
-		</Link>
-	)
-}
-
-function SidebarShell({ children }: { children: ReactNode }) {
-	return (
-		<aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-slate-200/70 bg-white px-4 py-6 lg:flex">
-			{children}
-		</aside>
-	)
-}
-
-/*
- * Top bar for screens smaller than lg, where the sidebar is hidden.
- * It holds the logo, a menu button, and a dropdown with the same
- * navigation, student card, and log out link as the sidebar.
- */
-function MobileNav({
-	studentName,
-	studentInitial,
-	studentLoading,
-}: {
-	studentName: string
-	studentInitial: string
-	studentLoading: boolean
-}) {
-	const [open, setOpen] = useState(false)
-
-	return (
-		<header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
-			<div className="flex items-center justify-between px-4 py-3">
-				<Link href="/" className="flex items-center gap-2.5">
-					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white shadow-lg shadow-blue-600/25">
-						⌂
-					</div>
-
-					<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-						Stay<span className="text-blue-600">Match</span>
-					</p>
-				</Link>
-
-				<button
-					type="button"
-					onClick={() => setOpen((value) => !value)}
-					aria-expanded={open}
-					aria-controls="mobile-menu"
-					aria-label={open ? 'Close menu' : 'Open menu'}
-					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
-				>
-					{open ? (
-						<X className="h-5 w-5" />
-					) : (
-						<Menu className="h-5 w-5" />
-					)}
-				</button>
-			</div>
-
-			{open && (
-				<div
-					id="mobile-menu"
-					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
-				>
-					<nav className="space-y-1">
-						{navItems.map((item) => (
-							<NavButton
-								key={item.label}
-								{...item}
-								onClick={() => setOpen(false)}
-							/>
-						))}
-					</nav>
-
-					<div className="mt-3 rounded-2xl bg-slate-50 p-3">
-						<div className="flex items-center gap-3">
-							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								{studentInitial}
-							</div>
-
-							<div className="min-w-0">
-								<p className="truncate text-sm font-bold text-slate-900">
-									{studentLoading
-										? 'Loading...'
-										: studentName || 'Student'}
-								</p>
-
-								<p className="text-xs text-slate-500">
-									Student
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<Link
-						href="/"
-						className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-					>
-						<LogOut className="h-4 w-4" />
-						Log out
-					</Link>
-				</div>
-			)}
-		</header>
-	)
 }
 
 function getPropertyTypeLabel(propertyType: string) {
@@ -533,7 +377,7 @@ function StudentBrowseListings() {
 	const [error, setError] = useState('')
 	const [universityError, setUniversityError] = useState('')
 	const [studentName, setStudentName] = useState('')
-	const [studentLoading, setStudentLoading] = useState(true)
+	const [, setStudentLoading] = useState(true)
 
 	/*
 	 * Saved student preferences
@@ -893,70 +737,10 @@ function StudentBrowseListings() {
 			return a.distanceKm - b.distanceKm
 		})
 
-	const studentInitial = studentName
-		? studentName.charAt(0).toUpperCase()
-		: 'S'
-
 	return (
-		<div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
-			{/* Mobile and tablet: top bar with a menu (the sidebar is hidden below lg) */}
-			<MobileNav
-				studentName={studentName}
-				studentInitial={studentInitial}
-				studentLoading={studentLoading}
-			/>
+		<StudentShell>
+			<main>
 
-			<SidebarShell>
-				<div>
-					<Link href="/" className="flex items-center gap-3 px-2">
-					<div className="flex min-w-0 flex-col gap-1">
-						{/* eslint-disable-next-line @next/next/no-img-element */}
-							<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
-							<p className="text-xs font-medium text-slate-500">
-								Student Accommodation Made Easy
-							</p>
-					</div>
-					</Link>
-
-					<nav className="mt-8 space-y-1">
-						{navItems.map((item) => (
-							<NavButton key={item.label} {...item} />
-						))}
-					</nav>
-				</div>
-
-				<div className="space-y-4">
-					<div className="rounded-2xl bg-slate-50 p-4">
-						<div className="flex items-center gap-3">
-							<div className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
-								{studentInitial}
-							</div>
-
-							<div>
-								<p className="text-sm font-bold text-slate-900">
-									{studentLoading
-										? 'Loading...'
-										: studentName || 'Student'}
-								</p>
-
-								<p className="text-xs text-slate-500">
-									Student
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<Link
-						href="/"
-						className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-					>
-						<LogOut className="h-4 w-4" />
-						Log out
-					</Link>
-				</div>
-			</SidebarShell>
-
-			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
@@ -1522,7 +1306,7 @@ function StudentBrowseListings() {
 					</>
 				)}
 			</main>
-		</div>
+		</StudentShell>
 	)
 }
 
