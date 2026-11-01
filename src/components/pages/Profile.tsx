@@ -489,7 +489,7 @@ function Profile() {
 			</SidebarShell>
 
 			{/* Main content */}
-			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
+			<main className="min-h-screen min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
 				<div>
 					<h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
 						My Profile
@@ -522,7 +522,7 @@ function Profile() {
 				)}
 
 				{!loading && !loadError && profile && (
-					<div className="mt-6 max-w-2xl">
+					<div className="mt-6 w-full">
 						{successMessage && (
 							<div className="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
 								<Check className="h-4 w-4 shrink-0" />
