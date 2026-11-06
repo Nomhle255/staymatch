@@ -120,11 +120,11 @@ function MobileNav({
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white lg:hidden">
-			<div className="flex items-center justify-between px-4 py-3">
+			<div className="flex items-center justify-between px-4 py-3 md:px-8 md:py-4">
 					<div className="flex min-w-0 items-center gap-3">
 					<div className="flex min-w-0 flex-col gap-1">
 					{/* eslint-disable-next-line @next/next/no-img-element */}
-						<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
+						<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto md:h-12" />
 				</div>
 				</div>
 
@@ -134,7 +134,7 @@ function MobileNav({
 					aria-expanded={open}
 					aria-controls="mobile-menu"
 					aria-label={open ? 'Close menu' : 'Open menu'}
-					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+					className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100 md:h-12 md:w-12"
 				>
 					{open ? (
 						<X className="h-5 w-5" />
@@ -147,7 +147,7 @@ function MobileNav({
 			{open && (
 				<div
 					id="mobile-menu"
-					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3"
+					className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-100 px-4 pb-4 pt-3 md:px-8 md:pb-6 md:pt-4"
 				>
 					<nav className="space-y-1">
 						{navItems.map((item) => (
@@ -263,18 +263,12 @@ export default function AdminShell({
 			{/* Sidebar */}
 			<SidebarShell>
 				<div>
-					<div className="flex items-center gap-3 px-2">
-						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/25">
-							⌂
-						</div>
-
-						<p className="text-lg font-black tracking-[-0.03em] text-slate-950">
-							Stay
-							<span className="text-blue-600">
-								Match
-							</span>
-						</p>
-					</div>
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img
+						src="/brand/staymatch-logo.svg"
+						alt="StayMatch"
+						className="h-11 w-auto px-2"
+					/>
 
 					<nav className="mt-8 space-y-1">
 						{navItems.map((item) => (
@@ -320,17 +314,17 @@ export default function AdminShell({
 			</SidebarShell>
 
 			{/* Main content */}
-			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
+			<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 lg:px-10">
 				<div className="mx-auto max-w-6xl">
 					{/* Page heading */}
 					<div className="flex flex-wrap items-center justify-between gap-4">
 						<div className="min-w-0">
-							<h1 className="break-words text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
+							<h1 className="break-words text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl md:text-4xl">
 								{title}
 							</h1>
 
 							{subtitle && (
-								<p className="mt-1 text-sm text-slate-500">
+								<p className="mt-1 text-sm text-slate-500 md:text-base">
 									{subtitle}
 								</p>
 							)}
@@ -338,7 +332,7 @@ export default function AdminShell({
 					</div>
 
 					{/* Page content */}
-					<div className="mt-6 sm:mt-8">{children}</div>
+					<div className="admin-shell-content mt-6 sm:mt-8">{children}</div>
 				</div>
 			</main>
 		</div>

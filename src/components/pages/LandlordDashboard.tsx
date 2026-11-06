@@ -196,29 +196,13 @@ function LandlordDashboard() {
     return (
         <LandlordShell>
             <main className="relative z-10 min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-10">
-                {/* Background image */}
-                            <div
-                                aria-hidden="true"
-                                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-                                style={{
-                                    backgroundImage: "url('/images/staymatch_backgroundImage.png')",
-                                }}
-                            />
-                        {/* Dark overlay */}
-                            <div
-                                aria-hidden="true"
-                                className="absolute inset-0 z-0 bg-slate-950/50"
-                            />
-
-                        {/* All page content */}
-                            <div className="relative z-10">
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="min-w-0">
-                        <h1 className="break-words text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
+                        <h1 className="break-words text-2xl font-black tracking-[-0.04em] text-slate-950 sm:text-3xl">
                             Welcome back, {landlordLoading ? '...' : firstName}
                         </h1>
-                        <p className="mt-1 text-sm text-white/80">
+                        <p className="mt-1 text-sm text-slate-500">
                             Here's how your listings are performing.
                         </p>
                     </div>
@@ -390,7 +374,6 @@ function LandlordDashboard() {
                                 ))}
                         </div>
                     </section>
-                </div>
                 </div>
             </main>
         </LandlordShell>

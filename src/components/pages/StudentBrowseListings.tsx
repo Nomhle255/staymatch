@@ -186,7 +186,7 @@ function openWhatsAppApplication(
 
 function matchesPriceRange(price: number, range: string) {
 	switch (range) {
-		case 'Under M500':
+		case 'Up to M500':
 			return price <= 500
 		case 'M500 – M800':
 			return price >= 500 && price <= 800
@@ -442,8 +442,6 @@ function StudentBrowseListings() {
 		const newRatings = p.ratings
 		if (newRatings) {
 			setRatings((current) => ({ ...current, ...newRatings }))
-			// Open the panel so the student can see what was set
-			setShowPreferences(true)
 		}
 	}
 

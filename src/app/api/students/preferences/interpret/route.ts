@@ -12,7 +12,7 @@ const PROPERTY_TYPES = [
 ] as const;
 
 const PRICE_RANGES = [
-  "Under M500",
+  "Up to M500",
   "M500 – M800",
   "M800 – M1,000",
   "Above M1,000",
@@ -185,7 +185,7 @@ You extract student accommodation search preferences from natural language.
 Return ONLY a valid JSON object with these optional fields:
 {
   "propertyType": "SINGLE_ROOM" | "DOUBLE" | "COMMUNE" | "BACHELOR" | null,
-  "priceRange": "Under M500" | "M500 – M800" | "M800 – M1,000" | "Above M1,000" | null,
+  "priceRange": "Up to M500" | "M500 – M800" | "M800 – M1,000" | "Above M1,000" | null,
   "maxDistance": number | null,
   "minMatch": number | null,
   "universityId": string | null,

@@ -162,7 +162,64 @@ function AdminLandlords() {
 							</p>
 						</div>
 					) : (
-						<div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+						<div className="mt-4">
+							<div className="space-y-3 md:hidden">
+								{filteredLandlords.map((landlord) => (
+									<div
+										key={landlord.id}
+										className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+									>
+										<div className="flex items-start justify-between gap-3">
+											<div className="flex min-w-0 items-center gap-3">
+												<div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+													{landlord.name
+														.charAt(0)
+														.toUpperCase()}
+												</div>
+												<p className="truncate font-bold text-slate-900">
+													{landlord.name}
+												</p>
+											</div>
+											<span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600">
+												{landlord.accommodationCount}{' '}
+												{landlord.accommodationCount === 1
+													? 'listing'
+													: 'listings'}
+											</span>
+										</div>
+
+										<div className="mt-4 space-y-2 text-sm">
+											<p className="flex min-w-0 items-center gap-1.5 text-slate-600">
+												<Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+												<span className="truncate">{landlord.email}</span>
+											</p>
+											<p className="flex items-center gap-1.5 text-slate-500">
+												<Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+												<span>{landlord.phone || 'No phone added'}</span>
+											</p>
+											<p className="flex items-center gap-1.5 text-slate-500">
+												<CalendarDays className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+												<span>Joined {formatDate(landlord.createdAt)}</span>
+											</p>
+										</div>
+
+										{landlord.accommodationCount > 0 ? (
+											<Link
+												href={`/admin/accommodations?landlord=${landlord.id}`}
+												className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+											>
+												View listings
+											</Link>
+										) : (
+											<span className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-400">
+												No listings
+											</span>
+										)}
+									</div>
+								))}
+							</div>
+
+							<div className="hidden overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm md:block">
 							<table className="w-full min-w-[720px] text-left text-sm">
 								<thead className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-400">
 									<tr>
@@ -237,6 +294,7 @@ function AdminLandlords() {
 									))}
 								</tbody>
 							</table>
+							</div>
 						</div>
 					)}
 				</>

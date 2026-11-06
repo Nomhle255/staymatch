@@ -21,6 +21,7 @@ import {
 	Home,
 	ShieldCheck,
 	ArrowRight,
+	ArrowLeft,
 } from 'lucide-react'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 
@@ -338,6 +339,13 @@ function RegisterUser() {
 			{/* Header */}
 			<div className="mx-auto flex max-w-6xl items-center justify-between">
 				<div className="flex min-w-0 items-center gap-3">
+					<Link
+						href="/"
+						aria-label="Back to landing page"
+						className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/50 bg-white/80 text-slate-700 transition hover:border-blue-300 hover:text-blue-600"
+					>
+						<ArrowLeft className="h-5 w-5" />
+					</Link>
 				<div className="flex min-w-0 flex-col gap-1">
 					{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img src="/brand/staymatch-logo.svg" alt="StayMatch" className="h-11 w-auto" />
