@@ -138,18 +138,6 @@ export default function AdminDashboard() {
 					<div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
 						<LayoutDashboard className="h-5 w-5" />
 					</div>
-
-					<div>
-						<h2 className="text-base font-extrabold text-slate-950">
-							Administrator Dashboard
-						</h2>
-
-						<p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-							Use the management sections to maintain
-							universities, landlords, and accommodation
-							listings in StayMatch.
-						</p>
-					</div>
 				</div>
 			</div>
 		</AdminShell>

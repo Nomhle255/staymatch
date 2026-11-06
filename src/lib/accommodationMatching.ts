@@ -23,8 +23,9 @@ const MAX_SCORED_DISTANCE_KM = 10
 
 function matchesPriceRange(price: number, range: string) {
   switch (range) {
+    case 'Up to M500':
     case 'Under M500':
-      return price < 500
+      return price <= 500
     case 'M500 – M800':
       return price >= 500 && price <= 800
     case 'M800 – M1,000':

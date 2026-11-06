@@ -113,12 +113,12 @@ export async function PUT(request: NextRequest) {
 			minMatch,
 		} = body
 
-		// Validate universityId
+		// Validate university ID
 		if (
 			universityId !== null &&
 			universityId !== undefined &&
-			(!Number.isInteger(universityId) ||
-				universityId <= 0)
+			(typeof universityId !== 'string' ||
+				universityId.trim() === '')
 		) {
 			return NextResponse.json(
 				{ error: 'Invalid university ID.' },
