@@ -56,10 +56,10 @@ npm install
 2. Create a private `.env` file in the project root and configure the required environment variables listed below. Never commit this file or share its values.
 3. Apply migrations and generate Prisma Client:
 
-```bash
-npx prisma migrate deploy
-npx prisma generate
-```
+- Review and manage accommodation listings.
+- Manage landlords and universities.
+- Add universities and geographic coordinates.
+- Monitor platform activity from the admin dashboard.
 
 4. Seed the default models:
 
@@ -69,9 +69,7 @@ npx prisma db seed
 
 5. Start the development server:
 
-```bash
-npm run dev
-```
+## Prerequisites
 
 Open [http://localhost:3000](http://localhost:3000/).
 
