@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-	LayoutDashboard,
 	University,
 	Users,
 	Building2,
@@ -131,14 +130,6 @@ export default function AdminDashboard() {
 					iconColor="text-sky-600"
 					href="/admin/accommodations"
 				/>
-			</div>
-
-			<div className="mt-8 rounded-[1.75rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-				<div className="flex items-start gap-4">
-					<div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-						<LayoutDashboard className="h-5 w-5" />
-					</div>
-				</div>
 			</div>
 		</AdminShell>
 	)
