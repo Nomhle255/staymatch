@@ -36,6 +36,7 @@ type Accommodation = {
 	price: number
 	area: string
 	description: string
+	photos: string[]
 	availableFrom: string | null
 	amenities: string[]
 	latitude: number | null
@@ -464,6 +465,49 @@ export default function AdminAccommodationDetailsPage() {
 					</div>
 				</div>
 
+				{/* Photos */}
+				<div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
+					<div className="flex items-center gap-3">
+						<div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+							<ImageIcon className="h-5 w-5" />
+						</div>
+
+						<div>
+							<h3 className="font-black text-slate-950">
+								Photos
+							</h3>
+							<p className="text-xs text-slate-500">
+								Images uploaded for this accommodation.
+							</p>
+						</div>
+					</div>
+
+					{accommodation.photos.length > 0 ? (
+						<div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+							{accommodation.photos.map((photo, index) => (
+								<div
+									key={`${photo}-${index}`}
+									className="aspect-[4/3] overflow-hidden rounded-xl bg-slate-100"
+								>
+									{/* eslint-disable-next-line @next/next/no-img-element */}
+									<img
+										src={photo}
+										alt={`Accommodation photo ${index + 1}`}
+										className="h-full w-full object-cover transition hover:scale-105"
+									/>
+								</div>
+							))}
+						</div>
+					) : (
+						<div className="mt-5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+							<ImageIcon className="mx-auto h-8 w-8 text-slate-300" />
+							<p className="mt-2 text-sm text-slate-500">
+								No photos have been uploaded.
+							</p>
+						</div>
+					)}
+				</div>
+
 				{/* Amenities */}
 				<div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
 					<div className="flex items-center gap-3">
@@ -570,27 +614,6 @@ export default function AdminAccommodationDetailsPage() {
 							<p className="mt-2 text-sm font-bold text-slate-900">
 								{accommodation.landlord.phone ||
 									'Not provided'}
-							</p>
-						</div>
-					</div>
-				</div>
-
-				{/* Summary */}
-				<div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-					<div className="flex gap-3">
-						<BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-
-						<div>
-							<p className="text-sm font-bold text-blue-900">
-								Accommodation record
-							</p>
-
-							<p className="mt-1 text-sm leading-6 text-blue-800">
-								This page provides the administrator with
-								the accommodation details, location,
-								amenities, landlord information, and
-								application count associated with this
-								listing.
 							</p>
 						</div>
 					</div>
