@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// 1. Verify the token with Google. Never trust an email sent by the client.
+		// Verify the token with Google. Never trust an email sent by the client.
 		let email = ''
 		let name = ''
 
@@ -66,13 +66,13 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// 2. Find an existing account with this email.
+		// Find an existing account with this email.
 		let user = await prisma.user.findFirst({
 			where: { email: { equals: email, mode: 'insensitive' } },
 			include: { role: true },
 		})
 
-		// 3. New user: ask the client which role they want before creating anything.
+		// New user: ask the client which role they want before creating anything.
 		if (!user) {
 			if (typeof role !== 'string' || !role) {
 				return NextResponse.json({
@@ -99,7 +99,6 @@ export async function POST(request: NextRequest) {
 			const phoneDigits = cleanPhone.replace(/\D/g, '')
 
 			// Students contact landlords over WhatsApp, so landlords need a number.
-			// Students may leave it empty, but if they enter one it must be valid.
 			const phoneRequired = roleRecord.name === 'LANDLORD'
 			const phoneGiven = phoneDigits.length > 0
 			const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15
@@ -117,16 +116,11 @@ export async function POST(request: NextRequest) {
 					email,
 					phone: cleanPhone || null,
 					roleId: roleRecord.id,
-					// Google accounts have no password. This is not a valid hash,
-					// so password login can never succeed for this account.
 					passwordHash: `google-oauth:${randomBytes(32).toString('hex')}`,
 				},
 				include: { role: true },
 			})
 		}
-
-		// 4. Issue the same session cookie the password login uses.
-		// NOTE: keep this identical to /api/auth/login/route.ts
 		const token = signToken({ userId: user.id, role: user.role.name })
 
 		const response = NextResponse.json({

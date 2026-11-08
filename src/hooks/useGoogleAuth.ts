@@ -111,8 +111,6 @@ export function useGoogleAuth({
 		document.head.appendChild(script)
 
 		return () => {
-			// Do not remove the Google script.
-			// It can be reused by another page/component.
 		}
 	}, [handleError])
 

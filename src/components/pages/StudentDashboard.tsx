@@ -73,7 +73,6 @@ export default function StudentDashboard() {
 		}
 	}, [])
 
-	// "Recommended for you": verified listings first
 	useEffect(() => {
 		let mounted = true
 

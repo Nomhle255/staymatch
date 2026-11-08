@@ -224,7 +224,6 @@ function ResetPassword() {
 	)
 }
 
-// useSearchParams() requires a Suspense boundary or `next build` fails.
 export default function ResetPasswordPage() {
 	return (
 		<Suspense fallback={null}>

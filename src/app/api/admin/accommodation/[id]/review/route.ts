@@ -6,8 +6,6 @@ type RouteContext = {
     params: Promise<{ id: string }>
 }
 
-// POST /api/admin/accommodation/[id]/review
-// Body: { comment: string, markIncomplete?: boolean }
 // Saves an admin comment on the listing. When markIncomplete is true,
 // the listing is also set to INACTIVE so students no longer see it.
 export async function POST(request: NextRequest, { params }: RouteContext) {

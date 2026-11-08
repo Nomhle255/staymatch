@@ -11,7 +11,6 @@ const VALID_PROPERTY_TYPES = [
 
 // Where a listing goes after the landlord fixes it and saves.
 //   'AVAILABLE'      -> back online straight away
-//   'PENDING_REVIEW' -> stays hidden until an admin approves it again
 const FIXED_LISTING_STATUS: 'AVAILABLE' | 'PENDING_REVIEW' = 'AVAILABLE'
 
 type RouteContext = {
@@ -56,8 +55,6 @@ export async function GET(
 			)
 		}
 
-		// The admin's comment is for the landlord and admins only.
-		// Students must never receive it.
 		if (payload.role !== 'LANDLORD' && payload.role !== 'ADMINISTRATOR') {
 			const { adminNote, adminNoteAt, ...publicAccommodation } = accommodation
 			void adminNote
@@ -251,7 +248,7 @@ export async function PATCH(
 		}
 
 		// The admin marked this listing incomplete and the landlord is now
-		// saving changes: take it off the "needs fixing" list.
+		// saving changes
 		const wasFlaggedIncomplete =
 			existing.status === 'INACTIVE' && Boolean(existing.adminNote)
 

@@ -25,7 +25,6 @@ import {
 } from 'lucide-react'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 
-// Icons can't come from the database, so map role names to icons here.
 const roleIcons: Record<string, ComponentType<{ className?: string }>> = {
 	STUDENT: GraduationCap,
 	LANDLORD: Home,
@@ -69,14 +68,13 @@ function InputShell({ icon: Icon, children }: InputShellProps) {
 	)
 }
 
-// text-base on phones stops iOS from zooming in when a field is focused
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm'
 
 function RegisterUser() {
 	const router = useRouter()
 
-	// Roles are loaded from the database via /api/roles
+	// Roles are loaded from the database 
 	const [roles, setRoles] = useState<RoleOption[]>([])
 	const [rolesLoading, setRolesLoading] = useState(true)
 

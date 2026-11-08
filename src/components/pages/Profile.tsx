@@ -116,11 +116,9 @@ const roleLabels: Record<UserRole, string> = {
 	ADMINISTRATOR: 'Administrator',
 }
 
-// Text-base on phones stops iOS from zooming in when a field is focused.
 const inputClasses =
 	'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm'
 
-// Shared logout function for both mobile and desktop navigation.
 async function handleLogout() {
 	try {
 		const response = await fetch('/api/auth/logout', {

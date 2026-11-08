@@ -3,7 +3,6 @@ import StudentAccommodationDetails from '@/components/pages/StudentAccommodation
 
 export default function StudentAccommodationDetailsPage() {
 	return (
-		// useSearchParams needs a Suspense boundary in the App Router
 		<Suspense fallback={null}>
 			<StudentAccommodationDetails />
 		</Suspense>

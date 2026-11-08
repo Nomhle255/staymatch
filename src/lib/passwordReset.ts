@@ -1,16 +1,8 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 
 /*
- * Stateless password-reset tokens (no database table needed).
- *
- * A token looks like  <payload>.<signature>
- *  - payload   = base64url({ uid, exp })
- *  - signature = HMAC-SHA256 over the payload, keyed with
- *                PASSWORD_RESET_SECRET + the user's CURRENT passwordHash
- *
- * Because the user's current passwordHash is part of the key, the token
- * stops working the moment the password changes. That makes every link
- * single-use without storing anything.
+ * Stateless password-reset tokens
+ * stops working the moment the password changes.
  */
 
 const TOKEN_LIFETIME_MS = 60 * 60 * 1000 // 1 hour
@@ -39,7 +31,7 @@ export function createResetToken(user: { id: string; passwordHash: string }) {
 	return `${payload}.${sign(payload, user.passwordHash)}`
 }
 
-// Reads the token WITHOUT trusting it, only to find out which user it claims to be for.
+// Reads the token WITHOUT trusting it
 export function readResetToken(
 	token: string,
 ): { uid: string; exp: number } | null {

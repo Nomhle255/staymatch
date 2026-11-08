@@ -232,8 +232,6 @@ function StudentAccommodationDetails() {
 
 				const response = await fetch('/api/students/profile')
 
-				// If the route returns HTML (e.g. a 404 page), this resolves to null
-				// instead of throwing a JSON syntax error.
 				const data = await response.json().catch(() => null)
 
 				if (!response.ok || !data) {
@@ -521,8 +519,6 @@ function StudentAccommodationDetails() {
 	)
 }
 
-// useSearchParams() requires a Suspense boundary or `next build` fails.
-// Wrapping here means the parent page.tsx doesn't need to.
 export default function StudentAccommodationDetailsPage() {
 	return (
 		<Suspense fallback={null}>

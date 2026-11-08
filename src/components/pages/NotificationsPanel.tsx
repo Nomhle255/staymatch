@@ -85,7 +85,7 @@ export default function NotificationsPanel() {
 		}
 	}, [])
 
-	// Work out whether this device already has push alerts turned on
+	// check out whether this device already has push alerts turned on
 	useEffect(() => {
 		let mounted = true
 
@@ -146,7 +146,7 @@ export default function NotificationsPanel() {
 	const markAllRead = async () => {
 		if (unreadNotifications.length === 0) return
 
-		// Update the screen right away, then tell the server
+		// Update the screen right away
 		const previous = notifications
 		setNotifications((current) =>
 			current.map((notification) => ({ ...notification, read: true })),

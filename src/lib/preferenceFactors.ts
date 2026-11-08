@@ -1,6 +1,4 @@
-// The "What matters most to you?" factors.
-// `key` is what gets saved in the database, so don't rename keys once
-// students have saved preferences.
+// students preferences.
 export const FACTORS = [
 	{ key: 'price', label: 'Low price' },
 	{ key: 'proximity', label: 'Close to university', needsUniversity: true },

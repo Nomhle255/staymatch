@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// 1. Who does the token claim to be for, and has it expired?
+		// Check Who does the token claim to be for, and has it expired?
 		const claim = readResetToken(token)
 
 		if (!claim || claim.exp < Date.now()) {
@@ -34,13 +34,13 @@ export async function POST(request: NextRequest) {
 
 		const user = await prisma.user.findUnique({ where: { id: claim.uid } })
 
-		// 2. Is the signature genuine for this user's CURRENT password?
+		// Is the signature genuine for this user's CURRENT password?
 		//    (Fails automatically once the password has been changed, so each link works once.)
 		if (!user || !isResetTokenValid(token, user)) {
 			return NextResponse.json({ error: INVALID_LINK_ERROR }, { status: 400 })
 		}
 
-		// 3. Save the new password
+		//Save the new password
 		const passwordHash = await bcrypt.hash(password, 10)
 
 		await prisma.user.update({

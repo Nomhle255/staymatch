@@ -119,10 +119,8 @@ export default function AiPreferenceAssistant({
       }
 
       // Send preferences to the parent component only once.
-      // The parent applies them to the existing accommodation filters.
       onSearch(data.preferences);
     } catch (err) {
-      // Restore the text so the user can edit it and retry.
       setDescription(text);
       setError(
         err instanceof Error

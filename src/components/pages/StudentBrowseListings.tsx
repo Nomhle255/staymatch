@@ -11,7 +11,9 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	University,
-	Sparkles,
+	Sparkles,
+
+
 	Image as ImageIcon,
 } from 'lucide-react'
 import {

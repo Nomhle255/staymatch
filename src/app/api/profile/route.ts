@@ -11,7 +11,6 @@ const profileSelect = {
 	university: true,
 } as const
 
-// Keep the API response shape the same as before: role is a plain string.
 function toProfile<T extends { role: { name: string } }>(user: T) {
 	return { ...user, role: user.role.name }
 }

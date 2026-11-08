@@ -3,8 +3,6 @@ import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/prisma'
 import { createResetToken } from '@/lib/passwordReset'
 
-// Same answer whether or not the email exists, so nobody can use this
-// form to find out who has an account.
 const GENERIC_MESSAGE =
 	'We’ve sent a link to reset your password.'
 
@@ -21,7 +19,6 @@ async function sendResetEmail(to: string, name: string, link: string) {
 	const user = process.env.SMTP_USER
 	const pass = process.env.SMTP_PASS
 
-	// Development shortcut: no email server set up, so print the link instead.
 	if (!host || !user || !pass) {
 		if (process.env.NODE_ENV !== 'production') {
 			console.log(`\n[dev] Password reset link for ${to}:\n${link}\n`)
@@ -81,7 +78,6 @@ export async function POST(request: NextRequest) {
 
 				await sendResetEmail(user.email, user.name, link)
 			} catch (sendError) {
-				// Log it, but still show the generic message to the visitor
 				console.error('Could not send password reset email:', sendError)
 			}
 		}
